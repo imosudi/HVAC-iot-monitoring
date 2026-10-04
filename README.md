@@ -172,28 +172,28 @@ To ensure deterministic execution and isolation, the edge computing node impleme
 
 ```mermaid
 graph TB
-    subgraph EdgeNode["ESP32-S3 Cabin Sensing & Actuation Node (FreeRTOS)"]
-        SCD30["Sensirion SCD30 Transducer<br/>NDIR CO2, Temp, RH (I2C: GPIO 8/9)"]
-        DHT22["DHT22 / AM2302 Transducer<br/>Redundant Temp & RH (1-Wire: GPIO 4)"]
-        LEDC["LEDC Hardware Timer<br/>25 kHz Ultrasonic PWM (GPIO 18)"]
-        PCNT["Pulse Counter Unit (PCNT)<br/>Hall-Effect Tacho (GPIO 19)"]
+    subgraph EdgeNode["ESP32-S3 Cabin Sensing and Actuation Node"]
+        SCD30["Sensirion SCD30 Transducer<br/>NDIR CO2, Temp, RH"]
+        DHT22["DHT22 Transducer<br/>Redundant Temp and RH"]
+        LEDC["LEDC Hardware Timer<br/>25 kHz Ultrasonic PWM"]
+        PCNT["Pulse Counter Unit<br/>Hall-Effect Tachometer"]
         LED["WS2812B Status Indicator<br/>Multi-colour Health Signalling"]
-        Firmware["Firmware Execution Core<br/>mTLS Client & Cross-Validation"]
+        Firmware["FreeRTOS Firmware Core<br/>mTLS Client and Validation"]
 
         SCD30 -->|I2C Master Read| Firmware
         DHT22 -->|1-Wire Protocol| Firmware
-        Firmware -->|Duty Cycle Modulation| LEDC
+        Firmware -->|PWM Duty Modulation| LEDC
         PCNT -->|RPM Pulse Stream| Firmware
-        Firmware -->|Health Visualisation| LED
+        Firmware -->|Status Signalling| LED
     end
 
-    subgraph ServiceMesh["Raspberry Pi 5 Automotive Gateway (Containerised Mesh)"]
-        Mosquitto["Eclipse Mosquitto MQTT Broker<br/>Port 8883 (TLS 1.3 Termination, mTLS & ACLs)"]
-        NodeRED["Node-RED Ingress IPE & Dispatcher<br/>Schema Validation & oneM2M REST Primitives"]
-        CSE["oneM2M Common Services Entity (IN-CSE)<br/>Resource Root: /sdv-cse"]
-        BridgeAE["Bridge AE Data Health Engine<br/>Freshness & Cross-Check Classifier"]
-        InfluxDB["InfluxDB 2.x TSDB Engine<br/>Bucket: cabin_telemetry (30d Retention)"]
-        Grafana["Grafana Operations Cockpit<br/>Observability, Flux Analytics & Downlink Dispatcher"]
+    subgraph ServiceMesh["Raspberry Pi 5 Edge Gateway Service Mesh"]
+        Mosquitto["Eclipse Mosquitto MQTT Broker<br/>Port 8883 with TLS 1.3 mTLS"]
+        NodeRED["Node-RED Ingress IPE<br/>Schema Validation and REST Mapping"]
+        CSE["oneM2M Common Services Entity<br/>Resource Root: /sdv-cse"]
+        BridgeAE["Bridge AE Data Health Engine<br/>Freshness and Cross-Check Classifier"]
+        InfluxDB["InfluxDB 2.x TSDB Engine<br/>Bucket: cabin_telemetry"]
+        Grafana["Grafana Operations Cockpit<br/>Observability, Analytics and Overrides"]
 
         Mosquitto -->|Decoded JSON Telemetry| NodeRED
         NodeRED -->|HTTP POST cin Primitives| CSE
@@ -201,13 +201,13 @@ graph TB
         BridgeAE -->|Classified Nanosecond Points| InfluxDB
         InfluxDB -->|Flux Query Telemetry| Grafana
         
-        Grafana -.->|Actuation Rule / Override POST| CSE
+        Grafana -.->|Actuation Rule or Override| CSE
         CSE -.->|Sub_Downlink Notification| NodeRED
-        NodeRED -.->|MQTT Publish (sdv/.../cmd)| Mosquitto
+        NodeRED -.->|MQTT Downlink Dispatch| Mosquitto
     end
 
-    Firmware ==>|Mutual TLS Ingress (Port 8883)| Mosquitto
-    Mosquitto -.->|Mutual TLS Egress (Downlink)| Firmware
+    Firmware ==>|mTLS Ingress Port 8883| Mosquitto
+    Mosquitto -.->|mTLS Downlink Egress| Firmware
 ```
 
 ---
