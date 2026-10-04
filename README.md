@@ -548,11 +548,11 @@ HVAC-iot-monitoring/
 The conceptualisation, engineering implementation, and formal verification of this project were conducted by research team **FHTW-AIOT (Group MIO3B)** at **University of Applied Sciences Technikum Wien**:
 
 ### Research Team Members
-* **Ashok Ramalingam** – *Project Researcher & Embedded Systems Lead*
-* **Isiaka Mosudi** – *Project Researcher & Middleware Systems Lead*
-* **Pooja Janwalkar** – *Project Researcher & Data Analytics Lead*
-* **AnnaMaria Moçi** – *Team Member*
-* **Julia Philip** – *Team Member*
+* **Ashok Ramalingam** (Project Researcher)
+* **Isiaka Mosudi** (Project Researcher)
+* **Pooja Janwalkar** (Project Researcher)
+* **AnnaMaria Moçi** (Member)
+* **Julia Philip** (Member)
 
 ### Contributor Roles & Engineering Deliverables (CRediT Taxonomy)
 

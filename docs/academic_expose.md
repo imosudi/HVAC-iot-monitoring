@@ -13,11 +13,11 @@
 ---
 
 ### Research Team Members
-* **Ashok Ramalingam** – *Project Researcher & Embedded Systems Lead*
-* **Isiaka Mosudi** – *Project Researcher & Middleware Systems Lead*
-* **Pooja Janwalkar** – *Project Researcher & Data Analytics Lead*
-* **AnnaMaria Moçi** – *Team Member*
-* **Julia Philip** – *Team Member*
+* **Ashok Ramalingam** (Project Researcher)
+* **Isiaka Mosudi** (Project Researcher)
+* **Pooja Janwalkar** (Project Researcher)
+* **AnnaMaria Moçi** (Member)
+* **Julia Philip** (Member)
 
 ### Contributor Roles & Engineering Deliverables (CRediT Taxonomy)
 * **Ashok Ramalingam** – *Software, Hardware, Embedded Firmware, Edge Security:* Embedded FreeRTOS firmware implementation on ESP32-S3; dual-channel transducer acquisition drivers (Sensirion SCD30 I²C & DHT22 1-Wire); supersonic 25 kHz LEDC PWM blower modulation; PCNT Hall-effect tachometer closed-loop verification; hardware fail-safe baseline; edge mTLS client cryptographic integration and local certificate provisioning.
