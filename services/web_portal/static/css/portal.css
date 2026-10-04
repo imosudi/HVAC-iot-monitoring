@@ -1,136 +1,222 @@
 /* ==============================================================================
-   Software-Defined Vehicle (SDV) Cyber-Physical Cabin Environmental Control
-   High-Precision Instrument Brutalism & Cyber-Physical HUD Theme
-   Design System: projects/8297625609660515167 (Stitch Design Specification)
+   FH Technikum Wien (FHTW) Corporate Design Theme
+   Conforming to https://www.technikum-wien.at/ Corporate Identity
+   Automotive IoT Research Cluster — SDV Cabin Environmental Monitoring
    ============================================================================== */
 
 :root {
-    /* Primary Typography Scales */
-    --bs-body-font-family: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    --bs-font-monospace: 'Geist Mono', SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    /* Primary Typography: Roboto (Official FHTW font family) */
+    --bs-body-font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --bs-font-monospace: 'Roboto Mono', 'SFMono-Regular', Menlo, Monaco, Consolas, monospace;
 
-    /* Base Electromagnetic Canvas & Elevations */
-    --bs-body-bg: #061423;
-    --bs-body-color: #d6e4f9;
-    --bs-secondary-color: #a9b7c6;
-    --bs-tertiary-color: #6b7c93;
+    /* Official FH Technikum Wien Brand Palette */
+    --fhtw-blue-120: #025585;
+    --fhtw-blue-100: #00649c; /* Primary Technikum Blue */
+    --fhtw-blue-80: #3383b0;
+    --fhtw-blue-60: #66a2c4;
+    --fhtw-blue-40: #99c1d7;
+    --fhtw-blue-20: rgba(0, 100, 156, 0.15);
 
-    /* Structural Grid Borders */
-    --bs-border-color: #264466;
-    --bs-border-color-subtle: #1e3752;
+    --fhtw-green-120: #68880f;
+    --fhtw-green-100: #769b12; /* Primary Technikum Lime / Accent */
+    --fhtw-green-80: #a2c24a;
+    --fhtw-green-60: #b9d177;
+    --fhtw-green-40: #d1e1a5;
+    --fhtw-green-20: rgba(118, 155, 18, 0.15);
 
-    /* Primary Telemetry Signal (Cyan HUD Accents) */
-    --bs-info: #19c3d1;
-    --bs-info-rgb: 25, 195, 209;
+    --fhtw-magenta-120: #d6006b;
+    --fhtw-magenta-100: #e71a80;
 
-    /* Secondary Protocol & Architecture Accent (Precision Blue) */
-    --bs-primary: #4da3ff;
-    --bs-primary-rgb: 77, 163, 255;
+    --fhtw-grey-5: #f4f6f8;
+    --fhtw-grey-20: #e3e4e4;
+    --fhtw-grey-40: #c7c9ca;
+    --fhtw-grey-60: #aaadaf;
+    --fhtw-grey-80: #8e9295;
+    --fhtw-grey-100: #72777a;
+    --fhtw-grey-120: #333333;
+    --fhtw-navy: #002b49; /* Institutional Dark Blue */
 
-    /* Semantic Healthy (Fresh Telemetry State) */
-    --bs-success: #39d98a;
-    --bs-success-rgb: 57, 217, 138;
+    /* Bootstrap 5 Theme Overrides */
+    --bs-body-bg: #f4f6f8;
+    --bs-body-color: #333333;
+    --bs-secondary-color: #72777a;
+    --bs-tertiary-color: #8e9295;
 
-    /* Semantic Stale (Packet Latency Exceedance) */
-    --bs-warning: #f4b942;
-    --bs-warning-rgb: 244, 185, 66;
+    --bs-border-color: #e3e4e4;
+    --bs-border-color-subtle: #eaecee;
 
-    /* Semantic Fault / Hazard (ASIL Disruption & E-Stop) */
-    --bs-danger: #ff5c5c;
-    --bs-danger-rgb: 255, 92, 92;
+    --bs-primary: #00649c;
+    --bs-primary-rgb: 0, 100, 156;
+
+    --bs-info: #00649c;
+    --bs-info-rgb: 0, 100, 156;
+
+    --bs-success: #769b12;
+    --bs-success-rgb: 118, 155, 18;
+
+    --bs-warning: #e67e22;
+    --bs-warning-rgb: 230, 126, 34;
+
+    --bs-danger: #d6006b;
+    --bs-danger-rgb: 214, 0, 107;
 
     /* Card & Container Elevations */
-    --bs-card-bg: #132030;
-    --bs-card-cap-bg: #0f1c2c;
-    --bs-card-border-color: #264466;
-    --bs-card-border-radius: 0px;
+    --bs-card-bg: #ffffff;
+    --bs-card-cap-bg: #ffffff;
+    --bs-card-border-color: #e3e4e4;
+    --bs-card-border-radius: 4px;
 
-    /* Strict Zero-Radius Geometry */
-    --bs-border-radius: 0px;
-    --bs-border-radius-sm: 0px;
-    --bs-border-radius-lg: 0px;
-    --bs-border-radius-xl: 0px;
-    --bs-border-radius-xxl: 0px;
+    /* Clean subtle geometry */
+    --bs-border-radius: 4px;
+    --bs-border-radius-sm: 2px;
+    --bs-border-radius-lg: 6px;
 }
 
-/* Headings: Engineered Geometric Grotesque */
+/* Headings: Clean, Authority-driven Roboto */
 h1, h2, h3, h4, h5, h6, .font-heading {
-    font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
-    letter-spacing: -0.015em;
+    font-family: 'Roboto', sans-serif;
     font-weight: 700;
+    color: #1a1a1a;
+    letter-spacing: -0.01em;
 }
 
-/* Tabular Figures for High-Frequency Telemetry Updates */
+/* Tabular Figures for Telemetry Updates */
 .tabular-nums {
     font-variant-numeric: tabular-nums;
 }
 
-/* High-Precision Instrument Corner Reticles */
-.reticle-corner {
-    position: relative;
+/* FHTW Institutional Palette Utilities */
+.bg-fhtw-blue {
+    background-color: var(--fhtw-blue-100) !important;
+    color: #ffffff !important;
 }
 
-.reticle-corner::before {
-    content: '+';
-    position: absolute;
-    top: -6px;
-    left: -6px;
-    font-family: var(--bs-font-monospace);
-    font-size: 11px;
-    color: var(--bs-info);
-    pointer-events: none;
-    line-height: 1;
+.bg-fhtw-navy {
+    background-color: var(--fhtw-navy) !important;
+    color: #ffffff !important;
 }
 
-.reticle-corner::after {
-    content: '+';
-    position: absolute;
-    bottom: -6px;
-    right: -6px;
-    font-family: var(--bs-font-monospace);
-    font-size: 11px;
-    color: var(--bs-info);
-    pointer-events: none;
-    line-height: 1;
+.bg-fhtw-green {
+    background-color: var(--fhtw-green-100) !important;
+    color: #ffffff !important;
 }
 
-/* Custom Background and Border Utilities */
-.bg-surface-trough {
-    background-color: #0f1c2c !important;
+.bg-fhtw-grey {
+    background-color: var(--fhtw-grey-5) !important;
 }
 
-.bg-surface-elevated {
-    background-color: #1e2b3b !important;
+.text-fhtw-blue {
+    color: var(--fhtw-blue-100) !important;
+}
+
+.text-fhtw-green {
+    color: var(--fhtw-green-100) !important;
+}
+
+.border-fhtw-blue {
+    border-color: var(--fhtw-blue-100) !important;
+}
+
+.border-fhtw-green {
+    border-color: var(--fhtw-green-100) !important;
 }
 
 .border-grid-subtle {
-    border-color: #1e3752 !important;
+    border-color: var(--fhtw-grey-20) !important;
+}
+
+.bg-surface-trough {
+    background-color: #f8f9fa !important;
 }
 
 .text-signal-primary {
-    color: #f4f7fa !important;
+    color: #1a1a1a !important;
 }
 
 .text-signal-secondary {
-    color: #a9b7c6 !important;
+    color: #555555 !important;
 }
 
-.text-degraded {
-    color: #fa8c16 !important;
+/* Cards & Elevation */
+.card {
+    background-color: #ffffff;
+    border: 1px solid var(--fhtw-grey-20);
+    border-radius: 4px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
 }
 
-.bg-degraded {
-    background-color: #fa8c16 !important;
-    color: #061423 !important;
+.card:hover {
+    border-color: var(--fhtw-blue-60);
+    box-shadow: 0 3px 8px rgba(0, 100, 156, 0.08);
 }
 
-/* Stream Terminal Scroll Styling */
+.card-header {
+    background-color: #ffffff;
+    border-bottom: 1px solid var(--fhtw-grey-20);
+}
+
+/* FHTW Navigation */
+.navbar-fhtw {
+    background-color: #ffffff;
+    border-bottom: 2px solid var(--fhtw-grey-20);
+}
+
+.navbar-fhtw .nav-link {
+    color: #333333;
+    font-weight: 500;
+    font-size: 0.875rem;
+    letter-spacing: 0.02em;
+    padding: 0.75rem 1rem;
+    transition: color 0.15s ease-in-out;
+}
+
+.navbar-fhtw .nav-link:hover {
+    color: var(--fhtw-blue-100);
+}
+
+.navbar-fhtw .nav-link.active {
+    color: var(--fhtw-blue-100) !important;
+    border-bottom: 3px solid var(--fhtw-blue-100) !important;
+    font-weight: 700;
+}
+
+/* FHTW Primary Buttons */
+.btn-primary, .btn-info {
+    background-color: var(--fhtw-blue-100);
+    border-color: var(--fhtw-blue-100);
+    color: #ffffff;
+    font-weight: 500;
+    border-radius: 4px;
+}
+
+.btn-primary:hover, .btn-info:hover {
+    background-color: var(--fhtw-blue-120);
+    border-color: var(--fhtw-blue-120);
+    color: #ffffff;
+}
+
+.btn-outline-primary, .btn-outline-info {
+    color: var(--fhtw-blue-100);
+    border-color: var(--fhtw-blue-100);
+    border-radius: 4px;
+}
+
+.btn-outline-primary:hover, .btn-outline-info:hover {
+    background-color: var(--fhtw-blue-100);
+    border-color: var(--fhtw-blue-100);
+    color: #ffffff;
+}
+
+/* FHTW Terminal Log Window */
 .terminal-window {
-    background-color: #020f1e;
-    border: 1px solid #1e3752;
+    background-color: var(--fhtw-navy);
+    border: 1px solid #1a3e60;
+    color: #d6e4f9;
     font-family: var(--bs-font-monospace);
     font-size: 0.8125rem;
     line-height: 1.5;
+    border-radius: 4px;
 }
 
 .terminal-window::-webkit-scrollbar {
@@ -139,13 +225,19 @@ h1, h2, h3, h4, h5, h6, .font-heading {
 }
 
 .terminal-window::-webkit-scrollbar-track {
-    background: #0f1c2c;
+    background: #021a2d;
 }
 
 .terminal-window::-webkit-scrollbar-thumb {
-    background: #264466;
+    background: #1a3e60;
 }
 
 .terminal-window::-webkit-scrollbar-thumb:hover {
-    background: #19c3d1;
+    background: var(--fhtw-green-100);
+}
+
+/* Badges */
+.badge {
+    border-radius: 3px;
+    font-weight: 600;
 }

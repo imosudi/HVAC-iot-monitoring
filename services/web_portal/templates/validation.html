@@ -1,19 +1,19 @@
 {% extends "base.html" %}
 
-{% block title %}Experimental Validation &amp; Artefacts — SDV Cyber-Physical Environmental Monitoring{% endblock %}
+{% block title %}Experimental Validation &amp; Artefacts — FH Technikum Wien SDV-HVAC{% endblock %}
 
 {% block content %}
 <!-- Sub-Header HUD Banner -->
 <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3 border-bottom border-grid-subtle pb-2">
     <div>
         <div class="d-flex align-items-center gap-2 font-monospace small text-secondary mb-1">
-            <span class="text-info fw-bold">RESEARCH VALIDATION</span>
+            <span class="text-fhtw-blue fw-bold">RESEARCH VALIDATION</span>
             <span>/</span>
-            <span class="text-tertiary">SECTION 04</span>
+            <span class="text-fhtw-green fw-bold">SECTION 04</span>
             <span>/</span>
             <span>EXPERIMENTAL RESULTS &amp; ARTEFACTS</span>
         </div>
-        <h1 class="font-heading fw-bold fs-4 text-signal-primary m-0 text-uppercase">
+        <h1 class="font-heading fw-bold fs-4 text-fhtw-blue m-0 text-uppercase">
             Three-Tier Empirical Verification &amp; Project Artefacts
         </h1>
         <p class="font-monospace small text-secondary m-0">
@@ -21,16 +21,16 @@
         </p>
     </div>
     <div class="d-flex align-items-center gap-2 font-monospace small">
-        <span class="badge bg-success rounded-0">19 TESTS PASSING</span>
-        <span class="badge bg-dark border border-grid-subtle text-info rounded-0">SOAK: 48H VERIFIED</span>
+        <span class="badge bg-fhtw-green text-white">21 TESTS PASSING</span>
+        <span class="badge bg-fhtw-blue text-white">SOAK: 48H VERIFIED</span>
     </div>
 </div>
 
 <!-- Three-Tier Empirical Testing Methodology -->
 <div class="mb-4">
     <div class="d-flex align-items-center justify-content-between border-bottom border-grid-subtle pb-2 mb-3">
-        <h2 class="font-heading fs-5 text-signal-primary m-0 text-uppercase">
-            <i class="bi bi-layers text-info me-2"></i>Three-Tier Verification Architecture
+        <h2 class="font-heading fs-5 text-fhtw-blue m-0 text-uppercase">
+            <i class="bi bi-layers text-fhtw-blue me-2"></i>Three-Tier Verification Architecture
         </h2>
         <span class="font-monospace small text-secondary">[CONTINUOUS INTEGRATION &amp; TESTBENCH PROFILING]</span>
     </div>
@@ -38,18 +38,18 @@
     <div class="row g-2 g-xl-3">
         <!-- Tier 1 -->
         <div class="col-12 col-md-4">
-            <div class="card bg-dark border border-secondary-subtle rounded-0 shadow-none h-100 reticle-corner">
-                <div class="card-header bg-surface-trough border-bottom border-grid-subtle py-1 px-3 d-flex justify-content-between align-items-center">
-                    <span class="badge bg-surface-elevated text-info rounded-0 font-monospace small border border-grid-subtle">TIER 1</span>
-                    <span class="font-monospace small text-success">UNIT CONTRACTS</span>
+            <div class="card h-100 shadow-sm border-grid-subtle">
+                <div class="card-header bg-white border-bottom border-grid-subtle py-1 px-3 d-flex justify-content-between align-items-center">
+                    <span class="badge bg-fhtw-blue text-white font-monospace small">TIER 1</span>
+                    <span class="font-monospace small text-fhtw-green fw-bold">UNIT CONTRACTS</span>
                 </div>
                 <div class="card-body p-3 font-monospace small">
-                    <div class="text-signal-primary fw-bold mb-2">Schema &amp; Classifier Validation</div>
+                    <div class="text-dark fw-bold mb-2">Schema &amp; Classifier Validation</div>
                     <ul class="list-unstyled text-secondary mb-0 space-y-1">
                         <li>&bull; JSONSchema draft-07 contract compliance</li>
                         <li>&bull; Health Classifier state transition logic</li>
                         <li>&bull; Web portal route and constraint tests</li>
-                        <li>&bull; Execution command: <code class="text-info">make test-unit</code></li>
+                        <li>&bull; Execution command: <code class="text-fhtw-blue">make test-unit</code></li>
                     </ul>
                 </div>
             </div>
@@ -57,18 +57,18 @@
 
         <!-- Tier 2 -->
         <div class="col-12 col-md-4">
-            <div class="card bg-dark border border-secondary-subtle rounded-0 shadow-none h-100 reticle-corner">
-                <div class="card-header bg-surface-trough border-bottom border-grid-subtle py-1 px-3 d-flex justify-content-between align-items-center">
-                    <span class="badge bg-surface-elevated text-info rounded-0 font-monospace small border border-grid-subtle">TIER 2</span>
-                    <span class="font-monospace small text-primary">INTEGRATION</span>
+            <div class="card h-100 shadow-sm border-grid-subtle">
+                <div class="card-header bg-white border-bottom border-grid-subtle py-1 px-3 d-flex justify-content-between align-items-center">
+                    <span class="badge bg-fhtw-blue text-white font-monospace small">TIER 2</span>
+                    <span class="font-monospace small text-fhtw-blue fw-bold">INTEGRATION</span>
                 </div>
                 <div class="card-body p-3 font-monospace small">
-                    <div class="text-signal-primary fw-bold mb-2">End-to-End Pipeline Harness</div>
+                    <div class="text-dark fw-bold mb-2">End-to-End Pipeline Harness</div>
                     <ul class="list-unstyled text-secondary mb-0 space-y-1">
                         <li>&bull; Simulated sensor ingest to oneM2M</li>
                         <li>&bull; Closed-loop downlink purge modulation</li>
                         <li>&bull; TSDB persistence verification</li>
-                        <li>&bull; Execution command: <code class="text-info">make test-integration</code></li>
+                        <li>&bull; Execution command: <code class="text-fhtw-blue">make test-integration</code></li>
                     </ul>
                 </div>
             </div>
@@ -76,18 +76,18 @@
 
         <!-- Tier 3 -->
         <div class="col-12 col-md-4">
-            <div class="card bg-dark border border-secondary-subtle rounded-0 shadow-none h-100 reticle-corner">
-                <div class="card-header bg-surface-trough border-bottom border-grid-subtle py-1 px-3 d-flex justify-content-between align-items-center">
-                    <span class="badge bg-surface-elevated text-info rounded-0 font-monospace small border border-grid-subtle">TIER 3</span>
-                    <span class="font-monospace small text-warning">ADVERSARIAL</span>
+            <div class="card h-100 shadow-sm border-grid-subtle">
+                <div class="card-header bg-white border-bottom border-grid-subtle py-1 px-3 d-flex justify-content-between align-items-center">
+                    <span class="badge bg-fhtw-blue text-white font-monospace small">TIER 3</span>
+                    <span class="font-monospace small text-warning fw-bold">ADVERSARIAL</span>
                 </div>
                 <div class="card-body p-3 font-monospace small">
-                    <div class="text-signal-primary fw-bold mb-2">Hardware-in-the-Loop &amp; Faults</div>
+                    <div class="text-dark fw-bold mb-2">Hardware-in-the-Loop &amp; Faults</div>
                     <ul class="list-unstyled text-secondary mb-0 space-y-1">
                         <li>&bull; Adversarial latency injection (FI-01)</li>
                         <li>&bull; Transducer disparity injection (FI-02)</li>
                         <li>&bull; Detached sensor detection (FI-03)</li>
-                        <li>&bull; Execution command: <code class="text-info">make inject-faults</code></li>
+                        <li>&bull; Execution command: <code class="text-fhtw-blue">make inject-faults</code></li>
                     </ul>
                 </div>
             </div>
@@ -99,17 +99,17 @@
 <div class="row g-2 g-xl-3 mb-3">
     <!-- Quantitative Performance Benchmarks Table -->
     <div class="col-12 col-lg-6">
-        <div class="card bg-dark border border-secondary-subtle rounded-0 shadow-none h-100 reticle-corner">
-            <div class="card-header bg-surface-trough border-bottom border-grid-subtle py-2 px-3 d-flex justify-content-between align-items-center">
-                <span class="font-heading fw-bold text-signal-primary fs-6">
-                    <i class="bi bi-speedometer text-info me-2"></i>EMPIRICAL PERFORMANCE BENCHMARKS
+        <div class="card h-100 shadow-sm border-grid-subtle">
+            <div class="card-header bg-white border-bottom border-grid-subtle py-2 px-3 d-flex justify-content-between align-items-center">
+                <span class="font-heading fw-bold text-fhtw-blue fs-6">
+                    <i class="bi bi-speedometer text-fhtw-blue me-2"></i>EMPIRICAL PERFORMANCE BENCHMARKS
                 </span>
-                <span class="badge bg-dark border border-grid-subtle text-success font-monospace">VERIFIED</span>
+                <span class="badge bg-fhtw-green text-white font-monospace">VERIFIED</span>
             </div>
             <div class="card-body p-3 font-monospace small">
-                <table class="table table-dark table-hover table-sm border-grid-subtle mb-0 align-middle">
+                <table class="table table-hover table-sm border-grid-subtle mb-0 align-middle">
                     <thead>
-                        <tr class="text-secondary border-bottom border-grid-subtle">
+                        <tr class="text-secondary border-bottom border-grid-subtle bg-light">
                             <th>METRIC / PARAMETER</th>
                             <th>SPECIFICATION</th>
                             <th>MEASURED</th>
@@ -118,34 +118,34 @@
                     </thead>
                     <tbody class="text-secondary">
                         <tr>
-                            <td class="text-info fw-semibold">Uplink Telemetry Latency</td>
+                            <td class="text-fhtw-blue fw-semibold">Uplink Telemetry Latency</td>
                             <td>&le; 2.50 s</td>
                             <td class="tabular-nums">0.09s - 0.64s</td>
-                            <td><span class="badge bg-success rounded-0">PASS</span></td>
+                            <td><span class="badge bg-fhtw-green text-white">PASS</span></td>
                         </tr>
                         <tr>
-                            <td class="text-info fw-semibold">Sensor Disparity (&Delta;T)</td>
+                            <td class="text-fhtw-blue fw-semibold">Sensor Disparity (&Delta;T)</td>
                             <td>&le; 1.50 &deg;C</td>
                             <td class="tabular-nums">0.10 &deg;C</td>
-                            <td><span class="badge bg-success rounded-0">PASS</span></td>
+                            <td><span class="badge bg-fhtw-green text-white">PASS</span></td>
                         </tr>
                         <tr>
-                            <td class="text-info fw-semibold">Purge Reaction Time</td>
+                            <td class="text-fhtw-blue fw-semibold">Purge Reaction Time</td>
                             <td>&le; 2.00 s</td>
                             <td class="tabular-nums">0.45 s</td>
-                            <td><span class="badge bg-success rounded-0">PASS</span></td>
+                            <td><span class="badge bg-fhtw-green text-white">PASS</span></td>
                         </tr>
                         <tr>
-                            <td class="text-info fw-semibold">PWM Carrier Frequency</td>
+                            <td class="text-fhtw-blue fw-semibold">PWM Carrier Frequency</td>
                             <td>25,000 Hz</td>
                             <td class="tabular-nums">25,000 Hz</td>
-                            <td><span class="badge bg-success rounded-0">PASS</span></td>
+                            <td><span class="badge bg-fhtw-green text-white">PASS</span></td>
                         </tr>
                         <tr>
-                            <td class="text-info fw-semibold">TLS Handshake Overhead</td>
+                            <td class="text-fhtw-blue fw-semibold">TLS Handshake Overhead</td>
                             <td>&le; 200 ms</td>
                             <td class="tabular-nums">48 ms</td>
-                            <td><span class="badge bg-success rounded-0">PASS</span></td>
+                            <td><span class="badge bg-fhtw-green text-white">PASS</span></td>
                         </tr>
                     </tbody>
                 </table>
@@ -155,53 +155,53 @@
 
     <!-- Research Team Attributions & Academic Metadata -->
     <div class="col-12 col-lg-6">
-        <div class="card bg-dark border border-secondary-subtle rounded-0 shadow-none h-100 reticle-corner">
-            <div class="card-header bg-surface-trough border-bottom border-grid-subtle py-2 px-3 d-flex justify-content-between align-items-center">
-                <span class="font-heading fw-bold text-signal-primary fs-6">
-                    <i class="bi bi-people text-primary me-2"></i>RESEARCH TEAM &amp; ATTRIBUTIONS
+        <div class="card h-100 shadow-sm border-grid-subtle">
+            <div class="card-header bg-white border-bottom border-grid-subtle py-2 px-3 d-flex justify-content-between align-items-center">
+                <span class="font-heading fw-bold text-fhtw-blue fs-6">
+                    <i class="bi bi-people text-fhtw-blue me-2"></i>RESEARCH TEAM &amp; ATTRIBUTIONS
                 </span>
-                <span class="badge bg-dark border border-grid-subtle text-info font-monospace">FHTW-AIOT</span>
+                <span class="badge bg-fhtw-blue text-white font-monospace">FHTW-AIOT</span>
             </div>
             <div class="card-body p-3 font-monospace small">
-                <ul class="list-group list-group-flush rounded-0 mb-3">
+                <ul class="list-group list-group-flush mb-3">
                     <li class="list-group-item bg-transparent border-grid-subtle px-0 py-2 d-flex justify-content-between align-items-center">
                         <div>
-                            <span class="text-signal-primary fw-bold">Ashok Ramalingam</span>
+                            <span class="text-dark fw-bold">Ashok Ramalingam</span>
                             <span class="text-secondary d-block">Firmware Development &bull; Hardware Sensor Integration</span>
                         </div>
-                        <span class="badge bg-dark border border-grid-subtle text-info rounded-0">HARDWARE</span>
+                        <span class="badge bg-light border border-grid-subtle text-fhtw-blue">HARDWARE</span>
                     </li>
                     <li class="list-group-item bg-transparent border-grid-subtle px-0 py-2 d-flex justify-content-between align-items-center">
                         <div>
-                            <span class="text-signal-primary fw-bold">Isiaka Mosudi</span>
+                            <span class="text-dark fw-bold">Isiaka Mosudi</span>
                             <span class="text-secondary d-block">Middleware Engineering &bull; oneM2M IPE &bull; Web Portal</span>
                         </div>
-                        <span class="badge bg-dark border border-grid-subtle text-info rounded-0">MIDDLEWARE</span>
+                        <span class="badge bg-light border border-grid-subtle text-fhtw-blue">MIDDLEWARE</span>
                     </li>
                     <li class="list-group-item bg-transparent border-grid-subtle px-0 py-2 d-flex justify-content-between align-items-center">
                         <div>
-                            <span class="text-signal-primary fw-bold">Pooja Janwalkar</span>
+                            <span class="text-dark fw-bold">Pooja Janwalkar</span>
                             <span class="text-secondary d-block">PKI Zero-Trust Security &bull; Health Classifier &bull; TSDB Storage</span>
                         </div>
-                        <span class="badge bg-dark border border-grid-subtle text-info rounded-0">SECURITY</span>
+                        <span class="badge bg-light border border-grid-subtle text-fhtw-blue">SECURITY</span>
                     </li>
                     <li class="list-group-item bg-transparent border-grid-subtle px-0 py-2 d-flex justify-content-between align-items-center">
                         <div>
-                            <span class="text-signal-primary fw-bold">AnnaMaria Moçi</span>
+                            <span class="text-dark fw-bold">AnnaMaria Moçi</span>
                             <span class="text-secondary d-block">Project Member</span>
                         </div>
-                        <span class="badge bg-dark border border-grid-subtle text-secondary rounded-0">MEMBER</span>
+                        <span class="badge bg-light border border-grid-subtle text-secondary">MEMBER</span>
                     </li>
                     <li class="list-group-item bg-transparent border-0 px-0 py-2 d-flex justify-content-between align-items-center">
                         <div>
-                            <span class="text-signal-primary fw-bold">Julia Philip</span>
+                            <span class="text-dark fw-bold">Julia Philip</span>
                             <span class="text-secondary d-block">Project Member</span>
                         </div>
-                        <span class="badge bg-dark border border-grid-subtle text-secondary rounded-0">MEMBER</span>
+                        <span class="badge bg-light border border-grid-subtle text-secondary">MEMBER</span>
                     </li>
                 </ul>
-                <div class="p-2 bg-surface-trough border border-grid-subtle text-secondary">
-                    <span class="text-info fw-bold">Institution:</span> FH Technikum Wien &bull; Höchstädtplatz 6, 1200 Vienna, Austria
+                <div class="p-2 bg-light border border-grid-subtle text-secondary" style="border-radius: 4px;">
+                    <span class="text-fhtw-blue fw-bold">Institution:</span> FH Technikum Wien &bull; Höchstädtplatz 6, 1200 Vienna, Austria
                 </div>
             </div>
         </div>

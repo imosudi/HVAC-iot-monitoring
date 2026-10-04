@@ -1,19 +1,19 @@
 {% extends "base.html" %}
 
-{% block title %}Security &amp; Data Health — SDV Cyber-Physical Environmental Monitoring{% endblock %}
+{% block title %}Security &amp; Data Health — FH Technikum Wien SDV-HVAC{% endblock %}
 
 {% block content %}
 <!-- Sub-Header HUD Banner -->
 <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3 border-bottom border-grid-subtle pb-2">
     <div>
         <div class="d-flex align-items-center gap-2 font-monospace small text-secondary mb-1">
-            <span class="text-info fw-bold">ZERO-TRUST SECURITY</span>
+            <span class="text-fhtw-blue fw-bold">ZERO-TRUST SECURITY</span>
             <span>/</span>
-            <span class="text-warning">SECTION 03</span>
+            <span class="text-warning fw-bold">SECTION 03</span>
             <span>/</span>
             <span>DATA HEALTH CLASSIFIER &amp; X.509 PKI</span>
         </div>
-        <h1 class="font-heading fw-bold fs-4 text-signal-primary m-0 text-uppercase">
+        <h1 class="font-heading fw-bold fs-4 text-fhtw-blue m-0 text-uppercase">
             Three-State Data Health Evaluation &amp; Cryptographic Identity
         </h1>
         <p class="font-monospace small text-secondary m-0">
@@ -21,16 +21,16 @@
         </p>
     </div>
     <div class="d-flex align-items-center gap-2 font-monospace small">
-        <span class="badge bg-success rounded-0">mTLS 1.3 ENFORCED</span>
-        <span class="badge bg-dark border border-grid-subtle text-info rounded-0">ECDSA P-256</span>
+        <span class="badge bg-fhtw-green text-white">mTLS 1.3 ENFORCED</span>
+        <span class="badge bg-fhtw-blue text-white">ECDSA P-256</span>
     </div>
 </div>
 
 <!-- Four-State Data Health Matrix -->
 <div class="mb-4">
     <div class="d-flex align-items-center justify-content-between border-bottom border-grid-subtle pb-2 mb-3">
-        <h2 class="font-heading fs-5 text-signal-primary m-0 text-uppercase">
-            <i class="bi bi-shield-check text-info me-2"></i>Data Health State Machine Classification
+        <h2 class="font-heading fs-5 text-fhtw-blue m-0 text-uppercase">
+            <i class="bi bi-shield-check text-fhtw-blue me-2"></i>Data Health State Machine Classification
         </h2>
         <span class="font-monospace small text-secondary">[EVALUATED PER INGESTED TELEMETRY FRAME]</span>
     </div>
@@ -38,18 +38,18 @@
     <div class="row g-2 g-xl-3">
         <!-- State 1: FRESH -->
         <div class="col-12 col-md-6 col-xl-3">
-            <div class="card bg-dark border border-success rounded-0 shadow-none h-100 reticle-corner">
-                <div class="card-header bg-surface-trough border-bottom border-grid-subtle py-1 px-3 d-flex justify-content-between align-items-center">
-                    <span class="badge bg-success rounded-0 font-monospace">STATE: FRESH</span>
-                    <span class="text-success font-monospace small"><i class="bi bi-check-circle-fill"></i></span>
+            <div class="card h-100 shadow-sm border-fhtw-green">
+                <div class="card-header bg-white border-bottom border-grid-subtle py-1 px-3 d-flex justify-content-between align-items-center">
+                    <span class="badge bg-fhtw-green text-white font-monospace">STATE: FRESH</span>
+                    <span class="text-fhtw-green font-monospace small"><i class="bi bi-check-circle-fill"></i></span>
                 </div>
                 <div class="card-body p-3 font-monospace small">
-                    <div class="text-signal-primary fw-bold mb-2">Optimal Telemetry Condition</div>
+                    <div class="text-dark fw-bold mb-2">Optimal Telemetry Condition</div>
                     <ul class="list-unstyled text-secondary mb-0 space-y-1">
-                        <li><strong class="text-light">Latency (&tau;):</strong> &le; 2.5 seconds</li>
-                        <li><strong class="text-light">Thermal (&Delta;T):</strong> &le; 1.5&deg;C</li>
-                        <li><strong class="text-light">Payload:</strong> Complete &amp; schema-valid</li>
-                        <li><strong class="text-light">Pipeline Action:</strong> Stored to InfluxDB with tag health_state=FRESH</li>
+                        <li><strong class="text-dark">Latency (&tau;):</strong> &le; 2.5 seconds</li>
+                        <li><strong class="text-dark">Thermal (&Delta;T):</strong> &le; 1.5&deg;C</li>
+                        <li><strong class="text-dark">Payload:</strong> Complete &amp; schema-valid</li>
+                        <li><strong class="text-dark">Action:</strong> InfluxDB tag health_state=FRESH</li>
                     </ul>
                 </div>
             </div>
@@ -57,18 +57,18 @@
 
         <!-- State 2: STALE -->
         <div class="col-12 col-md-6 col-xl-3">
-            <div class="card bg-dark border border-warning rounded-0 shadow-none h-100 reticle-corner">
-                <div class="card-header bg-surface-trough border-bottom border-grid-subtle py-1 px-3 d-flex justify-content-between align-items-center">
-                    <span class="badge bg-warning text-dark rounded-0 font-monospace">STATE: STALE</span>
+            <div class="card h-100 shadow-sm border-warning">
+                <div class="card-header bg-white border-bottom border-grid-subtle py-1 px-3 d-flex justify-content-between align-items-center">
+                    <span class="badge bg-warning text-dark font-monospace">STATE: STALE</span>
                     <span class="text-warning font-monospace small"><i class="bi bi-clock-history"></i></span>
                 </div>
                 <div class="card-body p-3 font-monospace small">
-                    <div class="text-signal-primary fw-bold mb-2">Latency Boundary Exceeded</div>
+                    <div class="text-dark fw-bold mb-2">Latency Boundary Exceeded</div>
                     <ul class="list-unstyled text-secondary mb-0 space-y-1">
-                        <li><strong class="text-light">Latency (&tau;):</strong> &gt; 2.5s and &le; 60s</li>
-                        <li><strong class="text-light">Cause:</strong> CAN/MQTT buffer queue delay</li>
-                        <li><strong class="text-light">Safety Impact:</strong> Non-blocking advisory</li>
-                        <li><strong class="text-light">Pipeline Action:</strong> Stored to InfluxDB with tag health_state=STALE</li>
+                        <li><strong class="text-dark">Latency (&tau;):</strong> &gt; 2.5s and &le; 60s</li>
+                        <li><strong class="text-dark">Cause:</strong> CAN/MQTT buffer delay</li>
+                        <li><strong class="text-dark">Impact:</strong> Non-blocking advisory</li>
+                        <li><strong class="text-dark">Action:</strong> InfluxDB tag health_state=STALE</li>
                     </ul>
                 </div>
             </div>
@@ -76,18 +76,18 @@
 
         <!-- State 3: DEGRADED -->
         <div class="col-12 col-md-6 col-xl-3">
-            <div class="card bg-dark border rounded-0 shadow-none h-100 reticle-corner" style="border-color: #fa8c16 !important;">
-                <div class="card-header bg-surface-trough border-bottom border-grid-subtle py-1 px-3 d-flex justify-content-between align-items-center">
-                    <span class="badge rounded-0 font-monospace" style="background-color: #fa8c16; color: #000;">STATE: DEGRADED</span>
-                    <span class="text-degraded font-monospace small"><i class="bi bi-exclamation-triangle-fill"></i></span>
+            <div class="card h-100 shadow-sm" style="border-color: #e67e22 !important;">
+                <div class="card-header bg-white border-bottom border-grid-subtle py-1 px-3 d-flex justify-content-between align-items-center">
+                    <span class="badge text-white font-monospace" style="background-color: #e67e22;">STATE: DEGRADED</span>
+                    <span class="font-monospace small" style="color: #e67e22;"><i class="bi bi-exclamation-triangle-fill"></i></span>
                 </div>
                 <div class="card-body p-3 font-monospace small">
-                    <div class="text-signal-primary fw-bold mb-2">Thermal Transducer Divergence</div>
+                    <div class="text-dark fw-bold mb-2">Thermal Disparity Divergence</div>
                     <ul class="list-unstyled text-secondary mb-0 space-y-1">
-                        <li><strong class="text-light">Thermal (&Delta;T):</strong> &gt; 1.5&deg;C between sensors</li>
-                        <li><strong class="text-light">Cause:</strong> Sensor drift, airflow bias</li>
-                        <li><strong class="text-light">Safety Impact:</strong> Warning flag raised</li>
-                        <li><strong class="text-light">Pipeline Action:</strong> Stored to InfluxDB with tag health_state=DEGRADED</li>
+                        <li><strong class="text-dark">Thermal (&Delta;T):</strong> &gt; 1.5&deg;C between sensors</li>
+                        <li><strong class="text-dark">Cause:</strong> Sensor drift, airflow bias</li>
+                        <li><strong class="text-dark">Impact:</strong> Warning flag raised</li>
+                        <li><strong class="text-dark">Action:</strong> InfluxDB tag health_state=DEGRADED</li>
                     </ul>
                 </div>
             </div>
@@ -95,18 +95,18 @@
 
         <!-- State 4: FAULT -->
         <div class="col-12 col-md-6 col-xl-3">
-            <div class="card bg-dark border border-danger rounded-0 shadow-none h-100 reticle-corner">
-                <div class="card-header bg-surface-trough border-bottom border-grid-subtle py-1 px-3 d-flex justify-content-between align-items-center">
-                    <span class="badge bg-danger rounded-0 font-monospace">STATE: FAULT</span>
+            <div class="card h-100 shadow-sm border-danger">
+                <div class="card-header bg-white border-bottom border-grid-subtle py-1 px-3 d-flex justify-content-between align-items-center">
+                    <span class="badge bg-danger text-white font-monospace">STATE: FAULT</span>
                     <span class="text-danger font-monospace small"><i class="bi bi-x-octagon-fill"></i></span>
                 </div>
                 <div class="card-body p-3 font-monospace small">
-                    <div class="text-signal-primary fw-bold mb-2">Hardware or Ingestion Fault</div>
+                    <div class="text-dark fw-bold mb-2">Hardware or Ingestion Fault</div>
                     <ul class="list-unstyled text-secondary mb-0 space-y-1">
-                        <li><strong class="text-light">Trigger:</strong> Null readings, &tau; &gt; 60s</li>
-                        <li><strong class="text-light">Cause:</strong> Wire detachment, out-of-range value</li>
-                        <li><strong class="text-light">Safety Impact:</strong> ASIL violation candidate</li>
-                        <li><strong class="text-light">Pipeline Action:</strong> Stored to InfluxDB with tag health_state=FAULT</li>
+                        <li><strong class="text-dark">Trigger:</strong> Null readings, &tau; &gt; 60s</li>
+                        <li><strong class="text-dark">Cause:</strong> Line detachment, out-of-range</li>
+                        <li><strong class="text-dark">Impact:</strong> ASIL safety candidate</li>
+                        <li><strong class="text-dark">Action:</strong> InfluxDB tag health_state=FAULT</li>
                     </ul>
                 </div>
             </div>
@@ -118,17 +118,17 @@
 <div class="row g-2 g-xl-3 mb-3">
     <!-- X.509 PKI Certificate Authority & Identity -->
     <div class="col-12 col-lg-6">
-        <div class="card bg-dark border border-secondary-subtle rounded-0 shadow-none h-100 reticle-corner">
-            <div class="card-header bg-surface-trough border-bottom border-grid-subtle py-2 px-3 d-flex justify-content-between align-items-center">
-                <span class="font-heading fw-bold text-signal-primary fs-6">
-                    <i class="bi bi-shield-lock text-info me-2"></i>X.509 PKI &amp; MUTUAL TLS IDENTITY
+        <div class="card h-100 shadow-sm border-grid-subtle">
+            <div class="card-header bg-white border-bottom border-grid-subtle py-2 px-3 d-flex justify-content-between align-items-center">
+                <span class="font-heading fw-bold text-fhtw-blue fs-6">
+                    <i class="bi bi-shield-lock text-fhtw-blue me-2"></i>X.509 PKI &amp; MUTUAL TLS IDENTITY
                 </span>
-                <span class="badge bg-dark border border-grid-subtle text-success font-monospace">TLS 1.3 STRICT</span>
+                <span class="badge bg-fhtw-green text-white font-monospace">TLS 1.3 STRICT</span>
             </div>
             <div class="card-body p-3 font-monospace small">
-                <table class="table table-dark table-hover table-sm border-grid-subtle mb-0 align-middle">
+                <table class="table table-hover table-sm border-grid-subtle mb-0 align-middle">
                     <thead>
-                        <tr class="text-secondary border-bottom border-grid-subtle">
+                        <tr class="text-secondary border-bottom border-grid-subtle bg-light">
                             <th>CERTIFICATE</th>
                             <th>COMMON NAME (CN)</th>
                             <th>CIPHER</th>
@@ -137,25 +137,25 @@
                     </thead>
                     <tbody class="text-secondary">
                         <tr>
-                            <td class="text-info fw-semibold">Root CA</td>
+                            <td class="text-fhtw-blue fw-semibold">Root CA</td>
                             <td>FHTW AIOT Root CA</td>
                             <td>ECDSA P-256</td>
                             <td>2036-10-04</td>
                         </tr>
                         <tr>
-                            <td class="text-info fw-semibold">Broker Server</td>
+                            <td class="text-fhtw-blue fw-semibold">Broker Server</td>
                             <td>mosquitto</td>
                             <td>ECDSA P-256</td>
                             <td>2027-10-04</td>
                         </tr>
                         <tr>
-                            <td class="text-info fw-semibold">ESP32 Client</td>
+                            <td class="text-fhtw-blue fw-semibold">ESP32 Client</td>
                             <td>vehicle_edge_node_01</td>
                             <td>ECDSA P-256</td>
                             <td>2027-10-04</td>
                         </tr>
                         <tr>
-                            <td class="text-info fw-semibold">Node-RED Client</td>
+                            <td class="text-fhtw-blue fw-semibold">Node-RED Client</td>
                             <td>nodered_ipe_gateway</td>
                             <td>ECDSA P-256</td>
                             <td>2027-10-04</td>
@@ -168,42 +168,42 @@
 
     <!-- Adversarial Fault Injection Scenarios -->
     <div class="col-12 col-lg-6">
-        <div class="card bg-dark border border-secondary-subtle rounded-0 shadow-none h-100 reticle-corner">
-            <div class="card-header bg-surface-trough border-bottom border-grid-subtle py-2 px-3 d-flex justify-content-between align-items-center">
-                <span class="font-heading fw-bold text-signal-primary fs-6">
+        <div class="card h-100 shadow-sm border-grid-subtle">
+            <div class="card-header bg-white border-bottom border-grid-subtle py-2 px-3 d-flex justify-content-between align-items-center">
+                <span class="font-heading fw-bold text-fhtw-blue fs-6">
                     <i class="bi bi-bug text-danger me-2"></i>ADVERSARIAL FAULT INJECTION SUITE
                 </span>
-                <span class="badge bg-dark border border-grid-subtle text-info font-monospace">make inject-faults</span>
+                <span class="badge bg-fhtw-blue text-white font-monospace">make inject-faults</span>
             </div>
             <div class="card-body p-3 font-monospace small">
-                <ul class="list-group list-group-flush rounded-0">
+                <ul class="list-group list-group-flush">
                     <li class="list-group-item bg-transparent border-grid-subtle px-0 py-2 d-flex justify-content-between align-items-center">
                         <div>
-                            <span class="text-info fw-semibold">FI-01: Timestamp Delay</span>
+                            <span class="text-fhtw-blue fw-semibold">FI-01: Timestamp Delay</span>
                             <span class="text-secondary ms-2">&tau; &gt; 2.5s injected</span>
                         </div>
-                        <span class="badge bg-warning text-dark rounded-0">TARGET: STALE</span>
+                        <span class="badge bg-warning text-dark">TARGET: STALE</span>
                     </li>
                     <li class="list-group-item bg-transparent border-grid-subtle px-0 py-2 d-flex justify-content-between align-items-center">
                         <div>
-                            <span class="text-info fw-semibold">FI-02: Sensor Divergence</span>
+                            <span class="text-fhtw-blue fw-semibold">FI-02: Sensor Divergence</span>
                             <span class="text-secondary ms-2">&Delta;T = 3.5&deg;C disparity</span>
                         </div>
-                        <span class="badge rounded-0" style="background-color: #fa8c16; color: #000;">TARGET: DEGRADED</span>
+                        <span class="badge text-white" style="background-color: #e67e22;">TARGET: DEGRADED</span>
                     </li>
                     <li class="list-group-item bg-transparent border-grid-subtle px-0 py-2 d-flex justify-content-between align-items-center">
                         <div>
-                            <span class="text-info fw-semibold">FI-03: Line Detachment</span>
+                            <span class="text-fhtw-blue fw-semibold">FI-03: Line Detachment</span>
                             <span class="text-secondary ms-2">Primary sensor reads NULL</span>
                         </div>
-                        <span class="badge bg-danger rounded-0">TARGET: FAULT</span>
+                        <span class="badge bg-danger text-white">TARGET: FAULT</span>
                     </li>
                     <li class="list-group-item bg-transparent border-0 px-0 py-2 d-flex justify-content-between align-items-center">
                         <div>
-                            <span class="text-info fw-semibold">FI-05: Malformed Payload</span>
+                            <span class="text-fhtw-blue fw-semibold">FI-05: Malformed Payload</span>
                             <span class="text-secondary ms-2">Schema violation test</span>
                         </div>
-                        <span class="badge bg-dark border border-grid-subtle text-danger rounded-0">DROPPED AT INGRESS</span>
+                        <span class="badge bg-danger text-white">DROPPED AT INGRESS</span>
                     </li>
                 </ul>
             </div>

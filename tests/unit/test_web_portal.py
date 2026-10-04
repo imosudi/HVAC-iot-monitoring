@@ -36,16 +36,15 @@ class TestWebPortalApplication:
         )
 
     def test_index_route_renders_bootstrap5_ui(self, client):
-        """Verifies that the root path renders the Stitch-conforming Bootstrap 5 dashboard."""
+        """Verifies that the root path renders the FH Technikum Wien branded Bootstrap 5 dashboard."""
         response = client.get("/")
         assert response.status_code == 200
         content = response.data.decode("utf-8")
 
         # Verify key design tokens and Bootstrap 5 components
-        assert 'data-bs-theme="dark"' in content
-        assert "SDV-MEC" in content
-        assert "Space Grotesk" in content
-        assert "rounded-0" in content
+        assert 'data-bs-theme="light"' in content
+        assert "FH Technikum Wien" in content
+        assert "Roboto" in content
         assert "SCD30 Carbon Dioxide" in content
         assert "DOWNLINK ACTUATION CONTROLLER" in content
 

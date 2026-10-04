@@ -1,20 +1,20 @@
 {% extends "base.html" %}
 {% import "components/telemetry_macros.html" as ui %}
 
-{% block title %}Overview &amp; Closed-Loop Control — SDV Cabin Environmental Monitoring{% endblock %}
+{% block title %}Overview &amp; Closed-Loop Control — FH Technikum Wien SDV-HVAC{% endblock %}
 
 {% block content %}
 <!-- Subsystem Breadcrumb Strip -->
 <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3 border-bottom border-grid-subtle pb-2">
     <div>
         <div class="d-flex align-items-center gap-2 font-monospace small text-secondary mb-1">
-            <span class="text-info fw-bold">CABIN MONITORING</span>
+            <span class="text-fhtw-blue fw-bold">CABIN MONITORING</span>
             <span>/</span>
-            <span class="text-success">STAGE 01</span>
+            <span class="text-fhtw-green fw-bold">STAGE 01</span>
             <span>/</span>
             <span>OVERVIEW &amp; CLOSED-LOOP ACTUATION CONSOLE</span>
         </div>
-        <h1 class="font-heading fw-bold fs-4 text-signal-primary m-0 text-uppercase">
+        <h1 class="font-heading fw-bold fs-4 text-fhtw-blue m-0 text-uppercase">
             Edge Transducer Telemetry &amp; Downlink HVAC Control
         </h1>
         <p class="font-monospace small text-secondary m-0">
@@ -92,10 +92,10 @@
 <div class="row g-2 g-xl-3 mb-3">
     <!-- Closed-Loop Downlink Actuation Matrix -->
     <div class="col-12 col-lg-6">
-        <div class="card bg-dark border border-secondary-subtle rounded-0 shadow-none h-100 reticle-corner">
-            <div class="card-header bg-surface-trough border-bottom border-grid-subtle py-2 px-3 d-flex align-items-center justify-content-between">
-                <span class="font-heading fw-bold text-signal-primary fs-6">
-                    <i class="bi bi-sliders2 text-info me-2"></i>DOWNLINK ACTUATION CONTROLLER
+        <div class="card h-100 shadow-sm border-grid-subtle">
+            <div class="card-header bg-white border-bottom border-grid-subtle py-2 px-3 d-flex align-items-center justify-content-between">
+                <span class="font-heading fw-bold text-fhtw-blue fs-6">
+                    <i class="bi bi-sliders2 text-fhtw-blue me-2"></i>DOWNLINK ACTUATION CONTROLLER
                 </span>
                 <span class="font-monospace small text-secondary">[REST &rarr; oneM2M &rarr; Node-RED &rarr; MQTT]</span>
             </div>
@@ -103,20 +103,20 @@
                 <form id="actuationForm" onsubmit="event.preventDefault(); dispatchActuation();">
                     <!-- Operating Mode Selector -->
                     <div class="mb-3">
-                        <label class="form-label font-monospace small text-secondary text-uppercase">Ventilation Operating Mode</label>
-                        <div class="btn-group w-100 rounded-0" role="group">
+                        <label class="form-label font-monospace small text-secondary text-uppercase fw-semibold">Ventilation Operating Mode</label>
+                        <div class="btn-group w-100" role="group">
                             <input type="radio" class="btn-check" name="ventMode" id="modeAuto" value="AUTOMATIC" checked>
-                            <label class="btn btn-outline-info rounded-0 font-monospace small py-2" for="modeAuto">
+                            <label class="btn btn-outline-primary font-monospace small py-2" for="modeAuto">
                                 <i class="bi bi-cpu me-1"></i>AUTOMATIC
                             </label>
 
                             <input type="radio" class="btn-check" name="ventMode" id="modePurge" value="PURGE_75">
-                            <label class="btn btn-outline-warning rounded-0 font-monospace small py-2" for="modePurge">
+                            <label class="btn btn-outline-warning font-monospace small py-2" for="modePurge">
                                 <i class="bi bi-lightning-charge me-1"></i>PURGE (75%)
                             </label>
 
                             <input type="radio" class="btn-check" name="ventMode" id="modeManual" value="MANUAL">
-                            <label class="btn btn-outline-secondary rounded-0 font-monospace small py-2" for="modeManual">
+                            <label class="btn btn-outline-secondary font-monospace small py-2" for="modeManual">
                                 <i class="bi bi-hand-index-thumb me-1"></i>MANUAL
                             </label>
                         </div>
@@ -125,8 +125,8 @@
                     <!-- PWM Duty Cycle Slider -->
                     <div class="mb-3">
                         <div class="d-flex justify-content-between align-items-center mb-1">
-                            <label for="pwmSlider" class="form-label font-monospace small text-secondary text-uppercase m-0">Target Actuator Duty Cycle</label>
-                            <span class="font-monospace fw-bold text-info fs-5 tabular-nums" id="pwmDisplay">25%</span>
+                            <label for="pwmSlider" class="form-label font-monospace small text-secondary text-uppercase m-0 fw-semibold">Target Actuator Duty Cycle</label>
+                            <span class="font-monospace fw-bold text-fhtw-blue fs-5 tabular-nums" id="pwmDisplay">25%</span>
                         </div>
                         <input type="range" class="form-range" id="pwmSlider" min="0" max="100" step="5" value="25" oninput="document.getElementById('pwmDisplay').textContent = this.value + '%'">
                         <div class="d-flex justify-content-between font-monospace small text-secondary">
@@ -142,10 +142,10 @@
 
                     <!-- Action Triggers -->
                     <div class="d-flex gap-2 pt-2 border-top border-grid-subtle">
-                        <button type="submit" class="btn btn-info rounded-0 font-monospace fw-bold px-4 py-2 flex-grow-1 text-dark">
+                        <button type="submit" class="btn btn-primary font-monospace fw-bold px-4 py-2 flex-grow-1">
                             <i class="bi bi-send-check me-2"></i>POST DIRECTIVE TO /sdv-cse
                         </button>
-                        <button type="button" class="btn btn-danger rounded-0 font-monospace fw-bold px-3 py-2" onclick="triggerEStop()">
+                        <button type="button" class="btn btn-danger font-monospace fw-bold px-3 py-2" onclick="triggerEStop()">
                             <i class="bi bi-slash-circle me-1"></i>E-STOP
                         </button>
                     </div>
@@ -156,49 +156,49 @@
 
     <!-- Middleware Ingress & Egress Pipeline Flow -->
     <div class="col-12 col-lg-6">
-        <div class="card bg-dark border border-secondary-subtle rounded-0 shadow-none h-100 reticle-corner">
-            <div class="card-header bg-surface-trough border-bottom border-grid-subtle py-2 px-3 d-flex align-items-center justify-content-between">
-                <span class="font-heading fw-bold text-signal-primary fs-6">
-                    <i class="bi bi-diagram-2 text-primary me-2"></i>INGRESS &amp; EGRESS PIPELINE
+        <div class="card h-100 shadow-sm border-grid-subtle">
+            <div class="card-header bg-white border-bottom border-grid-subtle py-2 px-3 d-flex align-items-center justify-content-between">
+                <span class="font-heading fw-bold text-fhtw-blue fs-6">
+                    <i class="bi bi-diagram-2 text-fhtw-blue me-2"></i>INGRESS &amp; EGRESS PIPELINE
                 </span>
-                <span class="badge bg-dark border border-grid-subtle text-secondary font-monospace">END-TO-END</span>
+                <span class="badge bg-fhtw-blue text-white font-monospace">END-TO-END</span>
             </div>
             <div class="card-body p-3">
-                <div class="list-group list-group-flush rounded-0 font-monospace small">
+                <div class="list-group list-group-flush font-monospace small">
                     <div class="list-group-item bg-transparent border-grid-subtle px-0 py-2 d-flex justify-content-between align-items-center">
                         <div>
-                            <span class="text-info fw-semibold">01_EDGE_UPLINK:</span>
+                            <span class="text-fhtw-blue fw-semibold">01_EDGE_UPLINK:</span>
                             <span class="text-secondary ms-2">ESP32-S3 &rarr; Mosquitto (Port 8883)</span>
                         </div>
-                        <span class="badge bg-success rounded-0">mTLS 1.3 OK</span>
+                        <span class="badge bg-fhtw-green text-white">mTLS 1.3 OK</span>
                     </div>
                     <div class="list-group-item bg-transparent border-grid-subtle px-0 py-2 d-flex justify-content-between align-items-center">
                         <div>
-                            <span class="text-info fw-semibold">02_INGRESS_IPE:</span>
+                            <span class="text-fhtw-blue fw-semibold">02_INGRESS_IPE:</span>
                             <span class="text-secondary ms-2">Node-RED validates &amp; wraps &lt;cin&gt;</span>
                         </div>
-                        <span class="badge bg-dark border border-grid-subtle text-info rounded-0">HTTP 201</span>
+                        <span class="badge bg-fhtw-blue text-white">HTTP 201</span>
                     </div>
                     <div class="list-group-item bg-transparent border-grid-subtle px-0 py-2 d-flex justify-content-between align-items-center">
                         <div>
-                            <span class="text-info fw-semibold">03_oneM2M_CSE:</span>
+                            <span class="text-fhtw-blue fw-semibold">03_oneM2M_CSE:</span>
                             <span class="text-secondary ms-2">/sdv-cse/AE_CabinNode_Car01/cnt_raw_telemetry</span>
                         </div>
-                        <span class="badge bg-dark border border-grid-subtle text-success rounded-0">STORED</span>
+                        <span class="badge bg-fhtw-green text-white">STORED</span>
                     </div>
                     <div class="list-group-item bg-transparent border-grid-subtle px-0 py-2 d-flex justify-content-between align-items-center">
                         <div>
-                            <span class="text-info fw-semibold">04_BRIDGE_AE:</span>
+                            <span class="text-fhtw-blue fw-semibold">04_BRIDGE_AE:</span>
                             <span class="text-secondary ms-2">Evaluates &tau; &le; 2.5s, writes to InfluxDB</span>
                         </div>
-                        <span class="badge bg-success rounded-0">FRESH</span>
+                        <span class="badge bg-fhtw-green text-white">FRESH</span>
                     </div>
                     <div class="list-group-item bg-transparent border-0 px-0 py-2 d-flex justify-content-between align-items-center">
                         <div>
-                            <span class="text-primary fw-semibold">05_DOWNLINK:</span>
+                            <span class="text-fhtw-blue fw-semibold">05_DOWNLINK:</span>
                             <span class="text-secondary ms-2">POST cnt_actuator_commands &rarr; MQTT cmd</span>
                         </div>
-                        <span class="badge bg-dark border border-grid-subtle text-primary rounded-0">READY</span>
+                        <span class="badge bg-fhtw-blue text-white">READY</span>
                     </div>
                 </div>
             </div>
@@ -207,18 +207,18 @@
 </div>
 
 <!-- Telemetry Stream Event Log -->
-<div class="card bg-dark border border-secondary-subtle rounded-0 shadow-none reticle-corner">
-    <div class="card-header bg-surface-trough border-bottom border-grid-subtle py-2 px-3 d-flex align-items-center justify-content-between">
-        <span class="font-heading fw-bold text-signal-primary fs-6">
-            <i class="bi bi-terminal text-info me-2"></i>REAL-TIME TELEMETRY STREAM &amp; HEALTH AUDIT LOG
+<div class="card shadow-sm border-grid-subtle">
+    <div class="card-header bg-white border-bottom border-grid-subtle py-2 px-3 d-flex align-items-center justify-content-between">
+        <span class="font-heading fw-bold text-fhtw-blue fs-6">
+            <i class="bi bi-terminal text-fhtw-blue me-2"></i>REAL-TIME TELEMETRY STREAM &amp; HEALTH AUDIT LOG
         </span>
-        <button class="btn btn-outline-secondary btn-sm rounded-0 font-monospace py-0 px-2" onclick="clearStreamLog()">
+        <button class="btn btn-outline-secondary btn-sm font-monospace py-0 px-2" onclick="clearStreamLog()">
             CLEAR
         </button>
     </div>
-    <div class="card-body p-2 bg-surface-trough">
-        <div class="terminal-window p-2" style="max-height: 200px; overflow-y: auto;" id="streamConsole">
-            <div class="text-muted py-1">Telemetry poller active. Listening for vehicular frames on port 8883...</div>
+    <div class="card-body p-2 bg-light">
+        <div class="terminal-window p-3" style="max-height: 200px; overflow-y: auto;" id="streamConsole">
+            <div class="text-white-50 py-1">Telemetry poller active. Listening for vehicular frames on port 8883...</div>
         </div>
     </div>
 </div>

@@ -91,9 +91,9 @@ function updateTelemetryDisplay(data) {
         if (deltaBadge) {
             deltaBadge.textContent = `ΔT: ${deltaT.toFixed(1)}°C`;
             if (deltaT > 1.5) {
-                deltaBadge.className = 'badge bg-warning text-dark rounded-0 font-monospace py-0 px-2';
+                deltaBadge.className = 'badge bg-warning text-dark font-monospace py-0 px-2';
             } else {
-                deltaBadge.className = 'badge bg-success rounded-0 font-monospace py-0 px-2';
+                deltaBadge.className = 'badge bg-fhtw-green text-white font-monospace py-0 px-2';
             }
         }
     }
@@ -103,14 +103,21 @@ function updateTelemetryDisplay(data) {
     if (healthBadge && data.health_state) {
         healthBadge.textContent = data.health_state;
         if (data.health_state === 'FRESH') {
-            healthBadge.className = 'badge bg-success rounded-0 font-monospace px-2 py-1';
+            healthBadge.className = 'badge bg-fhtw-green text-white font-monospace px-2 py-1';
+            healthBadge.style.backgroundColor = '';
+            healthBadge.style.color = '';
         } else if (data.health_state === 'STALE') {
-            healthBadge.className = 'badge bg-warning text-dark rounded-0 font-monospace px-2 py-1';
+            healthBadge.className = 'badge bg-warning text-dark font-monospace px-2 py-1';
+            healthBadge.style.backgroundColor = '';
+            healthBadge.style.color = '';
         } else if (data.health_state === 'DEGRADED') {
-            healthBadge.className = 'badge bg-warning rounded-0 font-monospace px-2 py-1';
-            healthBadge.style.backgroundColor = '#fa8c16';
+            healthBadge.className = 'badge font-monospace px-2 py-1';
+            healthBadge.style.backgroundColor = '#e67e22';
+            healthBadge.style.color = '#ffffff';
         } else {
-            healthBadge.className = 'badge bg-danger rounded-0 font-monospace px-2 py-1';
+            healthBadge.className = 'badge bg-danger text-white font-monospace px-2 py-1';
+            healthBadge.style.backgroundColor = '';
+            healthBadge.style.color = '';
         }
     }
 
