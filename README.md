@@ -11,8 +11,8 @@
 [![Academic Institution](https://img.shields.io/badge/Institution-FH%20Technikum%20Wien-43A047.svg)](https://www.technikum-wien.at/)
 
 <p align="center">
-  <b>Department Electronic Engineering & Entrepreneurship – FH Technikum Wien</b><br>
-  <i>Master of Science in Engineering: Internet of Things and Intelligent Systems (MIO)</i><br>
+  <b>Department of Electronic Engineering and Entrepreneurship, FH Technikum Wien</b><br>
+  <i>Master of Science in Engineering in Internet of Things and Intelligent Systems (MIO)</i><br>
   <b>Research Group FHTW-AIOT</b>
 </p>
 
@@ -21,9 +21,9 @@
 </div>
 
 ## Abstract
-In the paradigm of Software-Defined Vehicles (SDVs), automotive electrical/electronic (E/E) architectures are undergoing a fundamental structural transition from decentralised, federated Electronic Control Units (ECUs) interconnected via proprietary Controller Area Network (CAN) or Local Interconnect Network (LIN) topologies towards consolidated, high-performance vehicle compute platforms mediated by Service-Oriented Architectures (SOA). Concurrently, the regulation of vehicular microclimates represents a critical cyber-physical challenge: passenger compartments possess minimal volumetric displacement (2.5 – 4.5 m³) and low thermal inertia, rendering them susceptible to rapid thermodynamic variation and the accumulation of metabolically exhaled Carbon Dioxide (CO₂). Sustained cabin hypercapnia (> 1,000 ppm) impairs driver cognitive vigilance, induces psychomotor lethargy, and compromises vehicular active safety. 
+Automotive electrical and electronic (E/E) architectures are transitioning from federated Electronic Control Units (ECUs) interconnected across Controller Area Network (CAN) and Local Interconnect Network (LIN) buses towards consolidated vehicle computers and zonal compute topologies. Within this Software-Defined Vehicle (SDV) framework, passenger compartment climate control presents distinct operational challenges. Enclosed vehicular cabins possess limited air volume (typically 2.5 to 4.5 m³) and low thermal inertia, making them susceptible to rapid temperature variation and metabolic carbon dioxide (CO₂) accumulation. Sustained cabin hypercapnia exceeding 1,000 ppm degrades driver cognitive vigilance, induces drowsiness, and impairs psychomotor response.
 
-This research artefact presents the design, formalisation, and empirical evaluation of a standards-compliant, closed-loop cabin environmental monitoring and Heating, Ventilation, and Air Conditioning (HVAC) actuation framework. The physical layer comprises dual-core Espressif ESP32-S3 edge nodes executing dual-channel environmental sensing (Sensirion SCD30 optical non-dispersive infrared spectroscopy alongside an independent DHT22 transducer for empirical cross-validation) coupled with a 25 kHz inaudible Pulse-Width Modulation (PWM) blower controller governed by Hall-effect tachometer feedback. Telemetry is ingested across an automotive edge service mesh hosted on a Raspberry Pi 5 platform, secured via Mutual Transport Layer Security (mTLS / TLS 1.3) with granular Access Control Lists (ACLs). Interoperability and semantic data abstraction are formalised via an ETSI oneM2M Common Services Entity (CSEBase `/sdv-cse`), facilitating automated state classification (`FRESH`, `STALE`, `DEGRADED`, `FAULT`) within an InfluxDB 2.x time-series database and closed-loop actuation dispatch through a Grafana operational cockpit. The resulting system demonstrates an "honest-by-design" operational model, deterministic fault isolation, and full horizontal extensibility across multi-zone cabin partitions.
+This work details the design, implementation, and empirical evaluation of an open-standard, closed-loop cabin environmental monitoring and HVAC actuation system. At the physical layer, an Espressif ESP32-S3 microcontroller executes dual-channel sensing using a Sensirion SCD30 optical non-dispersive infrared sensor and a secondary DHT22 capacitive transducer for empirical cross-validation. Fan speed is governed by a 25 kHz pulse-width modulation (PWM) controller above human hearing thresholds, paired with a Hall-effect tachometer for closed-loop rotational speed verification. Telemetry is transported over an automotive edge service mesh hosted on a Raspberry Pi 5 gateway, secured using mutual TLS 1.3 with granular access control lists. Semantic interoperability is established using an ETSI oneM2M Common Services Entity (`/sdv-cse`), which drives automated data-health classification (`FRESH`, `STALE`, `DEGRADED`, `FAULT`) in an InfluxDB 2.x time-series store and closed-loop actuation dispatch through a Grafana operations dashboard. The system avoids synthetic value coercion on sensor loss, provides verifiable fault containment, and supports declarative multi-zone cabin expansion.
 
 ---
 
@@ -32,7 +32,7 @@ This research artefact presents the design, formalisation, and empirical evaluat
    - [Automotive E/E Architectural Evolution](#automotive-ee-architectural-evolution)
    - [Psychrometric Dynamics and Cognitive Ergonomics](#psychrometric-dynamics-and-cognitive-ergonomics)
    - [Semantic Middleware and the oneM2M Standard](#semantic-middleware-and-the-onem2m-standard)
-2. [Core Engineering and Methodological Principles](#2-core-engineering-and-methodological-principles)
+2. [Cyber-Physical System Requirements and Design Rationale](#2-cyber-physical-system-requirements-and-design-rationale)
 3. [System Architecture and Component Topologies](#3-system-architecture-and-component-topologies)
    - [End-to-End Architectural Topology](#end-to-end-architectural-topology)
    - [Closed-Loop Cyber-Physical Feedback Loop](#closed-loop-cyber-physical-feedback-loop)
@@ -46,7 +46,7 @@ This research artefact presents the design, formalisation, and empirical evaluat
 6. [oneM2M Semantic Resource Tree and Information Model](#6-onem2m-semantic-resource-tree-and-information-model)
 7. [Empirical Data Health Model and Fault Classification](#7-empirical-data-health-model-and-fault-classification)
    - [Formal State Machine Formulation](#formal-state-machine-formulation)
-   - [The "Honest-by-Design" Telemetry Invariant](#the-honest-by-design-telemetry-invariant)
+   - [Telemetry Integrity and Non-Coercion Model](#telemetry-integrity-and-non-coercion-model)
 8. [Bidirectional Data Pipeline and Control Semantics](#8-bidirectional-data-pipeline-and-control-semantics)
    - [Uplink Telemetry Flow](#uplink-telemetry-flow)
    - [Downlink Actuation Flow](#downlink-actuation-flow)
@@ -86,13 +86,13 @@ In contrast, the **Software-Defined Vehicle (SDV)** paradigm decomposes vehicula
 ```
 
 ### Psychrometric Dynamics and Cognitive Ergonomics
-A passenger compartment constitutes an extreme thermodynamic boundary environment. Due to the high surface-area-to-volume ratio of vehicular glazing and localised solar irradiation, internal heat gain occurs rapidly. When vehicle climate systems operate in recirculation mode to conserve thermal energy, passenger respiratory gas exchange alters the ambient air mixture:
+Vehicular passenger compartments represent confined thermal and psychrometric spaces. High glazing-to-volume ratios produce rapid solar heat gain, while passenger respiratory gas exchange progressively alters cabin air composition during recirculation mode:
 
 $$
 \mathrm{C_6H_{12}O_6} + 6\,\mathrm{O_2} \longrightarrow 6\,\mathrm{CO_2} + 6\,\mathrm{H_2O} + \Delta H
 $$
 
-In a typical sedan cabin volume of 3.0 m³ occupied by two adults metabolising at 1.2 met (where 1 met ≈ 58.2 W/m²), CO₂ concentration ascends from standard atmospheric background (≈ 420 ppm) to in excess of 2,000 ppm within 20 minutes in the absence of fresh-air induction.
+In a typical sedan volume of 3.0 m³ occupied by two adults metabolising at 1.2 met (where 1 met ≈ 58.2 W/m²), CO₂ concentration rises from standard atmospheric background (approximately 420 ppm) to over 2,000 ppm within 20 minutes in the absence of fresh-air induction.
 
 ```
    CO2 Concentration (ppm)
@@ -122,30 +122,14 @@ The **oneM2M** global standard (transposed by ETSI as **ETSI TS 118 101**) resol
 
 ---
 
-## 2. Core Engineering and Methodological Principles
+## 2. Cyber-Physical System Requirements and Design Rationale
 
-The architectural design adheres to six axiomatic engineering constraints:
+The monitoring and control architecture is governed by four primary operational requirements:
 
-```
-               ┌─────────────────────────────────────────────────┐
-               │         SDV HVAC ARCHITECTURAL AXIOMS           │
-               └────────────────────────┬────────────────────────┘
-                                        │
-         ┌──────────────┬───────────────┼───────────────┬──────────────┐
-         ▼              ▼               ▼               ▼              ▼
-   ┌───────────┐  ┌───────────┐   ┌───────────┐   ┌───────────┐  ┌───────────┐
-   │ Passenger │  │ Honest by │   │ Standards │   │ Fault     │  │ Acoustic  │
-   │ Ergonomics│  │  Design   │   │ Inter-op  │   │ Observ-   │  │ Quietude  │
-   │ & Safety  │  │ (Fidelity)│   │ (oneM2M)  │   │  ability  │  │ (25 kHz)  │
-   └───────────┘  └───────────┘   └───────────┘   └───────────┘  └───────────┘
-```
-
-1. **Passenger Physiological Equilibrium:** The primary objective function of the closed-loop control model is the preservation of cabin air quality (CO₂ ≤ 800 ppm) and thermodynamic stability within acceptable thermal comfort bands (21.0 °C ≤ *T*<sub>cabin</sub> ≤ 24.0 °C).
-2. **"Honest-by-Design" Data Integrity:** Telemetry pipelines must never fabricate, impute, or silently zero sensor observations. A missing or invalid transducer reading represents an explicit entropy state that must be propagated as `null` with degraded health flags to preclude false actuator convergence.
-3. **Thermodynamic and Energy Efficiency:** Over-ventilation imposes auxiliary electrical loads on the vehicle traction battery through air-conditioning compressor and heating element draw. Precise closed-loop duty cycle scaling minimises wasted kilowatt-hours (kWh).
-4. **Standards-Compliant Middleware Interoperability:** All data schemas and resource mappings conform to the oneM2M TS-0001 functional architecture, mitigating bespoke integration overhead.
-5. **Deterministic Failure Observability:** In distributed cyber-physical deployments, partial network partition, certificate expiration, and sensor drift are inevitable. The system enforces fail-safe, observable fault propagation rather than silent degradation.
-6. **Psychoacoustic Comfort:** Actuation must not generate irritating audio-frequency noise within the passenger compartment; switching harmonics must remain strictly supersonic (*f*<sub>carrier</sub> > 20 kHz).
+1. **Physiological Equilibrium and Comfort Bounds:** The closed-loop controller maintains cabin CO₂ at or below 800 ppm and regulates dry-bulb temperature within the comfort envelope defined by ISO 7730 (21.0 °C ≤ *T*<sub>cabin</sub> ≤ 24.0 °C).
+2. **Telemetry Integrity and Non-Coercion:** Rather than imputing missing values or defaulting corrupt readings to zero, the telemetry pipeline explicitly tags degraded or missing observations to prevent false actuator convergence.
+3. **Energy Efficiency and Acoustic Mitigation:** Blower duty cycles are modulated dynamically to prevent unnecessary electrical draw on the traction battery. Blower motor switching is governed by a 25 kHz carrier frequency to remain above the human auditory threshold (> 20 kHz), avoiding cabin coil whine.
+4. **Interoperable Resource Governance:** Telemetry representations, access control rules, and event triggers conform to ETSI oneM2M technical specifications, supporting multi-zone scalability without firmware modification.
 
 ---
 
@@ -224,14 +208,14 @@ Environmental telemetry is acquired through two complementary, physically distin
 
 | Sensor Module | Transduction Mechanism | Monitored Parameters | Communication Interface | Assigned GPIO | Nominal Operating Bounds | Accuracy Limits |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **Sensirion SCD30** | Dual-Beam Optical Non-Dispersive Infrared (NDIR) | CO₂ Concentration<br>Temperature (*T*<sub>SCD30</sub>)<br>Rel. Humidity (*φ*<sub>SCD30</sub>) | I²C Bus (400 kHz Fast-Mode) | **GPIO 8 (SDA)**<br>**GPIO 9 (SCL)** | CO₂: 400 – 10,000 ppm<br>Temp: −40 °C to +70 °C<br>RH: 0% – 100% | ±(30 ppm + 3%)<br>±0.4 °C<br>±3% |
-| **DHT22 / AM2302** | Capacitive Polymer & NTC Thermistor | Temperature (*T*<sub>DHT22</sub>)<br>Rel. Humidity (*φ*<sub>DHT22</sub>) | Bidirectional 1-Wire Serial | **GPIO 4** | Temp: −40 °C to +80 °C<br>RH: 0% – 100% | ±0.5 °C<br>±2% – 5% |
-| **HVAC Centrifugal Fan** | 4-Wire Brushless DC Motor | Proportional Air Mass Flow Rate | Open-Drain Active-Low PWM | **GPIO 18 (PWM Out)** | 0% – 100% Duty Cycle<br>Carrier: 25 kHz | 10-bit Resolution (1024 Steps) |
-| **Hall-Effect Tachometer** | Integrated Bipolar Hall Sensor | Rotor Angular Velocity | Hardware Pulse Counter (PCNT) | **GPIO 19 (Pulse In)** | 0 – 6,000 RPM | ±10 RPM (2 pulses/rev) |
+| **Sensirion SCD30** | Dual-Beam Optical Non-Dispersive Infrared (NDIR) | CO₂ Concentration<br>Temperature (*T*<sub>SCD30</sub>)<br>Rel. Humidity (*φ*<sub>SCD30</sub>) | I²C Bus (400 kHz Fast-Mode) | **GPIO 8 (SDA)**<br>**GPIO 9 (SCL)** | CO₂: 400 to 10,000 ppm<br>Temp: −40 °C to +70 °C<br>RH: 0% to 100% | ±(30 ppm + 3%)<br>±0.4 °C<br>±3% |
+| **DHT22 / AM2302** | Capacitive Polymer & NTC Thermistor | Temperature (*T*<sub>DHT22</sub>)<br>Rel. Humidity (*φ*<sub>DHT22</sub>) | Bidirectional 1-Wire Serial | **GPIO 4** | Temp: −40 °C to +80 °C<br>RH: 0% to 100% | ±0.5 °C<br>±2% to 5% |
+| **HVAC Centrifugal Fan** | 4-Wire Brushless DC Motor | Proportional Air Mass Flow Rate | Open-Drain Active-Low PWM | **GPIO 18 (PWM Out)** | 0% to 100% Duty Cycle<br>Carrier: 25 kHz | 10-bit Resolution (1024 Steps) |
+| **Hall-Effect Tachometer** | Integrated Bipolar Hall Sensor | Rotor Angular Velocity | Hardware Pulse Counter (PCNT) | **GPIO 19 (Pulse In)** | 0 to 6,000 RPM | ±10 RPM (2 pulses/rev) |
 | **Status Indicator** | WS2812B Integrated Driver | Visual System Health Signalling | High-Speed Serial RZ | **GPIO 38 (RGB Data)** | 24-bit True Colour RGB | Sub-second optical refresh |
 
 ### Acoustic Mitigation and High-Frequency PWM Blower Control
-Automotive passenger cabins exhibit ambient noise floors as low as 35 – 45 dBA when stationary. Conventional low-frequency motor speed modulation (100 Hz – 2 kHz) induces magnetostrictive acoustic harmonics in stator core laminations that coincide precisely with peak human auditory sensitivity (1 – 4 kHz).
+Automotive passenger cabins exhibit ambient noise floors as low as 35 to 45 dBA when stationary. Conventional low-frequency motor speed modulation (100 Hz to 2 kHz) induces magnetostrictive acoustic harmonics in stator core laminations that coincide with peak human auditory sensitivity (1 to 4 kHz).
 
 To eliminate switching noise, the node's **LEDC (LED Control)** peripheral is configured to generate an inaudible carrier frequency:
 
@@ -405,12 +389,10 @@ $$
 
 where $\Omega_{\mathrm{err}}$ denotes the set of unphysical out-of-range observations, framing errors, or I²C bus lockup states.
 
-### The "Honest-by-Design" Telemetry Invariant
-In mission-critical automotive software, common developer anti-patterns involve defaulting missing or timed-out sensor data to zero (0.0). In an SDV context, this introduces catastrophic hazards:
-* Coercing missing temperature to 0.0 °C causes climate automation to engage maximum heating elements, squandering traction battery power.
-* Coercing missing CO₂ to 0 ppm causes climate automation to shut off ventilation flappers during lethal cabin hypercapnia.
+### Telemetry Integrity and Non-Coercion Model
+In vehicular closed-loop automation, substituting default zero values for missing or delayed sensor readings creates hazardous control states. For example, defaulting a lost temperature reading to 0.0 °C causes the controller to command maximum heating, drawing unnecessary current from the traction battery. Conversely, defaulting a lost CO₂ reading to 0 ppm causes the ventilation flaps to remain closed despite rising hypercapnia.
 
-**System Invariant:** Telemetry frames characterised by $\mathcal{H}(t) = \mathrm{FAULT}$ are stored and propagated with explicit `null` data fields accompanied by categorical health tags. Closed-loop control routines detect this state and engage a deterministic hardware fail-safe baseline (50% fixed ventilation) rather than computing on corrupt data.
+**Operational Guarantee:** Telemetry frames with $\mathcal{H}(t) = \mathrm{FAULT}$ are recorded and transmitted with explicit `null` fields accompanied by categorical health tags. Control routines detect this state and engage a deterministic hardware fail-safe baseline (50% fixed ventilation) rather than evaluating on corrupt data.
 
 ---
 
@@ -511,7 +493,7 @@ System verification is structured across three rigorous testing tiers designed t
 +-----------------------------------------------------------------------------------+
 |  TIER 2: HARDWARE-IN-THE-LOOP (HIL) INTEGRATION PROFILING                         |
 |  • End-to-end propagation latency: tau_prop = t_dashboard - t_sensor <= 1200 ms    |
-|  • Blower PWM linearity profiling: Duty vs. Actual Tachometer RPM (0 - 2400 RPM)  |
+|  • Blower PWM linearity profiling: Duty vs. Actual Tachometer RPM (0 to 2400 RPM)  |
 |  • Continuous 48-hour soak testing assessing FreeRTOS heap memory fragmentation   |
 |  • Nanosecond-timestamp precision verification in InfluxDB 2.x time-series bucket |
 +-----------------------------------------------------------------------------------+
@@ -573,4 +555,4 @@ Copyright (c) 2026, Isiaka Mosudi and the FHTW-AIOT Research Team.
 All rights reserved.
 ```
 
-Developed within the academic framework of the **Advanced Internet of Things Systems Development** curriculum, Department Electronic Engineering & Entrepreneurship, **University of Applied Sciences Technikum Wien (FH Technikum Wien)**, Vienna, Austria.
+Developed within the academic framework of the **Advanced Internet of Things Systems Development** curriculum, Department of Electronic Engineering and Entrepreneurship, **University of Applied Sciences Technikum Wien (FH Technikum Wien)**, Vienna, Austria.
