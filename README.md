@@ -11,7 +11,7 @@
 [![Academic Institution](https://img.shields.io/badge/Institution-FH%20Technikum%20Wien-43A047.svg)](https://www.technikum-wien.at/)
 
 <p align="center">
-  <b>Department Electronic Engineering & Entrepreneurship — FH Technikum Wien</b><br>
+  <b>Department Electronic Engineering & Entrepreneurship – FH Technikum Wien</b><br>
   <i>Master of Science in Engineering: Internet of Things and Intelligent Systems (MIO)</i><br>
   <b>Research Group FHTW-AIOT</b>
 </p>
@@ -63,7 +63,7 @@ This research artefact presents the design, formalisation, and empirical evaluat
 ### Automotive E/E Architectural Evolution
 Historically, automotive climate control has been implemented as a self-contained, domain-specific subsystem wherein a dedicated HVAC controller operates as a monolithic ECU interfacing with binary flapper steppers, resistive thermistors, and blower relay arrays via CAN or LIN serial buses. Such architectures enforce rigid coupling between transducer acquisition and proprietary control heuristics, precluding dynamic feature over-the-air (OTA) redeployment and cross-domain data fusion.
 
-In contrast, the **Software-Defined Vehicle (SDV)** paradigm decomposes vehicular functionality into hardware abstraction layers, standardized middleware interfaces, and dynamically orchestratable software microservices, aligned with standards such as AUTOSAR Adaptive and cloud-native frameworks (e.g. Eclipse SDV, SOAFEE). Climate management ceases to be a closed firmware loop; it becomes an extensible service capable of incorporating occupancy profiles, predictive thermal models, energy-efficiency schedules, and fleet-wide telemetry analytics.
+In contrast, the **Software-Defined Vehicle (SDV)** paradigm decomposes vehicular functionality into hardware abstraction layers, standardised middleware interfaces, and dynamically orchestratable software microservices, aligned with standards such as AUTOSAR Adaptive and cloud-native frameworks (e.g. Eclipse SDV, SOAFEE). Climate management ceases to be a closed firmware loop; it becomes an extensible service capable of incorporating occupancy profiles, predictive thermal models, energy-efficiency schedules, and fleet-wide telemetry analytics.
 
 ```
 +-----------------------------------------------------------------------------+
@@ -86,13 +86,13 @@ In contrast, the **Software-Defined Vehicle (SDV)** paradigm decomposes vehicula
 ```
 
 ### Psychrometric Dynamics and Cognitive Ergonomics
-A passenger compartment constitutes an extreme thermodynamic boundary environment. Due to the high surface-area-to-volume ratio of vehicular glazing and localized solar irradiation, internal heat gain occurs rapidly. When vehicle climate systems operate in recirculation mode to conserve thermal energy, passenger respiratory gas exchange alters the ambient air mixture:
+A passenger compartment constitutes an extreme thermodynamic boundary environment. Due to the high surface-area-to-volume ratio of vehicular glazing and localised solar irradiation, internal heat gain occurs rapidly. When vehicle climate systems operate in recirculation mode to conserve thermal energy, passenger respiratory gas exchange alters the ambient air mixture:
 
 $$
 \mathrm{C_6H_{12}O_6} + 6\,\mathrm{O_2} \longrightarrow 6\,\mathrm{CO_2} + 6\,\mathrm{H_2O} + \Delta H
 $$
 
-In a typical sedan cabin volume of 3.0 m³ occupied by two adults metabolizing at 1.2 met (where 1 met ≈ 58.2 W/m²), CO₂ concentration ascends from standard atmospheric background (≈ 420 ppm) to in excess of 2,000 ppm within 20 minutes in the absence of fresh-air induction.
+In a typical sedan cabin volume of 3.0 m³ occupied by two adults metabolising at 1.2 met (where 1 met ≈ 58.2 W/m²), CO₂ concentration ascends from standard atmospheric background (≈ 420 ppm) to in excess of 2,000 ppm within 20 minutes in the absence of fresh-air induction.
 
 ```
    CO2 Concentration (ppm)
@@ -115,10 +115,10 @@ In accordance with psychrometric and cognitive ergonomic literature (e.g. ISO 77
 ### Semantic Middleware and the oneM2M Standard
 Integrating distributed IoT edge nodes with enterprise analytical sinks introduces severe semantic heterogeneity. Ad-hoc MQTT payload definitions lack formal meta-modelling, uniform addressing schemes, and declarative subscription semantics. 
 
-The **oneM2M** global standard (transposed by ETSI as **ETSI TS 118 101**) resolves this limitation by formalizing a protocol-agnostic service layer that provides:
+The **oneM2M** global standard (transposed by ETSI as **ETSI TS 118 101**) resolves this limitation by formalising a protocol-agnostic service layer that provides:
 1. **Uniform Resource Addressing:** A hierarchical Uniform Resource Identifier (URI) namespace mapping physical topology directly into semantic abstractions (`<CSEBase>`, `<AE>`, `<container>`, `<contentInstance>`).
 2. **Access Control Formalism:** Fine-grained Access Control Policies (`<accessControlPolicy>`) governing CRUDN (Create, Retrieve, Update, Delete, Notify) operations.
-3. **Asynchronous Publish/Subscribe Mechanisms:** Standardized `<subscription>` resources supporting asynchronous event-driven notification upon ContentInstance generation.
+3. **Asynchronous Publish/Subscribe Mechanisms:** Standardised `<subscription>` resources supporting asynchronous event-driven notification upon ContentInstance generation.
 
 ---
 
@@ -142,7 +142,7 @@ The architectural design adheres to six axiomatic engineering constraints:
 
 1. **Passenger Physiological Equilibrium:** The primary objective function of the closed-loop control model is the preservation of cabin air quality (CO₂ ≤ 800 ppm) and thermodynamic stability within acceptable thermal comfort bands (21.0 °C ≤ *T*<sub>cabin</sub> ≤ 24.0 °C).
 2. **"Honest-by-Design" Data Integrity:** Telemetry pipelines must never fabricate, impute, or silently zero sensor observations. A missing or invalid transducer reading represents an explicit entropy state that must be propagated as `null` with degraded health flags to preclude false actuator convergence.
-3. **Thermodynamic and Energy Efficiency:** Over-ventilation imposes auxiliary electrical loads on the vehicle traction battery through air-conditioning compressor and heating element draw. Precise closed-loop duty cycle scaling minimizes wasted kilowatt-hours (kWh).
+3. **Thermodynamic and Energy Efficiency:** Over-ventilation imposes auxiliary electrical loads on the vehicle traction battery through air-conditioning compressor and heating element draw. Precise closed-loop duty cycle scaling minimises wasted kilowatt-hours (kWh).
 4. **Standards-Compliant Middleware Interoperability:** All data schemas and resource mappings conform to the oneM2M TS-0001 functional architecture, mitigating bespoke integration overhead.
 5. **Deterministic Failure Observability:** In distributed cyber-physical deployments, partial network partition, certificate expiration, and sensor drift are inevitable. The system enforces fail-safe, observable fault propagation rather than silent degradation.
 6. **Psychoacoustic Comfort:** Actuation must not generate irritating audio-frequency noise within the passenger compartment; switching harmonics must remain strictly supersonic (*f*<sub>carrier</sub> > 20 kHz).
@@ -160,15 +160,15 @@ The end-to-end cyber-physical architecture partitions computation, communication
 </div>
 
 ### Closed-Loop Cyber-Physical Feedback Loop
-The control system operates as a closed-loop discrete-time feedback architecture, continuously evaluating state observations against parameterized actuator limits:
+The control system operates as a closed-loop discrete-time feedback architecture, continuously evaluating state observations against parameterised actuator limits:
 
 <div align="center">
   <img src="docs/assets/sdv_closed_loop_flow.png" alt="Closed-Loop HVAC Monitoring and Control Architecture for SDV" width="96%">
-  <p><i>Figure 2: Systematic closed-loop data pipeline illustrating environmental sensing, secure transit, oneM2M middleware harmonization, time-series storage, control decision logic, and physical fan modulation.</i></p>
+  <p><i>Figure 2: Systematic closed-loop data pipeline illustrating environmental sensing, secure transit, oneM2M middleware harmonisation, time-series storage, control decision logic, and physical fan modulation.</i></p>
 </div>
 
 ### Structural Service Mesh Decomposition
-To ensure deterministic execution and isolation, the edge computing node implements a containerized microservice mesh deployed via rootless **Podman / Docker** engines on ARM64 Linux:
+To ensure deterministic execution and isolation, the edge computing node implements a containerised microservice mesh deployed via rootless **Podman / Docker** engines on ARM64 Linux:
 
 ```mermaid
 graph TB
@@ -301,7 +301,7 @@ Hosted upon an automotive-grade **Raspberry Pi 5** platform (Broadcom BCM2712 qu
    * Intercepts raw MQTT JSON payloads, validates structural syntax against JSON Schema specifications, and maps key-value observations to standard oneM2M REST representations.
    * Serves as the bidirectional downlink command dispatcher, translating oneM2M `<subscription>` event notifications into targeted MQTT control packets.
 3. **oneM2M Common Services Entity (IN-CSE):**
-   * Standardized IoT middleware layer hosting the `/sdv-cse` resource tree.
+   * Standardised IoT middleware layer hosting the `/sdv-cse` resource tree.
    * Manages resource lifecycle, access control rules, and event triggers.
 4. **Bridge AE / Consumer:**
    * Autonomous Application Entity subscribing to telemetry container events.
@@ -392,7 +392,7 @@ $$
    [ FRESH ]  [DEGRADED] [ STALE ] [ FAULT ]
 ```
 
-The mathematical state boundaries are formalized as:
+The mathematical state boundaries are formalised as:
 
 $$
 \mathcal{H}(t) = \begin{cases}
@@ -410,7 +410,7 @@ In mission-critical automotive software, common developer anti-patterns involve 
 * Coercing missing temperature to 0.0 °C causes climate automation to engage maximum heating elements, squandering traction battery power.
 * Coercing missing CO₂ to 0 ppm causes climate automation to shut off ventilation flappers during lethal cabin hypercapnia.
 
-**System Invariant:** Telemetry frames characterized by $\mathcal{H}(t) = \mathrm{FAULT}$ are stored and propagated with explicit `null` data fields accompanied by categorical health tags. Closed-loop control routines detect this state and engage a deterministic hardware fail-safe baseline (50% fixed ventilation) rather than computing on corrupt data.
+**System Invariant:** Telemetry frames characterised by $\mathcal{H}(t) = \mathrm{FAULT}$ are stored and propagated with explicit `null` data fields accompanied by categorical health tags. Closed-loop control routines detect this state and engage a deterministic hardware fail-safe baseline (50% fixed ventilation) rather than computing on corrupt data.
 
 ---
 
@@ -431,12 +431,12 @@ HVAC Fan Centrifugal Blower <──── Node-RED IPE <──── oneM2M <cin
 
 ### Uplink Telemetry Flow
 1. **Transducer Interrogation:** The ESP32-S3 periodically (1.0 Hz) interrogates the Sensirion SCD30 via I²C and the DHT22 via 1-Wire.
-2. **Local Frame Formulation:** Firmware calculates local metrics, evaluates the CRC checksum, timestamps the reading, and serializes the structured JSON payload.
+2. **Local Frame Formulation:** Firmware calculates local metrics, evaluates the CRC checksum, timestamps the reading, and serialises the structured JSON payload.
 3. **Cryptographic Ingress:** The payload is transmitted across TCP port `8883` under TLS 1.3 mutual authentication to topic `sdv/vehicle_01/telemetry`.
 4. **IPE Semantic Translation:** Node-RED verifies schema validity and performs an HTTP POST creating a ContentInstance `<cin>` within `/sdv-cse/AE_CabinNode_Car01/cnt_raw_telemetry`.
 5. **Subscription Notification:** The oneM2M CSE executes subscription `sub_bridge_consumer`, issuing an asynchronous notification to the Bridge AE.
 6. **Classification & Ingestion:** The Bridge AE computes $\tau_{\mathrm{age}}$ and $\Delta T$, attaches the Data Health tag, and commits the metric to InfluxDB 2.x.
-7. **Cockpit Visualization:** Grafana evaluates Flux queries against InfluxDB, rendering live psychrometric trends.
+7. **Cockpit Visualisation:** Grafana evaluates Flux queries against InfluxDB, rendering live psychrometric trends.
 
 ### Downlink Actuation Flow
 1. **Control Rule Evaluation:** The Grafana analytical engine evaluates closed-loop constraints:
@@ -445,7 +445,7 @@ $$
 \mathrm{TriggerCondition}: \left( \mathrm{CO_2} > 800\,\mathrm{ppm} \right) \;\lor\; \left( T_{\mathrm{cabin}} > 24.0\,^{\circ}\mathrm{C} \right)
 $$
 
-2. **Command Dispatch:** Upon trigger satisfaction, Grafana (or an authorized human operator executing manual override) posts an actuation directive to `/sdv-cse/AE_CabinNode_Car01/cnt_actuator_commands`:
+2. **Command Dispatch:** Upon trigger satisfaction, Grafana (or an authorised human operator executing manual override) posts an actuation directive to `/sdv-cse/AE_CabinNode_Car01/cnt_actuator_commands`:
    ```json
    {
      "target_pwm": 75,
@@ -517,7 +517,7 @@ System verification is structured across three rigorous testing tiers designed t
 +-----------------------------------------------------------------------------------+
 |  TIER 3: ADVERSARIAL FAULT INJECTION & RESILIENCY                                 |
 |  • Transport Layer Severance: Mosquitto broker blackout and automatic reconnection|
-|  • Cryptographic Validation: Injection of expired / unauthorized X.509 certs      |
+|  • Cryptographic Validation: Injection of expired / unauthorised X.509 certs      |
 |  • Physical Transducer Severance: I2C line ground clamp detecting bus lockup      |
 |  • Data Health Engine Assertion: Divergent Delta_T (> 1.5 °C) asserting DEGRADED  |
 +-----------------------------------------------------------------------------------+

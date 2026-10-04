@@ -27,28 +27,28 @@
 ---
 
 ### 1. Theoretical Framing, Background, and Motivation
-In contemporary automotive systems engineering, vehicular electrical/electronic (E/E) architectures are undergoing a profound paradigm shift: transitioning from federated, domain-specific Electronic Control Units (ECUs) interconnected across legacy Controller Area Network (CAN) or Local Interconnect Network (LIN) physical buses towards centralized Vehicle Computer (VC) and zonal compute architectures. This paradigm—formalized under the **Software-Defined Vehicle (SDV)** movement—decouples hardware-level sensing and actuation from application business logic, enabling dynamic over-the-air (OTA) feature orchestration, fleet-wide data harmonization, and cloud-native service composition.
+In contemporary automotive systems engineering, vehicular electrical/electronic (E/E) architectures are undergoing a profound paradigm shift: transitioning from federated, domain-specific Electronic Control Units (ECUs) interconnected across legacy Controller Area Network (CAN) or Local Interconnect Network (LIN) physical buses towards centralised Vehicle Computer (VC) and zonal compute architectures. This paradigm – formalised under the **Software-Defined Vehicle (SDV)** movement – decouples hardware-level sensing and actuation from application business logic, enabling dynamic over-the-air (OTA) feature orchestration, fleet-wide data harmonisation, and cloud-native service composition.
 
 Within this framework, vehicular passenger compartment environmental monitoring constitutes a critical cyber-physical challenge:
 1. **Thermodynamic and Psychrometric Constraints:** Enclosed vehicular cabins exhibit minimal air volume (2.5 – 4.5 m³) coupled with low effective thermal inertia. Solar radiation across expansive windscreen surfaces induces rapid thermal stratification, while passenger metabolic respiration progressively alters the ambient gas mixture.
 2. **Cognitive Ergonomics and Active Safety:** Under air-recirculation modes, ambient Carbon Dioxide (CO₂) routinely escalates from atmospheric background (≈ 420 ppm) to concentrations in excess of 1,500 – 2,500 ppm within 15 to 30 minutes of vehicular transit. Biomedical and cognitive ergonomic literature (e.g. ISO 7730, ASHRAE Standard 55) confirms that sustained hypercapnia (> 1,000 ppm) provokes headaches, somnolence, and impaired psychomotor reaction times, directly compromising driver situational awareness.
-3. **The Imperative for Semantic Middleware:** Ingesting raw sensor observations directly into automotive application logic produces brittle, vendor-locked software topologies. Telemetry must be rigorously validated, temporally indexed, checked for analytical redundancy, and projected into a standard semantic information model. The **oneM2M** global standard (transposed as **ETSI TS 118 101**) provides an open, vendor-neutral middleware layer that standardizes uniform resource addressing, access control, and asynchronous publish/subscribe event management.
+3. **The Imperative for Semantic Middleware:** Ingesting raw sensor observations directly into automotive application logic produces brittle, vendor-locked software topologies. Telemetry must be rigorously validated, temporally indexed, checked for analytical redundancy, and projected into a standard semantic information model. The **oneM2M** global standard (transposed as **ETSI TS 118 101**) provides an open, vendor-neutral middleware layer that standardises uniform resource addressing, access control, and asynchronous publish/subscribe event management.
 
 The research framework is guided by six primary engineering axioms:
 * **Passenger Physiological Equilibrium:** Continuous regulation of CO₂ ≤ 800 ppm and cabin temperature within human comfort boundaries (21.0 °C ≤ *T*<sub>cabin</sub> ≤ 24.0 °C).
 * **"Honest-by-Design" Data Integrity:** Raw sensor observations are never artificially zeroed, interpolated, or cosmetically coerced upon communication loss or transducer fault.
 * **Energy Optimisation:** Avoiding excessive blower duty cycles and unneeded refrigeration compressor engagement to preserve traction battery capacity in battery electric vehicles (BEVs).
 * **Open Architectural Interoperability:** Rigorous conformity to oneM2M specifications.
-* **Configurable Multi-Zone Extensibility:** The addition of supplemental passenger cabin zones or sensor modalities is realized via declarative configuration files rather than code modification.
+* **Configurable Multi-Zone Extensibility:** The addition of supplemental passenger cabin zones or sensor modalities is realised via declarative configuration files rather than code modification.
 * **Deterministic Failure Observability:** Fault conditions (sensor severance, I²C lockup, cryptographic expiry) must fail observably rather than silently.
 
 ---
 
 ### 2. Research Objectives and Functional Requirements
 The primary objective of this investigation is to design, implement, and validate an end-to-end cyber-physical architecture for closed-loop vehicular environmental monitoring and HVAC actuation:
-1. **Dual-Channel Transducer Acquisition:** Acquire real-time CO₂ concentration, dry-bulb temperature, and relative humidity utilizing a Sensirion SCD30 optical NDIR sensor, complemented by a secondary DHT22 capacitive transducer for analytical cross-validation (Δ*T*).
+1. **Dual-Channel Transducer Acquisition:** Acquire real-time CO₂ concentration, dry-bulb temperature, and relative humidity utilising a Sensirion SCD30 optical NDIR sensor, complemented by a secondary DHT22 capacitive transducer for analytical cross-validation (Δ*T*).
 2. **Cryptographic Zero-Trust Transport:** Transport telemetry across an automotive edge service mesh over MQTT secured via Mutual Transport Layer Security (mTLS / TLS 1.3 on port 8883) with per-vehicle topic Access Control Lists (ACLs).
-3. **ETSI oneM2M Resource Modelling:** Map vehicle cabins into standardized Application Entities (`<AE>`), telemetric and control containers (`<container>`), ContentInstances (`<contentInstance>`), and subscription triggers (`<subscription>`).
+3. **ETSI oneM2M Resource Modelling:** Map vehicle cabins into standardised Application Entities (`<AE>`), telemetric and control containers (`<container>`), ContentInstances (`<contentInstance>`), and subscription triggers (`<subscription>`).
 4. **Algorithmic Data Health Engine:** Classify incoming telemetry into deterministic health regimes (`FRESH`, `STALE`, `DEGRADED`, `FAULT`) and ingest timestamped records into InfluxDB 2.x.
 5. **Closed-Loop Supersonic Actuation:** Execute automated threshold rules and manual operator overrides dispatched from a Grafana cockpit through oneM2M command subscriptions down to an inaudible 25 kHz PWM centrifugal blower controller with Hall-effect tachometer speed verification.
 
@@ -72,7 +72,7 @@ $$
 \omega_{\mathrm{fan}} = \left( \frac{\Delta \mathrm{Pulses}}{2 \cdot \Delta t} \right) \times 60 \quad [\mathrm{RPM}]
 $$
 
-  * **Optical Health Annunciator:** Integrated WS2812B RGB LED on **GPIO 38** signaling:
+  * **Optical Health Annunciator:** Integrated WS2812B RGB LED on **GPIO 38** signalling:
     * 🟢 *Solid Green:* CO₂ ≤ 800 ppm, Data Health: `FRESH`.
     * 🟡 *Solid Amber:* 800 ppm < CO₂ ≤ 1,200 ppm, Automatic Low-Speed Purge Active.
     * 🔴 *Flashing Red (2 Hz):* CO₂ > 1,200 ppm, Maximum Blower Duty Cycle Engaged.
@@ -97,13 +97,13 @@ The gateway layer executes a containerised microservice mesh orchestrated via Po
 
 #### 4.1 Uplink Telemetry Pipeline
 1. **Transducer Interrogation:** The ESP32-S3 executes periodic sampling (1.0 Hz) across the Sensirion SCD30 and DHT22.
-2. **Local Frame Serialization:** Sensor reads are packed into a cryptographically signed JSON frame containing local hardware timestamps and individual sensor channels.
+2. **Local Frame Serialisation:** Sensor reads are packed into a cryptographically signed JSON frame containing local hardware timestamps and individual sensor channels.
 3. **mTLS Publication:** The frame is transmitted over mutual TLS 1.3 to topic `sdv/vehicle_01/telemetry` on port 8883.
 4. **IPE Ingress Validation:** Node-RED validates structural schema adherence, discarding malformed or non-compliant frames.
 5. **oneM2M Persistence:** Node-RED issues an HTTP POST creating a ContentInstance `<cin>` within `/sdv-cse/AE_CabinNode_Car01/cnt_raw_telemetry`.
 6. **Subscription Dispatch:** The IN-CSE triggers subscription `sub_bridge_consumer`, issuing an asynchronous notification to the Bridge AE.
 7. **Health Classification & Commitment:** The Bridge AE evaluates telemetry latency ($\tau_{\mathrm{age}}$) and cross-validation differential ($\Delta T$), appends categorical health metadata, and writes the structured record into InfluxDB 2.x.
-8. **Real-Time Visualization:** Grafana evaluates Flux queries against InfluxDB, updating operational cockpit panels.
+8. **Real-Time Visualisation:** Grafana evaluates Flux queries against InfluxDB, updating operational cockpit panels.
 
 #### 4.2 Downlink Actuation Pipeline
 9. **Rule Evaluation & Triggering:** Grafana evaluates closed-loop constraints:
@@ -166,4 +166,4 @@ Validation is conducted across three rigorous tiers:
 ---
 
 ### 8. Conclusion and Future Directions
-This research demonstrates an operational, standards-compliant cyber-physical architecture for closed-loop cabin environmental monitoring and actuation in Software-Defined Vehicles. By integrating dual-sensor edge acquisition with ETSI oneM2M middleware and time-series analytical sinks, the system ensures data fidelity, acoustic comfort, and active passenger safety. Future work will extend the framework to multi-zone passenger microclimates and incorporate predictive machine learning models for thermal comfort optimization (Predicted Mean Vote / Predicted Percentage of Dissatisfied occupants according to ISO 7730).
+This research demonstrates an operational, standards-compliant cyber-physical architecture for closed-loop cabin environmental monitoring and actuation in Software-Defined Vehicles. By integrating dual-sensor edge acquisition with ETSI oneM2M middleware and time-series analytical sinks, the system ensures data fidelity, acoustic comfort, and active passenger safety. Future work will extend the framework to multi-zone passenger microclimates and incorporate predictive machine learning models for thermal comfort optimisation (Predicted Mean Vote / Predicted Percentage of Dissatisfied occupants according to ISO 7730).
