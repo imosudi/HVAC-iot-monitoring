@@ -12,7 +12,7 @@
 
 <p align="center">
   <b>Department Electronic Engineering & Entrepreneurship — FH Technikum Wien</b><br>
-  <i>Master of Science in Engineering: Advanced Internet of Things Systems Development (MIO3B)</i><br>
+  <i>Master of Science in Engineering: Internet of Things and Intelligent Systems (MIO)</i><br>
   <b>Research Group FHTW-AIOT</b>
 </p>
 
@@ -530,19 +530,11 @@ System verification is structured across three rigorous testing tiers designed t
 ```text
 HVAC-iot-monitoring/
 ├── docs/                                 # Architectural documentation, media & schematics
-│   └── assets/
-│       ├── architecture_detailed.png     # Full-system cyber-physical architecture diagram
-│       ├── sdv_closed_loop_flow.png      # SDV closed-loop control pipeline flow
-│       └── fhtw_logo.jpg                 # Institutional insignia of FH Technikum Wien
-│
-├── foundational_document/                # Academic exposés and presentation materials
-│   ├── academic_expose.md                # Comprehensive academic exposé and specification
-│   ├── Expose_Software-Defined...md      # Source exposé document
-│   ├── Expose_Software-Defined...docx    # Formatted Word exposé
-│   ├── Expose_Software-Defined...pdf     # Peer-review PDF documentation
-│   ├── Updated _ HVAC Monitoring...pptx  # Master technical defense slide deck
-│   ├── Team_Intro_AIOT_oneM2M...pptx     # Team introductory presentation
-│   └── FHTW-AIOT_IntroVideo.mp4          # Multi-media technical demonstration
+│   ├── assets/
+│   │   ├── architecture_detailed.png     # Full-system cyber-physical architecture diagram
+│   │   ├── sdv_closed_loop_flow.png      # SDV closed-loop control pipeline flow
+│   │   └── fhtw_logo.jpg                 # Institutional insignia of FH Technikum Wien
+│   └── academic_expose.md                # Comprehensive academic exposé and specification
 │
 ├── .gitignore                            # Version control exclusion rules
 ├── LICENSE                               # Open-source BSD 3-Clause legal licence
@@ -555,13 +547,20 @@ HVAC-iot-monitoring/
 
 The conceptualisation, engineering implementation, and formal verification of this project were conducted by research team **FHTW-AIOT (Group MIO3B)** at **University of Applied Sciences Technikum Wien**:
 
+### Research Team Members
+* **Ashok Ramalingam** – *Project Researcher & Embedded Systems Lead*
+* **Isiaka Mosudi** – *Project Researcher & Middleware Systems Lead*
+* **Pooja Janwalkar** – *Project Researcher & Data Analytics Lead*
+* **AnnaMaria Moçi** – *Team Member*
+* **Julia Philip** – *Team Member*
+
+### Contributor Roles & Engineering Deliverables (CRediT Taxonomy)
+
 | Researcher | Academic & Implementation Domain (CRediT Taxonomy) | Specific Engineering Deliverables |
 | :--- | :--- | :--- |
-| **Ashok Ramalingam** | *Software, Hardware, Firmware, Validation* | Development of ESP32-S3 FreeRTOS firmware; dual-sensor acquisition drivers (SCD30 & DHT22); 25 kHz ultrasonic LEDC PWM blower control; PCNT tachometer feedback integration; hardware fail-safe routines. |
-| **AnnaMaria Moçi** | *Security, Systems Infrastructure, Network Architecture* | Public Key Infrastructure (Root CA, certificate issuance); containerised Mosquitto broker configuration on Raspberry Pi 5; TLS 1.3 / mTLS port 8883 termination; topic ACL isolation policies. |
-| **Isiaka Mosudi** | *Middleware Architecture, Conceptualisation, Semantic Modelling* | oneM2M IN-CSE deployment; ETSI TS 118 101 resource tree formalisation (`AE`, `CNT`, `CIN`); Access Control Policy (`ACP`) schemas; asynchronous subscription pipeline (`Sub_BridgeAE` & `Sub_Downlink`). |
-| **Julia Philip** | *Interworking Engineering, Protocol Integration, Software* | Node-RED Ingress IPE implementation; JSON Schema validation engines; MQTT-to-oneM2M REST primitive translation; bidirectional downlink command dispatcher. |
-| **Pooja Janwalkar** | *Data Engineering, Observability, Verification, Analytics* | Bridge AE Data Health classification state machine (`FRESH`, `STALE`, `DEGRADED`, `FAULT`); InfluxDB 2.x time-series data modelling; Grafana operations cockpit and closed-loop rule engine. |
+| **Ashok Ramalingam** | *Software, Hardware, Embedded Firmware, Edge Security* | Development of ESP32-S3 FreeRTOS firmware; dual-channel transducer acquisition drivers (Sensirion SCD30 & DHT22); 25 kHz ultrasonic LEDC PWM blower control; PCNT tachometer closed-loop verification; hardware fail-safe baseline; edge mTLS client cryptographic integration and local certificate provisioning. |
+| **Isiaka Mosudi** | *Middleware Architecture, Protocol Interworking, Systems Security, Distributed Topology* | oneM2M IN-CSE deployment and ETSI TS 118 101 semantic resource tree formalisation (`<CSEBase>`, `<AE>`, `<container>`, `<contentInstance>`); Access Control Policy (`<accessControlPolicy>`) schemas; asynchronous subscription event pipelines (`Sub_BridgeAE` & `Sub_Downlink`); Node-RED Ingress Interworking Proxy Entity (IPE) and schema validation engine; MQTT-to-oneM2M REST primitive bridging; bidirectional downlink actuation command dispatcher; containerised Eclipse Mosquitto broker orchestration, mTLS 8883 termination, and topic ACL security policies. |
+| **Pooja Janwalkar** | *Data Engineering, Observability, Verification, Analytical Infrastructure* | Public Key Infrastructure (Root CA and certificate lifecycle governance); Bridge AE Data Health classification state machine (`FRESH`, `STALE`, `DEGRADED`, `FAULT`); InfluxDB 2.x time-series data modelling and retention policies; Grafana operations cockpit; closed-loop rule evaluation and telemetry integrity assertion. |
 
 ---
 
