@@ -1,4 +1,4 @@
-"""Configuration parameters for the public-facing Flask web portal."""
+"""Configuration parameters for the public-facing Web portal."""
 
 import os
 from dataclasses import dataclass, field

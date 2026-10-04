@@ -242,5 +242,5 @@ def api_actuator_dispatch():
 
 
 if __name__ == "__main__":
-    logger.info("Starting public-facing Flask web portal on %s:%d", config.host, config.port)
+    logger.info("Starting public-facing Web portal on %s:%d", config.host, config.port)
     app.run(host=config.host, port=config.port, debug=config.debug)

@@ -1,4 +1,4 @@
-"""Flask web portal service package initialisation."""
+"""Web portal service package initialisation."""
 
 from .app import app
 

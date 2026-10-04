@@ -599,7 +599,7 @@ HVAC-iot-monitoring/
 │   │   │   └── main.py                   # Flask HTTP subscription notification webhook
 │   │   ├── Dockerfile                    # Container build recipe
 │   │   └── requirements.txt              # Python runtime dependencies
-│   └── web_portal/                       # Public-facing Flask Web Portal interface
+│   └── web_portal/                       # Public-facing Web portal interface
 │       ├── static/                       # Static web assets (CSS, JavaScript, images)
 │       ├── templates/                    # Jinja2 HTML templates (blank index baseline)
 │       ├── app.py                        # Directly instantiated Flask web server and endpoints

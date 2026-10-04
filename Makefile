@@ -40,7 +40,7 @@ init-onem2m:
 	@bash scripts/onem2m/init_tree.sh
 
 run-web:
-	@echo "Starting public-facing Flask web portal..."
+	@echo "Starting public-facing Web portal..."
 	@$(PYTHON) services/web_portal/app.py
 
 test:

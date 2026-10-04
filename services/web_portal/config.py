@@ -1,4 +1,4 @@
-"""Configuration module for the public-facing Flask web portal."""
+"""Configuration module for the public-facing Web portal."""
 
 try:
     from .portal_config import WebPortalConfig, config
