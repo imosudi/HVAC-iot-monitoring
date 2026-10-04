@@ -24,8 +24,16 @@ extern "C" {
 #define GPIO_SCD30_SDA             (8)
 #define GPIO_SCD30_SCL             (9)
 #define GPIO_DHT22_DATA            (4)
-#define GPIO_FAN_PWM               (18)
-#define GPIO_FAN_TACHOMETER        (19)
+
+/* Coloured LED Actuators (Driven as physical actuators for MVP bench testing) */
+#define GPIO_ACTUATOR_BLUE_PURGE   (18)      /* LEDC PWM driven: luminous intensity emulates purge speed */
+#define GPIO_ACTUATOR_RED_HEAT     (17)      /* Digital driven: thermal heating actuator */
+#define GPIO_ACTUATOR_GREEN_VENT   (16)      /* Digital driven: baseline eco-ventilation actuator */
+#define GPIO_ACTUATOR_AMBER_ALERT  (19)      /* Digital driven: dehumidification / alert actuator */
+
+/* Backwards-compatible aliases for single-channel PWM timer */
+#define GPIO_FAN_PWM               GPIO_ACTUATOR_BLUE_PURGE
+#define GPIO_FAN_TACHOMETER        GPIO_ACTUATOR_AMBER_ALERT
 #define GPIO_WS2812B_RGB           (38)
 
 /* --- Actuation and Timer Parameters --- */
@@ -34,6 +42,7 @@ extern "C" {
 #define FAN_DEFAULT_DUTY_PCT       (50)      /* Failsafe baseline duty cycle */
 #define TACHO_PULSES_PER_REV       (2)       /* Bipolar Hall-effect sensor: 2 pulses/rev */
 #define TACHO_SAMPLE_WINDOW_MS     (1000)
+
 
 /* --- Control Thresholds --- */
 #define CO2_THRESHOLD_NOMINAL_PPM  (800.0f)

@@ -25,9 +25,9 @@ The software-defined vehicle (SDV) architectural paradigm decouples vehicular ph
  ┌────────────────────────┐                         ┌─────────────────────────────┐
  │ Sensirion SCD30 (I2C)  │                         │ Eclipse Mosquitto Broker    │
  │ DHT22 1-Wire Sensor    │──[mTLS 1.3: Port 8883]─>│ Port 8883, X.509 Client Auth│
- │ 25 kHz Blower PWM      │<────────────────────────│ Topic: sdv/vehicle_01/#     │
- │ PCNT Hall Tachometer   │                         └──────────────┬──────────────┘
- │ WS2812B Optical Status │                                        │
+ │ Coloured LED Actuators │<────────────────────────│ Topic: sdv/vehicle_01/#     │
+ │ PCNT / Bench Feedback  │                         └──────────────┬──────────────┘
+ │ WS2812B Node Annunc.   │                                        │
  └────────────────────────┘                                        ▼
                                                     ┌─────────────────────────────┐
                                                     │ Node-RED Ingress IPE        │
@@ -57,7 +57,7 @@ The software-defined vehicle (SDV) architectural paradigm decouples vehicular ph
                                         ▼
                          ┌─────────────────────────────┐
                          │ Grafana Observability       │
-                         │ Dynamic Blower Thresholds   │
+                         │ Dynamic Actuator Thresholds │
                          └─────────────────────────────┘
 ```
 
@@ -67,22 +67,27 @@ The software-defined vehicle (SDV) architectural paradigm decouples vehicular ph
 
 The physical tier executes on an Espressif ESP32-S3 dual-core microcontroller clocked at 240 MHz, running FreeRTOS with strict core affinity:
 
-* **Core 1 (Physical Loop):** Executes transducer sampling, hardware filtering, supersonic PWM generation, and pulse accumulation.
+* **Core 1 (Physical Loop):** Executes transducer sampling, hardware filtering, PWM modulation of coloured LED actuators, and pulse accumulation.
 * **Core 0 (Network Loop):** Executes the mbedTLS 1.3 stack, MQTT client state machine, connection keep-alives, and JSON payload serialisation.
 
 #### 2.1 Dual-Transducer Environmental Sensing
 * **Sensirion SCD30:** Interfaces over I²C Fast-Mode at 400 kHz on GPIO 8 (SDA) and GPIO 9 (SCL). Samples carbon dioxide concentration via Non-Dispersive Infrared (NDIR) spectroscopy (0 to 10,000 ppm), dry-bulb temperature (-40 to +70 °C), and relative humidity (0 to 100 %). Every 16-bit word is validated using hardware CRC-8 polynomials ($P(x) = x^8 + x^5 + x^4 + 1$).
 * **DHT22 (AM2302):** Interfaces over a single-wire digital bus on GPIO 4. Provides redundant temperature (-40 to +80 °C) and humidity measurements. Data frames are verified against a 40-bit parity checksum.
 
-#### 2.2 Supersonic PWM Blower Control
-Audible coil whine and magnetostriction in vehicular cabins cause passenger fatigue. The blower motor is modulated via the ESP32-S3 LEDC peripheral configured at **25.0 kHz**, surpassing the human auditory threshold (> 20 kHz). Duty cycles range from 0 to 100% across 10-bit resolution (0 to 1,023 discrete steps).
+#### 2.2 Coloured LED Actuator Emulation Paradigm
+For the MVP deployment, physical mechanical actuators (such as 12 V high-current centrifugal blower fans, PTC heater elements, and motorised air flaps) are emulated using discrete coloured LEDs driven directly by the ESP32-S3 microcontroller. This avoids high-voltage power hazards, bench acoustic disturbance, and high thermal dissipation while strictly validating the closed-loop cyber-physical control pipeline:
 
-#### 2.3 Closed-Loop Tachometer Feedback
-To confirm motor rotation and detect mechanical stall, a Hall-effect tachometer sensor feeds into the hardware Pulse Counter (PCNT) peripheral on GPIO 19. Pulse accumulation over 1.0-second integration windows calculates rotor revolutions per minute (RPM).
+* **Blue LED Actuator (Purge Ventilation / Cooling):** Driven on GPIO 18 by the LEDC timer using 25.0 kHz PWM with 10-bit resolution (0 to 1,023 duty steps). Luminous intensity visualises commanded fan purge speed (0 to 100% duty cycle) dispatched upon elevated carbon dioxide concentration (> 800 ppm).
+* **Red LED Actuator (Cabin Heating):** Driven on GPIO 17, illuminating when cabin temperature drops below 19.0 °C to emulate auxiliary heater core activation.
+* **Green LED Actuator (Baseline Eco-Ventilation):** Driven on GPIO 16, illuminating during nominal air quality (CO₂ between 400 and 800 ppm, temperature between 20.0 and 23.5 °C).
+* **Amber LED Actuator (Alert / Dehumidification):** Driven on GPIO 19, active during elevated relative humidity (> 65%) or when the Bridge AE flags a `DEGRADED` or `STALE` health status.
 
-#### 2.4 Optical Status Annunciation
-A single-wire WS2812B addressable RGB LED on GPIO 38 provides visual feedback of operational regimes:
-* Green: Nominal telemetry streaming.
+#### 2.3 Closed-Loop Actuator Feedback
+To confirm actuator command reception and detect electrical fault conditions, the feedback loop reads back GPIO logic states and duty cycles. In bench setups with tachometer pulse emulation, pulse accumulation over 1.0-second integration windows calculates simulated rotor revolutions per minute (RPM).
+
+#### 2.4 Optical Node Health Annunciation
+A single-wire WS2812B addressable RGB LED on GPIO 38 provides visual feedback of overall node and network health:
+* Green: Nominal telemetry streaming over mutual TLS 1.3.
 * Amber: Warning state ($\tau_{\mathrm{age}} > 2.5\,\mathrm{s}$ or $\Delta T > 1.5\,^\circ\mathrm{C}$).
 * Red: Transducer fault or broker disconnection.
 * Blue: High CO₂ purge ventilation active (75% duty cycle).

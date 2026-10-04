@@ -72,20 +72,21 @@
           "type": "integer",
           "minimum": 0,
           "maximum": 100,
-          "description": "Current commanded centrifugal fan PWM duty cycle percentage."
+          "description": "Current commanded actuator PWM duty cycle percentage, modulating the Blue purge LED actuator intensity in the MVP."
         },
         "tachometer_rpm": {
           "type": "integer",
           "minimum": 0,
           "maximum": 6000,
-          "description": "Observed fan rotational speed measured via PCNT Hall-effect sensor."
+          "description": "Observed actuator rotational speed or bench emulation pulse rate measured via PCNT sensor."
         },
         "carrier_freq_hz": {
           "type": "integer",
           "const": 25000,
-          "description": "Carrier switching frequency of the motor control timer in Hertz."
+          "description": "Carrier switching frequency of the actuator LEDC timer in Hertz."
         }
       },
+
       "required": ["pwm_duty_pct", "tachometer_rpm", "carrier_freq_hz"],
       "additionalProperties": false
     }

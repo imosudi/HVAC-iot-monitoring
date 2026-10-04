@@ -23,7 +23,8 @@
 ## Abstract
 Automotive electrical and electronic (E/E) architectures are transitioning from federated Electronic Control Units (ECUs) interconnected across Controller Area Network (CAN) and Local Interconnect Network (LIN) buses towards consolidated vehicle computers and zonal compute topologies. Within this Software-Defined Vehicle (SDV) framework, passenger compartment climate control presents distinct operational challenges. Enclosed vehicular cabins possess limited air volume (typically 2.5 to 4.5 m³) and low thermal inertia, making them susceptible to rapid temperature variation and metabolic carbon dioxide (CO₂) accumulation. Sustained cabin hypercapnia exceeding 1,000 ppm degrades driver cognitive vigilance, induces drowsiness, and impairs psychomotor response.
 
-This work details the design, implementation, and empirical evaluation of an open-standard, closed-loop cabin environmental monitoring and HVAC actuation system. At the physical layer, an Espressif ESP32-S3 microcontroller executes dual-channel sensing using a Sensirion SCD30 optical non-dispersive infrared sensor and a secondary DHT22 capacitive transducer for empirical cross-validation. Fan speed is governed by a 25 kHz pulse-width modulation (PWM) controller above human hearing thresholds, paired with a Hall-effect tachometer for closed-loop rotational speed verification. Telemetry is transported over an automotive edge service mesh hosted on a Raspberry Pi 5 gateway, secured using mutual TLS 1.3 with granular access control lists. Semantic interoperability is established using an ETSI oneM2M Common Services Entity (`/sdv-cse`), which drives automated data-health classification (`FRESH`, `STALE`, `DEGRADED`, `FAULT`) in an InfluxDB 2.x time-series store and closed-loop actuation dispatch through a Grafana operations dashboard. The system avoids synthetic value coercion on sensor loss, provides verifiable fault containment, and supports declarative multi-zone cabin expansion.
+This work details the design, implementation, and empirical evaluation of an open-standard, closed-loop cabin environmental monitoring and HVAC actuation system. At the physical layer, an Espressif ESP32-S3 microcontroller executes dual-channel sensing using a Sensirion SCD30 optical non-dispersive infrared sensor and a secondary DHT22 capacitive transducer for empirical cross-validation. In the MVP implementation, physical actuators are emulated using discrete coloured LEDs driven by the ESP32-S3 (with Blue LED purge ventilation governed by a 25 kHz PWM controller above human hearing thresholds, Red for heating, Green for baseline eco-ventilation, and Amber for alert), validating closed-loop regulation without high-power bench hazards. Telemetry is transported over an automotive edge service mesh hosted on a Raspberry Pi 5 gateway, secured using mutual TLS 1.3 with granular access control lists. Semantic interoperability is established using an ETSI oneM2M Common Services Entity (`/sdv-cse`), which drives automated data-health classification (`FRESH`, `STALE`, `DEGRADED`, `FAULT`) in an InfluxDB 2.x time-series store and closed-loop actuation dispatch through a Grafana operations dashboard. The system avoids synthetic value coercion on sensor loss, provides verifiable fault containment, and supports declarative multi-zone cabin expansion.
+
 
 ---
 
@@ -214,7 +215,15 @@ Environmental telemetry is acquired through two complementary, physically distin
 | **Hall-Effect Tachometer** | Integrated Bipolar Hall Sensor | Rotor Angular Velocity | Hardware Pulse Counter (PCNT) | **GPIO 19 (Pulse In)** | 0 to 6,000 RPM | ±10 RPM (2 pulses/rev) |
 | **Status Indicator** | WS2812B Integrated Driver | Visual System Health Signalling | High-Speed Serial RZ | **GPIO 38 (RGB Data)** | 24-bit True Colour RGB | Sub-second optical refresh |
 
-### Acoustic Mitigation and High-Frequency PWM Blower Control
+### Coloured LED Actuator Emulation for MVP
+For the Minimum Viable Product (MVP) bench demonstration, physical mechanical actuators (such as 12 V high-current centrifugal blower fans, PTC heater elements, and motorised air flaps) are emulated using discrete coloured LEDs driven directly by the ESP32-S3 microcontroller. This avoids high-voltage power hazards, bench acoustic disturbance, and high thermal dissipation while strictly validating the closed-loop cyber-physical control pipeline:
+
+* **Blue LED Actuator (Purge Ventilation / Cooling):** Driven on GPIO 18 by the LEDC timer using 25.0 kHz PWM with 10-bit resolution (0 to 1,023 duty steps). Luminous intensity directly visualises the commanded fan purge speed (0 to 100% duty cycle) dispatched upon elevated carbon dioxide concentration (> 800 ppm).
+* **Red LED Actuator (Cabin Heating):** Driven on GPIO 17, illuminating when cabin temperature drops below 19.0 °C to emulate auxiliary heater core activation.
+* **Green LED Actuator (Baseline Eco-Ventilation):** Driven on GPIO 16, illuminating during nominal air quality (CO₂ between 400 and 800 ppm, temperature between 20.0 and 23.5 °C).
+* **Amber LED Actuator (Alert / Dehumidification):** Driven on GPIO 19, active during elevated relative humidity (> 65%) or when the Bridge AE flags a `DEGRADED` or `STALE` health status.
+
+### Acoustic Mitigation and High-Frequency PWM Carrier
 Automotive passenger cabins exhibit ambient noise floors as low as 35 to 45 dBA when stationary. Conventional low-frequency motor speed modulation (100 Hz to 2 kHz) induces magnetostrictive acoustic harmonics in stator core laminations that coincide with peak human auditory sensitivity (1 to 4 kHz).
 
 To eliminate switching noise, the node's **LEDC (LED Control)** peripheral is configured to generate an inaudible carrier frequency:
@@ -241,7 +250,8 @@ $$
 \omega_{\mathrm{rotor}} = \left( \frac{\Delta \mathrm{Pulses}}{P \cdot \Delta t} \right) \times 60 \quad [\mathrm{RPM}]
 $$
 
-Discrepancies between commanded duty cycle and observed $\omega_{\mathrm{rotor}}$ identify mechanical motor stalls or duct obstructions.
+Discrepancies between commanded duty cycle and observed $\omega_{\mathrm{rotor}}$ identify electrical fault conditions or mechanical stalls.
+
 
 ### Optical Telemetry and Health Signalling
 Local optical state reporting is driven by an addressable RGB LED indicating current operational and air quality parameters:

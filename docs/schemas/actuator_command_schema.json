@@ -9,8 +9,9 @@
       "type": "integer",
       "minimum": 0,
       "maximum": 100,
-      "description": "Target blower motor PWM duty cycle percentage."
+      "description": "Target actuator PWM duty cycle percentage, driving the coloured LED actuator intensity in the MVP."
     },
+
     "mode": {
       "type": "string",
       "enum": ["AUTOMATIC", "MANUAL_OVERRIDE", "FAILSAFE"],

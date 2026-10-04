@@ -15,9 +15,11 @@
 | **I2C_NUM_0 SDA** | Sensirion SCD30 | **GPIO 8** | 3.3 V CMOS | 4.7 kΩ to 3.3 V | Bidirectional serial data line |
 | **I2C_NUM_0 SCL** | Sensirion SCD30 | **GPIO 9** | 3.3 V CMOS | 4.7 kΩ to 3.3 V | Serial clock line (400 kHz Fast-Mode) |
 | **GPIO Bit-Bang** | DHT22 (AM2302) | **GPIO 4** | 3.3 V CMOS | 10 kΩ to 3.3 V | Single-wire bidirectional bus |
-| **LEDC Timer 0** | Blower MOSFET Gate | **GPIO 18** | 3.3 V PWM | 100 Ω gate, 10 kΩ pull-down | 25.0 kHz ultrasonic motor PWM |
-| **PCNT Unit 0** | Hall Tachometer | **GPIO 19** | 3.3 V Digital | 4.7 kΩ to 3.3 V | Open-collector pulse accumulation |
-| **RMT / GPIO** | WS2812B RGB LED | **GPIO 38** | 3.3 V RZ | 330 Ω series damping | Addressable optical status annunciator |
+| **LEDC Timer 0** | Blue LED Actuator (Purge / Cooling) | **GPIO 18** | 3.3 V PWM | 220 Ω series resistor | Primary purge actuator; brightness emulates blower speed (0 to 100% duty) |
+| **GPIO Output** | Red LED Actuator (Heating) | **GPIO 17** | 3.3 V Digital | 330 Ω series resistor | Thermal heating actuator; engages when cabin temperature falls below 19.0 °C |
+| **GPIO Output** | Green LED Actuator (Eco Ventilation) | **GPIO 16** | 3.3 V Digital | 330 Ω series resistor | Nominal air-quality actuator; active under baseline CO₂ (< 800 ppm) equilibrium |
+| **GPIO / PCNT** | Amber LED Actuator / Tachometer | **GPIO 19** | 3.3 V Digital | 330 Ω series resistor | Dehumidification / caution actuator; pulse input for bench verification |
+| **RMT / GPIO** | WS2812B RGB LED | **GPIO 38** | 3.3 V RZ | 330 Ω series damping | Addressable node optical health and network status annunciator |
 
 ---
 
@@ -39,29 +41,26 @@
 * The 4.7 kΩ pull-up resistors on the I²C bus preserve signal rise times under 300 ns, conforming to Fast-Mode specifications.
 * The SCD30 measurement cycle requires a 2-second default interval; clock stretching by the sensor is handled with a 50 ms timeout in firmware.
 
-#### 2.2 Supersonic PWM Blower Drive and Motor Protection
+#### 2.2 Coloured LED Actuator Array (Physical Device Emulation)
+
+In place of high-current vehicular blower motors, stepper flappers, and PTC heating elements, the MVP bench implementation uses discrete coloured LEDs as the physical actuators. This preserves the cyber-physical control semantics without high-voltage power hazards or acoustic disturbance:
+
 ```text
-  12V Motor Rail ───────────────────────┬────────────────────────┐
-                                        │                        │
-                                      [===] 100uF 25V         ┌──┴──┐
-                                     Electro Cap              │  M  │ Blower Motor
-                                        │                     └──┬──┘
-                                        │         1N5819         │
-                                        ├───────────|<───────────┤ (Flyback Diode)
-                                        │                        │
-                                        │                     ┌──┴──┐
-                                        │                     │  D  │ IRLZ44N
-  GPIO 18 ──────[100 Ohm]───────────────┼─────────────────────┤G    │ Logic-Level
-                                        │                     │  S  │ N-Ch MOSFET
-                                      [10k]                   └──┬──┘
-                                    Pull-down                    │
-  GND Rail  ────────────────────────────┴────────────────────────┴─────────
+  GPIO 18 (LEDC PWM) ───────[220 Ohm]───────[ >| Blue LED: Purge / Blower ]───────┐
+                                                                                    │
+  GPIO 17 (Digital)  ───────[330 Ohm]───────[ >| Red LED: Cabin Heater ]──────────┤
+                                                                                    │
+  GPIO 16 (Digital)  ───────[330 Ohm]───────[ >| Green LED: Eco Baseline ]─────────┤
+                                                                                    │
+  GPIO 19 (Digital)  ───────[330 Ohm]───────[ >| Amber LED: Alert / Dehum ]────────┤
+                                                                                    │
+  GND Rail  ────────────────────────────────────────────────────────────────────────┘
 ```
 
-* **Carrier Frequency:** Modulated at 25.0 kHz using the LEDC hardware timer. This eliminates audible motor hum within the cabin.
-* **MOSFET Selection:** Logic-level N-channel MOSFET (such as IRLZ44N or AO3400A) ensures saturation at 3.3 V gate voltages ($V_{\mathrm{GS(th)}} \le 2.0\,\mathrm{V}$).
-* **Gate Protection:** A 100 Ω series resistor limits inrush charging current to the gate capacitance, protecting the ESP32-S3 GPIO driver. A 10 kΩ pull-down resistor prevents floating gate conditions during microcontroller boot and reset cycles.
-* **Inductive Clamp:** A fast-recovery Schottky diode (1N5819 or SS34) across motor terminals dissipates inductive flyback spikes generated during PWM off-periods.
+* **Blue LED Actuator (Purge Ventilation / Cooling):** Driven via the ESP32-S3 LEDC hardware timer on GPIO 18. Luminous intensity directly visualises the commanded duty cycle percentage (0 to 100%) calculated by the closed-loop rule engine upon carbon dioxide exceedance (> 800 ppm).
+* **Red LED Actuator (Cabin Heating):** Driven via GPIO 17. Illuminates when temperature falls below the comfort lower bound (< 19.0 °C), emulating vehicular PTC heater core activation.
+* **Green LED Actuator (Eco Ventilation):** Driven via GPIO 16. Illuminates during nominal baseline air quality (CO₂ between 400 and 800 ppm, temperature between 20.0 and 23.5 °C).
+* **Amber LED Actuator (Alert / Dehumidification):** Driven via GPIO 19. Engages during high relative humidity (> 65%) or when the Bridge AE flags a `DEGRADED` or `STALE` health status.
 
 #### 2.3 Optical Status Indicator (WS2812B)
 ```text
@@ -78,16 +77,20 @@
 
 ### 3. Electrical Characteristics and Power Budget
 
-| Rail Voltage | Source | Typical Current | Peak Inrush Current | Decoupling Strategy |
+| Subsystem Rail | Source | Typical Current | Peak Current | Decoupling Strategy |
 | :--- | :--- | :--- | :--- | :--- |
-| **+12.0 V DC** | Automotive Battery / Bench Supply | 450 mA (100% PWM) | 1.80 A (Motor stall) | 100 µF 25 V electrolytic capacitor |
-| **+5.0 V DC** | Buck Converter / USB-C VBUS | 120 mA | 350 mA (Wi-Fi burst) | 10 µF tantalum + 100 nF ceramic |
-| **+3.3 V DC** | LDO Regulator (AMS1117-3.3) | 80 mA | 160 mA | 22 µF ceramic + 100 nF per IC |
+| **+3.3 V DC (LED Actuators)** | ESP32-S3 GPIO Pins | 12 mA (Single LED) | 48 mA (All LEDs Active) | Current-limiting resistors (220 Ω / 330 Ω) |
+| **+5.0 V DC (Node Power)** | USB-C VBUS / Buck Converter | 120 mA | 350 mA (Wi-Fi burst) | 10 µF tantalum + 100 nF ceramic |
+| **+3.3 V DC (Transducers)** | LDO Regulator (AMS1117-3.3) | 65 mA | 120 mA | 22 µF ceramic + 100 nF per IC |
+
+Operating the actuators as coloured LEDs allows the entire cyber-physical node to operate safely from standard 5.0 V USB-C power without external 12.0 V automotive bench power supplies.
 
 ---
 
 ### 4. Physical Layout and Noise Mitigation Rules
 
-1. **Ground Plane Separation:** Star grounding separates high-current motor return paths from sensitive transducer analogue references.
-2. **I2C Routing:** SDA and SCL traces are kept below 100 mm in total length and routed away from the 25 kHz high-power motor switching node.
-3. **Fail-Safe Biasing:** In the event of firmware crash or brownout, the 10 kΩ gate pull-down resistor forces the blower into an immediate off-state until the FreeRTOS watchdog triggers a system reset.
+1. **Direct GPIO Drive:** Low-current coloured LEDs eliminate inductive flyback, motor commutation spikes, and electromagnetic interference (EMI).
+2. **Current Budget Compliance:** The cumulative current draw of all active LED actuators (maximum 48 mA) remains well within the ESP32-S3 total GPIO source limit of 120 mA.
+3. **I2C Bus Clearance:** Sensor routing traces on GPIO 8 and GPIO 9 are routed cleanly with short ground return paths, preserving I²C Fast-Mode clock fidelity.
+4. **Deterministic Optical Feedback:** Every closed-loop command dispatched by oneM2M produces an immediate visual change in LED luminous intensity or colour channel.
+

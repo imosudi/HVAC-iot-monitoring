@@ -30,10 +30,16 @@ static QueueHandle_t s_telemetry_queue = NULL;
 
 static void on_downlink_command(uint8_t target_pwm, bool is_override)
 {
-    ESP_LOGI(TAG, "Downlink command received: target_pwm=%d%%, override=%s",
+    ESP_LOGI(TAG, "Downlink command received: target_pwm=%d%%, override=%s (Modulating Blue LED Actuator)",
              target_pwm, is_override ? "YES" : "NO");
 
     pwm_fan_set_duty(target_pwm);
+    if (target_pwm > 50) {
+        gpio_set_level(GPIO_ACTUATOR_GREEN_VENT, 0);
+    } else {
+        gpio_set_level(GPIO_ACTUATOR_GREEN_VENT, 1);
+    }
+
     if (is_override) {
         ws2812b_set_state(LED_STATE_OVERRIDE_BLUE);
     }
@@ -63,22 +69,35 @@ static void sensor_acquisition_task(void *pvParameters)
         /* 2. Sample DHT22 */
         dht22_read_measurement(&dht22_data);
 
-        /* 3. Read Tachometer Rotor RPM */
+        /* 3. Read Actuator Feedback */
         uint16_t current_rpm = tachometer_get_rpm(TACHO_SAMPLE_WINDOW_MS, TACHO_PULSES_PER_REV);
         uint8_t current_duty = pwm_fan_get_duty();
 
-        /* 4. Update Optical Telemetry Indicator */
+        /* 4. Drive Coloured LED Actuators based on cabin environmental state */
         if (scd30_data.is_valid) {
             if (scd30_data.co2_ppm > CO2_THRESHOLD_HIGH_PPM) {
                 ws2812b_set_state(LED_STATE_ALARM_RED);
                 pwm_fan_set_duty(100);
+                gpio_set_level(GPIO_ACTUATOR_GREEN_VENT, 0);
+                gpio_set_level(GPIO_ACTUATOR_RED_HEAT, 0);
             } else if (scd30_data.co2_ppm > CO2_THRESHOLD_NOMINAL_PPM) {
                 ws2812b_set_state(LED_STATE_PURGE_AMBER);
                 pwm_fan_set_duty(75);
+                gpio_set_level(GPIO_ACTUATOR_GREEN_VENT, 0);
+                gpio_set_level(GPIO_ACTUATOR_RED_HEAT, 0);
+            } else if (scd30_data.temperature_c < 19.0f) {
+                ws2812b_set_state(LED_STATE_NOMINAL_GREEN);
+                pwm_fan_set_duty(0);
+                gpio_set_level(GPIO_ACTUATOR_GREEN_VENT, 0);
+                gpio_set_level(GPIO_ACTUATOR_RED_HEAT, 1);
             } else {
                 ws2812b_set_state(LED_STATE_NOMINAL_GREEN);
+                pwm_fan_set_duty(25);
+                gpio_set_level(GPIO_ACTUATOR_GREEN_VENT, 1);
+                gpio_set_level(GPIO_ACTUATOR_RED_HEAT, 0);
             }
         }
+
 
         /* 5. Pack structured telemetry frame */
         record.car_id = SDV_CAR_ID;
@@ -136,7 +155,20 @@ void app_main(void)
     ESP_ERROR_CHECK(ws2812b_init(GPIO_WS2812B_RGB));
     ws2812b_set_state(LED_STATE_CONNECTING_CYAN);
 
-    ESP_ERROR_CHECK(pwm_fan_init(GPIO_FAN_PWM));
+    /* Initialise Coloured LED Actuators (driven as physical actuators for MVP bench) */
+    gpio_config_t led_actuator_cfg = {
+        .pin_bit_mask = (1ULL << GPIO_ACTUATOR_RED_HEAT) | (1ULL << GPIO_ACTUATOR_GREEN_VENT),
+        .mode = GPIO_MODE_OUTPUT,
+        .pull_up_en = GPIO_PULLUP_DISABLE,
+        .pull_down_en = GPIO_PULLDOWN_ENABLE,
+        .intr_type = GPIO_INTR_DISABLE,
+    };
+    gpio_config(&led_actuator_cfg);
+    gpio_set_level(GPIO_ACTUATOR_GREEN_VENT, 1);
+    gpio_set_level(GPIO_ACTUATOR_RED_HEAT, 0);
+
+    /* Initialise Blue Purge LED Actuator via PWM */
+    ESP_ERROR_CHECK(pwm_fan_init(GPIO_ACTUATOR_BLUE_PURGE));
     pwm_fan_set_duty(FAN_DEFAULT_DUTY_PCT);
 
     ESP_ERROR_CHECK(tachometer_init(GPIO_FAN_TACHOMETER));
@@ -144,6 +176,7 @@ void app_main(void)
     scd30_start_continuous_measurement(0);
 
     ESP_ERROR_CHECK(dht22_init(GPIO_DHT22_DATA));
+
 
     /* Create Telemetry Queue */
     s_telemetry_queue = xQueueCreate(1, sizeof(telemetry_record_t));
