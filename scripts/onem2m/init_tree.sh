@@ -10,7 +10,7 @@ set -euo pipefail
 CSE_HOST="${CSE_HOST:-localhost}"
 CSE_PORT="${CSE_PORT:-8080}"
 CSE_BASE="${CSE_BASE:-sdv-cse}"
-ORIGIN="${ORIGIN:-CAdmin}"
+ORIGIN="${ORIGIN:-C_CabinNode_Car01}"
 BASE_URL="http://${CSE_HOST}:${CSE_PORT}/${CSE_BASE}"
 
 echo "[INFO] Connecting to oneM2M CSE at ${BASE_URL}..."
@@ -26,6 +26,7 @@ create_resource() {
     curl -s -X POST "${target_url}" \
         -H "X-M2M-Origin: ${ORIGIN}" \
         -H "X-M2M-RI: req_$(date +%s%N)" \
+        -H "X-M2M-RVI: 2a" \
         -H "Content-Type: application/json;ty=${resource_type}" \
         -H "Accept: application/json" \
         -d "${payload}" > /dev/null || echo "[WARN] ${name} may already exist."

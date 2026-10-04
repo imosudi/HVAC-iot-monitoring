@@ -57,11 +57,22 @@ test-integration:
 
 simulate-telemetry:
 	@echo "Streaming synthetic vehicular telemetry..."
-	@$(PYTHON) scripts/testing/simulate_telemetry.py --host localhost --port 1883 --mode normal
+	@$(PYTHON) scripts/testing/simulate_telemetry.py \
+		--host localhost \
+		--port 8883 \
+		--ca-cert deploy/mosquitto/certs/ca.crt \
+		--client-cert deploy/mosquitto/certs/client_esp32.crt \
+		--client-key deploy/mosquitto/certs/client_esp32.key \
+		--mode normal
 
 inject-faults:
 	@echo "Injecting adversarial faults into edge pipeline..."
-	@$(PYTHON) scripts/testing/inject_faults.py --host localhost --port 1883
+	@$(PYTHON) scripts/testing/inject_faults.py \
+		--host localhost \
+		--port 8883 \
+		--ca-cert deploy/mosquitto/certs/ca.crt \
+		--client-cert deploy/mosquitto/certs/client_esp32.crt \
+		--client-key deploy/mosquitto/certs/client_esp32.key
 
 clean:
 	@find . -type d -name "__pycache__" -exec rm -rf {} +

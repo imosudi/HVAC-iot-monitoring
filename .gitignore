@@ -226,3 +226,8 @@ foundational_document/
 
 docs/academic_expose.md
 docs/test_report_mvp.md
+
+# Certificates
+certs/*
+certs/*.*
+certs/

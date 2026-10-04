@@ -33,7 +33,7 @@ services:
   # oneM2M Middleware Tier: IN-CSE Resource Tree
   # ----------------------------------------------------------------------------
   onem2m_cse:
-    image: anank2/acme-cse:latest
+    image: ankraft/acme-onem2m-cse:latest
     container_name: sdv_onem2m_cse
     restart: unless-stopped
     ports:
@@ -43,6 +43,8 @@ services:
       - CSE_NAME=${ONEM2M_CSE_NAME:-sdv-cse}
       - CSE_TYPE=IN
       - HTTP_PORT=8080
+    volumes:
+      - ./onem2m/acme.ini:/data/acme.ini:ro
     networks:
       - mec_mesh
 
@@ -97,7 +99,7 @@ services:
     container_name: sdv_influxdb
     restart: unless-stopped
     ports:
-      - "8086:8086"
+      - "${INFLUXDB_HOST_PORT:-8087}:8086"
     environment:
       - DOCKER_INFLUXDB_INIT_MODE=${DOCKER_INFLUXDB_INIT_MODE:-setup}
       - DOCKER_INFLUXDB_INIT_USERNAME=${DOCKER_INFLUXDB_INIT_USERNAME:-admin}

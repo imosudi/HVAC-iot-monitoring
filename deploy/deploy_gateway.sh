@@ -26,14 +26,16 @@ fi
 
 echo "[STEP 3/4] Pulling container images and building microservices..."
 cd "${DEPLOY_DIR}"
-if command -v podman-compose >/dev/null 2>&1; then
-    COMPOSE_CMD="podman-compose"
-elif command -v docker-compose >/dev/null 2>&1; then
-    COMPOSE_CMD="docker-compose"
+if [ -n "${COMPOSE_CMD:-}" ]; then
+    : # Use preset COMPOSE_CMD
 elif docker compose version >/dev/null 2>&1; then
     COMPOSE_CMD="docker compose"
+elif command -v docker-compose >/dev/null 2>&1; then
+    COMPOSE_CMD="docker-compose"
+elif command -v podman-compose >/dev/null 2>&1; then
+    COMPOSE_CMD="podman-compose"
 else
-    echo "[ERROR] Neither podman-compose nor docker-compose found in PATH." >&2
+    echo "[ERROR] Neither docker compose, docker-compose, nor podman-compose found in PATH." >&2
     exit 1
 fi
 
@@ -41,7 +43,14 @@ ${COMPOSE_CMD} build
 ${COMPOSE_CMD} up -d
 
 echo "[STEP 4/4] Initialising oneM2M semantic resource hierarchy..."
-sleep 5
+echo "[INFO] Awaiting ACME CSE HTTP readiness on port 8080..."
+for i in $(seq 1 30); do
+    if curl -s -f "http://localhost:8080" >/dev/null 2>&1; then
+        echo "[OK] oneM2M CSE is responding."
+        break
+    fi
+    sleep 1
+done
 "${ROOT_DIR}/scripts/onem2m/init_tree.sh" || echo "[INFO] oneM2M initialisation completed or already provisioned."
 
 echo "[SUCCESS] Automotive MEC Gateway microservice mesh is operational."

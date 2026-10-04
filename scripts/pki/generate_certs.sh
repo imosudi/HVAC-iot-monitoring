@@ -34,6 +34,8 @@ subjectAltName = @alt_names
 [alt_names]
 DNS.1 = mosquitto.sdv.local
 DNS.2 = localhost
+DNS.3 = mosquitto
+DNS.4 = sdv_mosquitto_broker
 IP.1 = 127.0.0.1
 EOF
 
@@ -59,8 +61,8 @@ openssl x509 -req -in client_nodered.csr -CA ca.crt -CAkey ca.key -CAcreateseria
 # Clean up CSRs and temporary files
 rm -f *.csr server_ext.cnf
 
-# Secure file permissions
-chmod 600 *.key
+# Secure file permissions (readable by container daemon users)
+chmod 644 *.key
 chmod 644 *.crt
 
 echo "[SUCCESS] PKI certificate generation complete in ${CERTS_DIR}"
