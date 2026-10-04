@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fhtw-aiot.ac.at/schemas/sdv-actuator-command.json",
+  "title": "VehicularActuatorCommandFrame",
+  "description": "Schema definition for downlink actuation directives dispatched from oneM2M middleware to the ESP32-S3 cabin node.",
+  "type": "object",
+  "properties": {
+    "target_pwm": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100,
+      "description": "Target blower motor PWM duty cycle percentage."
+    },
+    "mode": {
+      "type": "string",
+      "enum": ["AUTOMATIC", "MANUAL_OVERRIDE", "FAILSAFE"],
+      "description": "Actuation control regime."
+    },
+    "timestamp_unix_s": {
+      "type": "integer",
+      "minimum": 1700000000,
+      "description": "Dispatch timestamp in Unix epoch seconds."
+    },
+    "source_entity": {
+      "type": "string",
+      "description": "Identifier of the issuing oneM2M entity or user interface."
+    }
+  },
+  "required": [
+    "target_pwm",
+    "mode",
+    "timestamp_unix_s"
+  ],
+  "additionalProperties": false
+}

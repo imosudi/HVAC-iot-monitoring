@@ -511,17 +511,100 @@ System verification is structured across three rigorous testing tiers designed t
 
 ```text
 HVAC-iot-monitoring/
-├── docs/                                 # Architectural documentation, media & schematics
-│   ├── assets/
-│   │   ├── architecture_detailed.png     # Full-system cyber-physical architecture diagram
-│   │   ├── sdv_closed_loop_flow.png      # SDV closed-loop control pipeline flow
-│   │   └── fhtw_logo.jpg                 # Institutional insignia of FH Technikum Wien
-│   └── academic_expose.md                # Comprehensive academic exposé and specification
+├── deploy/                               # Edge gateway container mesh and provisioning
+│   ├── grafana/                          # Observability cockpit configuration
+│   │   ├── dashboards/
+│   │   │   └── cabin_operations.json     # Provisioned Grafana operations dashboard
+│   │   └── provisioning/
+│   │       ├── dashboards/
+│   │       │   └── dashboards.yaml       # Automatic dashboard loader provider
+│   │       └── datasources/
+│   │           └── influxdb.yaml         # InfluxDB Flux datasource connection
+│   ├── mosquitto/                        # MQTT broker configuration and ACL policies
+│   │   ├── acl.conf                      # Per-vehicle topic access control rules
+│   │   └── mosquitto.conf                # Port 8883, TLS 1.3, client certificate verification
+│   ├── nodered/                          # oneM2M Ingress and Downlink Interworking Proxy
+│   │   └── flows.json                    # Flow definitions for MQTT-to-oneM2M mapping
+│   ├── onem2m/                           # oneM2M IN-CSE configuration profile
+│   │   └── acme.ini                      # ACME CSE initialisation and protocol bindings
+│   ├── .env.example                      # Decoupled runtime secret configuration template
+│   ├── deploy_gateway.sh                 # Executable gateway bootstrap orchestration script
+│   └── docker-compose.yml                # Podman and Docker Compose service mesh definition
+│
+├── docs/                                 # Technical documentation, specifications, and schematics
+│   ├── architecture/                     # Architectural specifications and hardware notes
+│   │   ├── hardware_schematic.md         # Circuit topology, pinouts, and electrical schematics
+│   │   └── system_architecture.md        # Comprehensive cyber-physical architecture document
+│   ├── assets/                           # Engineering diagrams and institutional branding
+│   │   ├── architecture_detailed.png     # Detailed multi-tier cyber-physical topology diagram
+│   │   ├── fhtw_logo.jpg                 # Insignia of FH Technikum Wien
+│   │   └── sdv_closed_loop_flow.png      # Closed-loop environmental control pipeline diagram
+│   ├── schemas/                          # JSON Schema 2020-12 data contracts
+│   │   ├── actuator_command_schema.json  # Downlink actuation directive contract
+│   │   └── telemetry_schema.json         # Uplink cyber-physical telemetry contract
+│   ├── academic_expose.md                # Academic exposé and foundational curriculum framing
+│   └── test_report_mvp.md                # Verification test matrices and execution log
+│
+├── firmware/                             # Physical sensing and supersonic actuation firmware
+│   └── esp32s3_cabin_node/               # ESP-IDF v5.x project for ESP32-S3 microcontroller
+│       ├── main/                         # Core C source and header hierarchy
+│       │   ├── app_config.h              # Pinout definitions, task priorities, and timings
+│       │   ├── CMakeLists.txt            # Main component build configuration
+│       │   ├── dht22_driver.c            # DHT22 1-Wire bit-banged driver implementation
+│       │   ├── dht22_driver.h            # DHT22 driver public interface and parity verification
+│       │   ├── main.c                    # Dual-core FreeRTOS task partition and main entry point
+│       │   ├── mtls_client.c             # mbedTLS mutual TLS 1.3 MQTT client
+│       │   ├── mtls_client.h             # Network client public interface
+│       │   ├── pwm_fan_control.c         # 25.0 kHz supersonic LEDC PWM modulation driver
+│       │   ├── pwm_fan_control.h         # PWM actuator interface
+│       │   ├── scd30_driver.c            # Sensirion SCD30 I2C Fast-Mode driver with CRC-8
+│       │   ├── scd30_driver.h            # SCD30 public interface
+│       │   ├── tachometer.c              # PCNT hardware pulse counter tachometer driver
+│       │   ├── tachometer.h              # Tachometer RPM evaluation interface
+│       │   ├── telemetry_payload.c       # Uplink JSON payload formatting
+│       │   ├── telemetry_payload.h       # Payload serialisation interface
+│       │   ├── ws2812b_indicator.c       # WS2812B RGB optical status annunciator driver
+│       │   └── ws2812b_indicator.h       # Status indicator public interface
+│       ├── CMakeLists.txt                # ESP-IDF project level CMakeLists
+│       └── sdkconfig.defaults            # Platform configuration: 240 MHz, FreeRTOS, mbedTLS
+│
+├── scripts/                              # Utility and operational automation scripts
+│   ├── onem2m/                           # Semantic middleware provisioning utilities
+│   │   └── init_tree.sh                  # Automated script creating /sdv-cse hierarchy
+│   ├── pki/                              # Cryptographic certificate lifecycle tools
+│   │   └── generate_certs.sh             # Automated OpenSSL script generating private Root CA
+│   └── testing/                          # Edge testing and simulation tools
+│       ├── inject_faults.py              # Adversarial fault-injection utility
+│       └── simulate_telemetry.py         # Synthetic telemetry streaming tool
+│
+├── services/                             # Vehicular microservices and background daemons
+│   └── bridge_ae/                        # Python Bridge Application Entity (AE)
+│       ├── src/                          # Bridge AE application source code
+│       │   ├── config.py                 # Environment configuration loader
+│       │   ├── health_classifier.py      # Four-state empirical data health classification engine
+│       │   ├── influx_writer.py          # Line-protocol formatter and InfluxDB 2.x writer
+│       │   ├── __init__.py               # Python package initialisation
+│       │   └── main.py                   # Flask HTTP subscription notification webhook
+│       ├── Dockerfile                    # Container build recipe
+│       └── requirements.txt              # Python runtime dependencies
+│
+├── tests/                                # Multi-tier test suite
+│   ├── integration/                      # Tier 2: Pipeline integration tests
+│   │   ├── __init__.py                   # Package initialisation
+│   │   └── test_e2e_pipeline.py          # End-to-end telemetry and actuation loop test
+│   ├── unit/                             # Tier 1: Unit tests
+│   │   ├── __init__.py                   # Package initialisation
+│   │   ├── test_health_classifier.py     # Health state transition and boundary tests
+│   │   └── test_json_schema.py           # JSON Schema contract validation tests
+│   ├── conftest.py                       # Pytest configuration and shared fixtures
+│   └── __init__.py                       # Test suite root initialisation
 │
 ├── .gitignore                            # Version control exclusion rules
-├── LICENSE                               # Open-source BSD 3-Clause legal licence
+├── LICENSE                               # BSD 3-Clause open-source licence
+├── Makefile                              # Master build and orchestration harness
 └── README.md                             # Primary technical repository specification
 ```
+
 
 ---
 

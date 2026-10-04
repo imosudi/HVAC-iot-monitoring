@@ -1,0 +1,102 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fhtw-aiot.ac.at/schemas/sdv-cabin-telemetry.json",
+  "title": "VehicularCabinTelemetryFrame",
+  "description": "Schema definition for uplink telemetry acquired by the ESP32-S3 cabin node in Software-Defined Vehicles.",
+  "type": "object",
+  "properties": {
+    "car_id": {
+      "type": "string",
+      "pattern": "^vehicle_[0-9]{2,}$",
+      "description": "Unique vehicle identifier within the fleet namespace."
+    },
+    "zone": {
+      "type": "string",
+      "enum": ["cabin_front", "cabin_rear", "cargo_trunk"],
+      "default": "cabin_front",
+      "description": "Physical microclimate compartment zone."
+    },
+    "timestamp_unix_s": {
+      "type": "integer",
+      "minimum": 1700000000,
+      "description": "Hardware-sampled Unix epoch timestamp in seconds."
+    },
+    "scd30": {
+      "type": "object",
+      "properties": {
+        "co2_ppm": {
+          "type": ["number", "null"],
+          "minimum": 0.0,
+          "maximum": 10000.0,
+          "description": "Carbon dioxide concentration measured by NDIR optical spectroscopy."
+        },
+        "temperature_c": {
+          "type": ["number", "null"],
+          "minimum": -40.0,
+          "maximum": 70.0,
+          "description": "Cabin dry-bulb temperature from SCD30 transducer."
+        },
+        "humidity_pct": {
+          "type": ["number", "null"],
+          "minimum": 0.0,
+          "maximum": 100.0,
+          "description": "Relative humidity measured by SCD30."
+        }
+      },
+      "required": ["co2_ppm", "temperature_c", "humidity_pct"],
+      "additionalProperties": false
+    },
+    "dht22": {
+      "type": "object",
+      "properties": {
+        "temperature_c": {
+          "type": ["number", "null"],
+          "minimum": -40.0,
+          "maximum": 80.0,
+          "description": "Redundant cabin dry-bulb temperature from capacitive/NTC transducer."
+        },
+        "humidity_pct": {
+          "type": ["number", "null"],
+          "minimum": 0.0,
+          "maximum": 100.0,
+          "description": "Redundant relative humidity from DHT22."
+        }
+      },
+      "required": ["temperature_c", "humidity_pct"],
+      "additionalProperties": false
+    },
+    "actuator_state": {
+      "type": "object",
+      "properties": {
+        "pwm_duty_pct": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "Current commanded centrifugal fan PWM duty cycle percentage."
+        },
+        "tachometer_rpm": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 6000,
+          "description": "Observed fan rotational speed measured via PCNT Hall-effect sensor."
+        },
+        "carrier_freq_hz": {
+          "type": "integer",
+          "const": 25000,
+          "description": "Carrier switching frequency of the motor control timer in Hertz."
+        }
+      },
+      "required": ["pwm_duty_pct", "tachometer_rpm", "carrier_freq_hz"],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "car_id",
+    "zone",
+    "timestamp_unix_s",
+    "scd30",
+    "dht22",
+    "actuator_state"
+  ],
+  "additionalProperties": false
+}

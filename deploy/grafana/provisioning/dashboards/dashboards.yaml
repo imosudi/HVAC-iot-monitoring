@@ -1,0 +1,11 @@
+apiVersion: 1
+
+providers:
+  - name: "Automotive Cabin Telemetry"
+    orgId: 1
+    folder: "Automotive IoT"
+    type: file
+    disableDeletion: false
+    editable: true
+    options:
+      path: /var/lib/grafana/dashboards
