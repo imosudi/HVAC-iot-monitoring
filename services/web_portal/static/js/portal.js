@@ -11,14 +11,58 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 /**
- * Updates the UTC HUD clock every second.
+ * Formats a Date object as a local timestamp string with the client timezone.
+ * Example output: "2026-10-05 00:04:01 CEST"
+ */
+function formatLocalDateTime(date) {
+    const pad = (n) => String(n).padStart(2, '0');
+    const year = date.getFullYear();
+    const month = pad(date.getMonth() + 1);
+    const day = pad(date.getDate());
+    const hours = pad(date.getHours());
+    const minutes = pad(date.getMinutes());
+    const seconds = pad(date.getSeconds());
+
+    let tzString = '';
+    try {
+        const parts = new Intl.DateTimeFormat(undefined, { timeZoneName: 'short' }).formatToParts(date);
+        const tzPart = parts.find((p) => p.type === 'timeZoneName');
+        if (tzPart && tzPart.value) {
+            tzString = tzPart.value;
+        }
+    } catch (_) {}
+
+    if (!tzString) {
+        try {
+            tzString = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+        } catch (_) {}
+    }
+
+    if (!tzString) {
+        const offset = -date.getTimezoneOffset();
+        const sign = offset >= 0 ? '+' : '-';
+        const absOffset = Math.abs(offset);
+        tzString = `UTC${sign}${pad(Math.floor(absOffset / 60))}`;
+    }
+
+    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds} ${tzString}`.trim();
+}
+
+/**
+ * Updates the local HUD clock every second using the current client timezone and local time.
  */
 function initHudClock() {
     function updateClock() {
         const now = new Date();
         const el = document.getElementById('hud-clock');
         if (el) {
-            el.textContent = now.toISOString().replace('T', ' ').substring(0, 19) + ' UTC';
+            el.textContent = formatLocalDateTime(now);
+            try {
+                const tzResolved = Intl.DateTimeFormat().resolvedOptions().timeZone;
+                if (tzResolved) {
+                    el.title = `Local Timezone: ${tzResolved}`;
+                }
+            } catch (_) {}
         }
     }
     setInterval(updateClock, 1000);
@@ -132,7 +176,7 @@ function appendStreamLog(data) {
     const streamConsole = document.getElementById('streamConsole');
     if (!streamConsole) return;
 
-    const timeStr = new Date().toISOString().replace('T', ' ').substring(0, 19) + ' UTC';
+    const timeStr = formatLocalDateTime(new Date());
     const state = data.health_state || 'FRESH';
     const stateClass = state === 'FRESH' ? 'text-success' : (state === 'FAULT' ? 'text-danger' : 'text-warning');
     const co2 = data.scd30 ? (data.scd30.co2_ppm || 'N/A') : 'N/A';
