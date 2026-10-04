@@ -132,3 +132,28 @@ services:
       - influxdb
     networks:
       - mec_mesh
+
+  # ----------------------------------------------------------------------------
+  # Public Web Interface Tier: Flask Web Portal
+  # ----------------------------------------------------------------------------
+  web_portal:
+    build:
+      context: ../services/web_portal
+      dockerfile: Dockerfile
+    container_name: sdv_web_portal
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - HOST=0.0.0.0
+      - PORT=8000
+      - FLASK_DEBUG=${FLASK_DEBUG:-false}
+      - SECRET_KEY=${WEB_PORTAL_SECRET_KEY:-sdv-dev-portal-secret-key}
+      - ONEM2M_CSE_URL=http://onem2m_cse:8080/sdv-cse
+      - INFLUXDB_URL=http://influxdb:8086
+    depends_on:
+      - onem2m_cse
+      - influxdb
+    networks:
+      - mec_mesh
+
