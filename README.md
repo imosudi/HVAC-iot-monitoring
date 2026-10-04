@@ -544,7 +544,9 @@ HVAC-iot-monitoring/
 ├── docs/                                 # Technical documentation, specifications, and schematics
 │   ├── architecture/                     # Architectural specifications and hardware notes
 │   │   ├── hardware_schematic.md         # Circuit topology, pinouts, and electrical schematics
+│   │   ├── led_actuator_circuit_specification.md # Detailed LED actuator electrical calculations and pinout
 │   │   └── system_architecture.md        # Comprehensive cyber-physical architecture document
+
 │   ├── assets/                           # Engineering diagrams and institutional branding
 │   │   ├── architecture_detailed.png     # Detailed multi-tier cyber-physical topology diagram
 │   │   ├── fhtw_logo.jpg                 # Insignia of FH Technikum Wien
