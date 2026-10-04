@@ -216,3 +216,13 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# LibreOffice
+.~lock.*
+*.lock
+
+# Foundational document
+foundational_document/
+
+docs/academic_expose.md
+docs/test_report_mvp.md

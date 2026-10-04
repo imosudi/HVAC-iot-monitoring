@@ -1,0 +1,133 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "liveNow": true,
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 1,
+      "title": "Cabin Psychrometrics & Air Quality",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "InfluxDB_Flux"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "CO2 Concentration (ppm)",
+            "axisPlacement": "auto",
+            "fillOpacity": 15,
+            "gradientMode": "opacity",
+            "lineWidth": 2
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 800 },
+              { "color": "red", "value": 1200 }
+            ]
+          },
+          "unit": "ppm"
+        }
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 1
+      },
+      "id": 2,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "single"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "InfluxDB_Flux"
+          },
+          "query": "from(bucket: \"cabin_telemetry\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"cabin_environment\")\n  |> filter(fn: (r) => r[\"_field\"] == \"co2_ppm\")\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n  |> yield(name: \"co2\")",
+          "refId": "A"
+        }
+      ],
+      "title": "Cabin CO2 Concentration Trend",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "InfluxDB_Flux"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisLabel": "Temperature (°C)",
+            "fillOpacity": 10,
+            "lineWidth": 2
+          },
+          "unit": "celsius"
+        }
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 1
+      },
+      "id": 3,
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "InfluxDB_Flux"
+          },
+          "query": "from(bucket: \"cabin_telemetry\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"cabin_environment\")\n  |> filter(fn: (r) => r[\"_field\"] == \"temp_scd30_c\" or r[\"_field\"] == \"temp_dht22_c\")\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n  |> yield(name: \"temperatures\")",
+          "refId": "A"
+        }
+      ],
+      "title": "Dual-Transducer Temperature Cross-Validation",
+      "type": "timeseries"
+    }
+  ],
+  "schemaVersion": 38,
+  "style": "dark",
+  "tags": ["automotive", "sdv", "onem2m", "hvac"],
+  "time": {
+    "from": "now-15m",
+    "to": "now"
+  },
+  "title": "Vehicular Cabin Environment Operations Cockpit",
+  "uid": "sdv-cabin-cockpit",
+  "version": 1
+}
