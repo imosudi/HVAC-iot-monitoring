@@ -1,0 +1,37 @@
+{# Reusable telemetry stat card macro adhering strictly to Bootstrap 5 and Stitch tokens #}
+{% macro metric_card(id_prefix, title, value, unit, status_badge="FRESH", status_variant="success", icon="speedometer2", subtext=None, border_highlight=None) %}
+<div class="card bg-dark border {% if border_highlight %}border-{{ border_highlight }}{% else %}border-secondary-subtle{% endif %} rounded-0 shadow-none h-100 reticle-corner">
+    <div class="card-header bg-surface-trough border-bottom border-grid-subtle py-1 px-3 d-flex align-items-center justify-content-between">
+        <span class="font-monospace small text-uppercase text-secondary fw-semibold">
+            <i class="bi bi-{{ icon }} me-1 text-info"></i>{{ title }}
+        </span>
+        <span class="badge bg-{{ status_variant }} text-{% if status_variant == 'warning' %}dark{% else %}white{% endif %} rounded-0 font-monospace py-0 px-2" id="badge-{{ id_prefix }}">
+            {{ status_badge }}
+        </span>
+    </div>
+    <div class="card-body p-3">
+        <div class="d-flex align-items-baseline gap-2">
+            <span class="font-heading fw-bold text-signal-primary display-6 tabular-nums" id="val-{{ id_prefix }}">{{ value }}</span>
+            <span class="font-monospace text-secondary fs-6">{{ unit }}</span>
+        </div>
+        {% if subtext %}
+        <div class="font-monospace small text-secondary mt-2 border-top border-grid-subtle pt-2" id="subtext-{{ id_prefix }}">
+            {{ subtext }}
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endmacro %}
+
+{# Macro for Sensor Health State Chip #}
+{% macro health_chip(state) %}
+{% if state == 'FRESH' %}
+    <span class="badge bg-success rounded-0 font-monospace px-2 py-1" id="badge-health-state"><i class="bi bi-check-circle me-1"></i>FRESH (&tau; &le; 2.5s)</span>
+{% elif state == 'STALE' %}
+    <span class="badge bg-warning text-dark rounded-0 font-monospace px-2 py-1" id="badge-health-state"><i class="bi bi-clock-history me-1"></i>STALE (&tau; &gt; 2.5s)</span>
+{% elif state == 'DEGRADED' %}
+    <span class="badge bg-warning rounded-0 font-monospace px-2 py-1" id="badge-health-state" style="background-color: #fa8c16 !important; color: #000;"><i class="bi bi-exclamation-triangle me-1"></i>DEGRADED (&Delta;T &gt; 1.5&deg;C)</span>
+{% else %}
+    <span class="badge bg-danger rounded-0 font-monospace px-2 py-1" id="badge-health-state"><i class="bi bi-x-octagon me-1"></i>FAULT</span>
+{% endif %}
+{% endmacro %}

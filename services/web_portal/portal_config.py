@@ -14,6 +14,9 @@ class WebPortalConfig:
     secret_key: str = field(default_factory=lambda: os.getenv("SECRET_KEY", "sdv-dev-portal-secret-key"))
     onem2m_cse_url: str = field(default_factory=lambda: os.getenv("ONEM2M_CSE_URL", "http://onem2m_cse:8080/sdv-cse"))
     influxdb_url: str = field(default_factory=lambda: os.getenv("INFLUXDB_URL", "http://influxdb:8086"))
+    influxdb_token: str = field(default_factory=lambda: os.getenv("DOCKER_INFLUXDB_INIT_ADMIN_TOKEN", "ChangeThisToAStrongGeneratedSecretToken=="))
+    influxdb_org: str = field(default_factory=lambda: os.getenv("DOCKER_INFLUXDB_INIT_ORG", "fhtw_aiot"))
+    influxdb_bucket: str = field(default_factory=lambda: os.getenv("DOCKER_INFLUXDB_INIT_BUCKET", "cabin_telemetry"))
 
 
 config = WebPortalConfig()

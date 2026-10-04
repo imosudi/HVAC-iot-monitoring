@@ -1,0 +1,151 @@
+/* ==============================================================================
+   Software-Defined Vehicle (SDV) Cyber-Physical Cabin Environmental Control
+   High-Precision Instrument Brutalism & Cyber-Physical HUD Theme
+   Design System: projects/8297625609660515167 (Stitch Design Specification)
+   ============================================================================== */
+
+:root {
+    /* Primary Typography Scales */
+    --bs-body-font-family: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --bs-font-monospace: 'Geist Mono', SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+    /* Base Electromagnetic Canvas & Elevations */
+    --bs-body-bg: #061423;
+    --bs-body-color: #d6e4f9;
+    --bs-secondary-color: #a9b7c6;
+    --bs-tertiary-color: #6b7c93;
+
+    /* Structural Grid Borders */
+    --bs-border-color: #264466;
+    --bs-border-color-subtle: #1e3752;
+
+    /* Primary Telemetry Signal (Cyan HUD Accents) */
+    --bs-info: #19c3d1;
+    --bs-info-rgb: 25, 195, 209;
+
+    /* Secondary Protocol & Architecture Accent (Precision Blue) */
+    --bs-primary: #4da3ff;
+    --bs-primary-rgb: 77, 163, 255;
+
+    /* Semantic Healthy (Fresh Telemetry State) */
+    --bs-success: #39d98a;
+    --bs-success-rgb: 57, 217, 138;
+
+    /* Semantic Stale (Packet Latency Exceedance) */
+    --bs-warning: #f4b942;
+    --bs-warning-rgb: 244, 185, 66;
+
+    /* Semantic Fault / Hazard (ASIL Disruption & E-Stop) */
+    --bs-danger: #ff5c5c;
+    --bs-danger-rgb: 255, 92, 92;
+
+    /* Card & Container Elevations */
+    --bs-card-bg: #132030;
+    --bs-card-cap-bg: #0f1c2c;
+    --bs-card-border-color: #264466;
+    --bs-card-border-radius: 0px;
+
+    /* Strict Zero-Radius Geometry */
+    --bs-border-radius: 0px;
+    --bs-border-radius-sm: 0px;
+    --bs-border-radius-lg: 0px;
+    --bs-border-radius-xl: 0px;
+    --bs-border-radius-xxl: 0px;
+}
+
+/* Headings: Engineered Geometric Grotesque */
+h1, h2, h3, h4, h5, h6, .font-heading {
+    font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
+    letter-spacing: -0.015em;
+    font-weight: 700;
+}
+
+/* Tabular Figures for High-Frequency Telemetry Updates */
+.tabular-nums {
+    font-variant-numeric: tabular-nums;
+}
+
+/* High-Precision Instrument Corner Reticles */
+.reticle-corner {
+    position: relative;
+}
+
+.reticle-corner::before {
+    content: '+';
+    position: absolute;
+    top: -6px;
+    left: -6px;
+    font-family: var(--bs-font-monospace);
+    font-size: 11px;
+    color: var(--bs-info);
+    pointer-events: none;
+    line-height: 1;
+}
+
+.reticle-corner::after {
+    content: '+';
+    position: absolute;
+    bottom: -6px;
+    right: -6px;
+    font-family: var(--bs-font-monospace);
+    font-size: 11px;
+    color: var(--bs-info);
+    pointer-events: none;
+    line-height: 1;
+}
+
+/* Custom Background and Border Utilities */
+.bg-surface-trough {
+    background-color: #0f1c2c !important;
+}
+
+.bg-surface-elevated {
+    background-color: #1e2b3b !important;
+}
+
+.border-grid-subtle {
+    border-color: #1e3752 !important;
+}
+
+.text-signal-primary {
+    color: #f4f7fa !important;
+}
+
+.text-signal-secondary {
+    color: #a9b7c6 !important;
+}
+
+.text-degraded {
+    color: #fa8c16 !important;
+}
+
+.bg-degraded {
+    background-color: #fa8c16 !important;
+    color: #061423 !important;
+}
+
+/* Stream Terminal Scroll Styling */
+.terminal-window {
+    background-color: #020f1e;
+    border: 1px solid #1e3752;
+    font-family: var(--bs-font-monospace);
+    font-size: 0.8125rem;
+    line-height: 1.5;
+}
+
+.terminal-window::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+.terminal-window::-webkit-scrollbar-track {
+    background: #0f1c2c;
+}
+
+.terminal-window::-webkit-scrollbar-thumb {
+    background: #264466;
+}
+
+.terminal-window::-webkit-scrollbar-thumb:hover {
+    background: #19c3d1;
+}
