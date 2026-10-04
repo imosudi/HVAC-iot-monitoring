@@ -220,3 +220,6 @@ __marimo__/
 # LibreOffice
 .~lock.*
 *.lock
+
+# Foundational document
+foundational_document/
