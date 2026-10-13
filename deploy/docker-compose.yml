@@ -33,7 +33,7 @@ services:
   # oneM2M Middleware Tier: IN-CSE Resource Tree
   # ----------------------------------------------------------------------------
   onem2m_cse:
-    image: anank2/acme-cse:latest
+    image: ankraft/acme-onem2m-cse:latest
     container_name: sdv_onem2m_cse
     restart: unless-stopped
     ports:
@@ -43,6 +43,8 @@ services:
       - CSE_NAME=${ONEM2M_CSE_NAME:-sdv-cse}
       - CSE_TYPE=IN
       - HTTP_PORT=8080
+    volumes:
+      - ./onem2m/acme.ini:/data/acme.ini:ro
     networks:
       - mec_mesh
 
@@ -97,7 +99,7 @@ services:
     container_name: sdv_influxdb
     restart: unless-stopped
     ports:
-      - "8086:8086"
+      - "${INFLUXDB_HOST_PORT:-8087}:8086"
     environment:
       - DOCKER_INFLUXDB_INIT_MODE=${DOCKER_INFLUXDB_INIT_MODE:-setup}
       - DOCKER_INFLUXDB_INIT_USERNAME=${DOCKER_INFLUXDB_INIT_USERNAME:-admin}
@@ -124,11 +126,36 @@ services:
       - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD}
       - GF_USERS_ALLOW_SIGN_UP=false
+      - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=${DOCKER_INFLUXDB_INIT_ADMIN_TOKEN}
     volumes:
       - ./grafana/provisioning:/etc/grafana/provisioning:ro
       - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
       - grafana_data:/var/lib/grafana
     depends_on:
+      - influxdb
+    networks:
+      - mec_mesh
+
+  # ----------------------------------------------------------------------------
+  # Public Web Interface Tier: Web portal
+  # ----------------------------------------------------------------------------
+  web_portal:
+    build:
+      context: ../services/web_portal
+      dockerfile: Dockerfile
+    container_name: sdv_web_portal
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - HOST=0.0.0.0
+      - PORT=8000
+      - FLASK_DEBUG=${FLASK_DEBUG:-false}
+      - SECRET_KEY=${WEB_PORTAL_SECRET_KEY:-sdv-dev-portal-secret-key}
+      - ONEM2M_CSE_URL=http://onem2m_cse:8080/sdv-cse
+      - INFLUXDB_URL=http://influxdb:8086
+    depends_on:
+      - onem2m_cse
       - influxdb
     networks:
       - mec_mesh

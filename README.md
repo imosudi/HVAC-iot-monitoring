@@ -544,7 +544,9 @@ HVAC-iot-monitoring/
 ├── docs/                                 # Technical documentation, specifications, and schematics
 │   ├── architecture/                     # Architectural specifications and hardware notes
 │   │   ├── hardware_schematic.md         # Circuit topology, pinouts, and electrical schematics
+│   │   ├── led_actuator_circuit_specification.md # Detailed LED actuator electrical calculations and pinout
 │   │   └── system_architecture.md        # Comprehensive cyber-physical architecture document
+
 │   ├── assets/                           # Engineering diagrams and institutional branding
 │   │   ├── architecture_detailed.png     # Detailed multi-tier cyber-physical topology diagram
 │   │   ├── fhtw_logo.jpg                 # Insignia of FH Technikum Wien
@@ -588,15 +590,24 @@ HVAC-iot-monitoring/
 │       └── simulate_telemetry.py         # Synthetic telemetry streaming tool
 │
 ├── services/                             # Vehicular microservices and background daemons
-│   └── bridge_ae/                        # Python Bridge Application Entity (AE)
-│       ├── src/                          # Bridge AE application source code
-│       │   ├── config.py                 # Environment configuration loader
-│       │   ├── health_classifier.py      # Four-state empirical data health classification engine
-│       │   ├── influx_writer.py          # Line-protocol formatter and InfluxDB 2.x writer
-│       │   ├── __init__.py               # Python package initialisation
-│       │   └── main.py                   # Flask HTTP subscription notification webhook
+│   ├── bridge_ae/                        # Python Bridge Application Entity (AE)
+│   │   ├── src/                          # Bridge AE application source code
+│   │   │   ├── config.py                 # Environment configuration loader
+│   │   │   ├── health_classifier.py      # Four-state empirical data health classification engine
+│   │   │   ├── influx_writer.py          # Line-protocol formatter and InfluxDB 2.x writer
+│   │   │   ├── __init__.py               # Python package initialisation
+│   │   │   └── main.py                   # Flask HTTP subscription notification webhook
+│   │   ├── Dockerfile                    # Container build recipe
+│   │   └── requirements.txt              # Python runtime dependencies
+│   └── web_portal/                       # Public-facing Web portal interface
+│       ├── static/                       # Static web assets (CSS, JavaScript, images)
+│       ├── templates/                    # Jinja2 HTML templates (blank index baseline)
+│       ├── app.py                        # Directly instantiated Flask web server and endpoints
+│       ├── config.py                     # Configuration loader alias
+│       ├── portal_config.py              # Web portal environment configuration dataclass
 │       ├── Dockerfile                    # Container build recipe
-│       └── requirements.txt              # Python runtime dependencies
+│       ├── requirements.txt              # Python runtime dependencies
+│       └── __init__.py                   # Package initialisation
 │
 ├── tests/                                # Multi-tier test suite
 │   ├── integration/                      # Tier 2: Pipeline integration tests
@@ -605,7 +616,8 @@ HVAC-iot-monitoring/
 │   ├── unit/                             # Tier 1: Unit tests
 │   │   ├── __init__.py                   # Package initialisation
 │   │   ├── test_health_classifier.py     # Health state transition and boundary tests
-│   │   └── test_json_schema.py           # JSON Schema contract validation tests
+│   │   ├── test_json_schema.py           # JSON Schema contract validation tests
+│   │   └── test_web_portal.py            # Public web portal constraints and route tests
 │   ├── conftest.py                       # Pytest configuration and shared fixtures
 │   └── __init__.py                       # Test suite root initialisation
 │

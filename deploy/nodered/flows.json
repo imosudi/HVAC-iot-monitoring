@@ -56,7 +56,7 @@
     "type": "function",
     "z": "tab_sdv_ipe",
     "name": "Validate & Build oneM2M cin",
-    "func": "// Extract topic tokens and payload\nconst payload = msg.payload;\nif (!payload || !payload.car_id || !payload.scd30) {\n    node.warn('Discarding invalid payload: Missing mandatory keys');\n    return null;\n}\n\n// Construct oneM2M ContentInstance representation\nconst cinBody = {\n    'm2m:cin': {\n        'cnf': 'application/json:0',\n        'con': JSON.stringify(payload)\n    }\n};\n\nmsg.headers = {\n    'X-M2M-Origin': 'CNodeRED_IPE',\n    'X-M2M-RI': 'req_' + Date.now(),\n    'Content-Type': 'application/json;ty=4',\n    'Accept': 'application/json'\n};\n\nmsg.url = 'http://onem2m_cse:8080/sdv-cse/AE_CabinNode_Car01/cnt_raw_telemetry';\nmsg.payload = cinBody;\nreturn msg;",
+    "func": "// Extract topic tokens and payload\nconst payload = msg.payload;\nif (!payload || !payload.car_id || !payload.scd30) {\n    node.warn('Discarding invalid payload: Missing mandatory keys');\n    return null;\n}\n\n// Construct oneM2M ContentInstance representation\nconst cinBody = {\n    'm2m:cin': {\n        'cnf': 'application/json:0',\n        'con': JSON.stringify(payload)\n    }\n};\n\nmsg.headers = {\n    'X-M2M-Origin': 'C_CabinNode_Car01',\n    'X-M2M-RI': 'req_' + Date.now(),\n    'X-M2M-RVI': '2a',\n    'Content-Type': 'application/json;ty=4',\n    'Accept': 'application/json'\n};\n\nmsg.url = 'http://onem2m_cse:8080/sdv-cse/AE_CabinNode_Car01/cnt_raw_telemetry';\nmsg.payload = cinBody;\nreturn msg;",
     "outputs": 1,
     "timeout": 0,
     "noerr": 0,

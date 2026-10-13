@@ -29,12 +29,16 @@ extern "C" {
 #define GPIO_ACTUATOR_BLUE_PURGE   (18)      /* LEDC PWM driven: luminous intensity emulates purge speed */
 #define GPIO_ACTUATOR_RED_HEAT     (17)      /* Digital driven: thermal heating actuator */
 #define GPIO_ACTUATOR_GREEN_VENT   (16)      /* Digital driven: baseline eco-ventilation actuator */
-#define GPIO_ACTUATOR_AMBER_ALERT  (19)      /* Digital driven: dehumidification / alert actuator */
+#define GPIO_ACTUATOR_AMBER_ALERT  (15)      /* Digital driven: dehumidification / alert actuator */
 
-/* Backwards-compatible aliases for single-channel PWM timer */
+/* Feedback and Status Pinout */
+#define GPIO_BENCH_TACHOMETER      (19)      /* Bench pulse counter feedback input */
+#define GPIO_WS2812B_RGB           (38)      /* Addressable RGB optical node annunciator */
+
+/* Backwards-compatible aliases for legacy references */
 #define GPIO_FAN_PWM               GPIO_ACTUATOR_BLUE_PURGE
-#define GPIO_FAN_TACHOMETER        GPIO_ACTUATOR_AMBER_ALERT
-#define GPIO_WS2812B_RGB           (38)
+#define GPIO_FAN_TACHOMETER        GPIO_BENCH_TACHOMETER
+
 
 /* --- Actuation and Timer Parameters --- */
 #define FAN_PWM_FREQUENCY_HZ       (25000)   /* 25 kHz carrier frequency to avoid audible whine */

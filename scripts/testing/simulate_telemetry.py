@@ -55,55 +55,49 @@ def generate_payload(vehicle_id: str, mode: str, iteration: int) -> dict:
     elif mode == "stale":
         # Backdate timestamp by 10 seconds to exceed 2.5 s latency threshold
         now = datetime.fromtimestamp(now.timestamp() - 10.0, tz=timezone.utc)
-        logger.info(f"Simulating stale telemetry timestamp: {now.isoformat()}")
+        logger.info(f"Simulating stale telemetry timestamp: {int(now.timestamp())}")
 
     elif mode == "fault":
         # Transmit null/invalid values for primary transducer
         logger.info("Simulating transducer fault with null reading")
         return {
-            "vehicle_id": vehicle_id,
-            "timestamp": now.isoformat(),
-            "measurements": {
-                "scd30": {
-                    "co2_ppm": None,
-                    "temperature_c": None,
-                    "relative_humidity_pct": None,
-                    "status": "SENSOR_ERROR"
-                },
-                "dht22": {
-                    "temperature_c": dht22_temp,
-                    "relative_humidity_pct": dht22_rh,
-                    "status": "OK"
-                }
-            },
-            "actuation_feedback": {
-                "fan_duty_pct": fan_duty,
-                "fan_rpm": fan_rpm,
-                "status": "FAILSAFE_ENGAGED"
-            }
-        }
-
-    return {
-        "vehicle_id": vehicle_id,
-        "timestamp": now.isoformat(),
-        "measurements": {
+            "car_id": vehicle_id,
+            "zone": "cabin_front",
+            "timestamp_unix_s": int(now.timestamp()),
             "scd30": {
-                "co2_ppm": round(co2_ppm, 1),
-                "temperature_c": round(scd30_temp, 2),
-                "relative_humidity_pct": round(scd30_rh, 1),
-                "status": "OK"
+                "co2_ppm": None,
+                "temperature_c": None,
+                "humidity_pct": None,
             },
             "dht22": {
                 "temperature_c": round(dht22_temp, 2),
-                "relative_humidity_pct": round(dht22_rh, 1),
-                "status": "OK"
-            }
-        },
-        "actuation_feedback": {
-            "fan_duty_pct": round(fan_duty, 1),
-            "fan_rpm": int(fan_rpm),
-            "status": "RUNNING"
+                "humidity_pct": round(dht22_rh, 1),
+            },
+            "actuator_state": {
+                "pwm_duty_pct": round(fan_duty, 1),
+                "tachometer_rpm": int(fan_rpm),
+                "carrier_freq_hz": 25000,
+            },
         }
+
+    return {
+        "car_id": vehicle_id,
+        "zone": "cabin_front",
+        "timestamp_unix_s": int(now.timestamp()),
+        "scd30": {
+            "co2_ppm": round(co2_ppm, 1),
+            "temperature_c": round(scd30_temp, 2),
+            "humidity_pct": round(scd30_rh, 1),
+        },
+        "dht22": {
+            "temperature_c": round(dht22_temp, 2),
+            "humidity_pct": round(dht22_rh, 1),
+        },
+        "actuator_state": {
+            "pwm_duty_pct": round(fan_duty, 1),
+            "tachometer_rpm": int(fan_rpm),
+            "carrier_freq_hz": 25000,
+        },
     }
 
 
@@ -159,7 +153,7 @@ def main():
             payload_str = json.dumps(payload)
             result = client.publish(topic, payload_str, qos=1)
             result.wait_for_publish(timeout=2.0)
-            logger.info(f"Published frame #{iteration + 1} | CO2={payload['measurements']['scd30'].get('co2_ppm')} ppm")
+            logger.info(f"Published frame #{iteration + 1} | CO2={payload['scd30'].get('co2_ppm')} ppm")
 
             iteration += 1
             if args.count > 0 and iteration >= args.count:

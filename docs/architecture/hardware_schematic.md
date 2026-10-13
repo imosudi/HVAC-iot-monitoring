@@ -15,10 +15,11 @@
 | **I2C_NUM_0 SDA** | Sensirion SCD30 | **GPIO 8** | 3.3 V CMOS | 4.7 kΩ to 3.3 V | Bidirectional serial data line |
 | **I2C_NUM_0 SCL** | Sensirion SCD30 | **GPIO 9** | 3.3 V CMOS | 4.7 kΩ to 3.3 V | Serial clock line (400 kHz Fast-Mode) |
 | **GPIO Bit-Bang** | DHT22 (AM2302) | **GPIO 4** | 3.3 V CMOS | 10 kΩ to 3.3 V | Single-wire bidirectional bus |
-| **LEDC Timer 0** | Blue LED Actuator (Purge / Cooling) | **GPIO 18** | 3.3 V PWM | 220 Ω series resistor | Primary purge actuator; brightness emulates blower speed (0 to 100% duty) |
+| **LEDC Timer 0** | Blue LED Actuator (Purge / Cooling) | **GPIO 18** | 3.3 V PWM | 150 Ω series resistor | Primary purge actuator; brightness emulates blower speed (0 to 100% duty) |
 | **GPIO Output** | Red LED Actuator (Heating) | **GPIO 17** | 3.3 V Digital | 330 Ω series resistor | Thermal heating actuator; engages when cabin temperature falls below 19.0 °C |
 | **GPIO Output** | Green LED Actuator (Eco Ventilation) | **GPIO 16** | 3.3 V Digital | 330 Ω series resistor | Nominal air-quality actuator; active under baseline CO₂ (< 800 ppm) equilibrium |
-| **GPIO / PCNT** | Amber LED Actuator / Tachometer | **GPIO 19** | 3.3 V Digital | 330 Ω series resistor | Dehumidification / caution actuator; pulse input for bench verification |
+| **GPIO Output** | Amber LED Actuator (Alert / Dehumidification) | **GPIO 15** | 3.3 V Digital | 330 Ω series resistor | Dehumidification / caution actuator; active under elevated humidity (> 65%) |
+| **PCNT Unit 0** | Bench Feedback Tachometer | **GPIO 19** | 3.3 V Digital | 4.7 kΩ pull-up to 3.3 V | Pulse counter input for bench rotation verification (2 pulses/rev) |
 | **RMT / GPIO** | WS2812B RGB LED | **GPIO 38** | 3.3 V RZ | 330 Ω series damping | Addressable node optical health and network status annunciator |
 
 ---
@@ -46,13 +47,13 @@
 In place of high-current vehicular blower motors, stepper flappers, and PTC heating elements, the MVP bench implementation uses discrete coloured LEDs as the physical actuators. This preserves the cyber-physical control semantics without high-voltage power hazards or acoustic disturbance:
 
 ```text
-  GPIO 18 (LEDC PWM) ───────[220 Ohm]───────[ >| Blue LED: Purge / Blower ]───────┐
+  GPIO 18 (LEDC PWM) ───────[150 Ohm]───────[ >| Blue LED: Purge / Blower ]───────┐
                                                                                     │
   GPIO 17 (Digital)  ───────[330 Ohm]───────[ >| Red LED: Cabin Heater ]──────────┤
                                                                                     │
   GPIO 16 (Digital)  ───────[330 Ohm]───────[ >| Green LED: Eco Baseline ]─────────┤
                                                                                     │
-  GPIO 19 (Digital)  ───────[330 Ohm]───────[ >| Amber LED: Alert / Dehum ]────────┤
+  GPIO 15 (Digital)  ───────[330 Ohm]───────[ >| Amber LED: Alert / Dehum ]────────┤
                                                                                     │
   GND Rail  ────────────────────────────────────────────────────────────────────────┘
 ```
@@ -60,7 +61,8 @@ In place of high-current vehicular blower motors, stepper flappers, and PTC heat
 * **Blue LED Actuator (Purge Ventilation / Cooling):** Driven via the ESP32-S3 LEDC hardware timer on GPIO 18. Luminous intensity directly visualises the commanded duty cycle percentage (0 to 100%) calculated by the closed-loop rule engine upon carbon dioxide exceedance (> 800 ppm).
 * **Red LED Actuator (Cabin Heating):** Driven via GPIO 17. Illuminates when temperature falls below the comfort lower bound (< 19.0 °C), emulating vehicular PTC heater core activation.
 * **Green LED Actuator (Eco Ventilation):** Driven via GPIO 16. Illuminates during nominal baseline air quality (CO₂ between 400 and 800 ppm, temperature between 20.0 and 23.5 °C).
-* **Amber LED Actuator (Alert / Dehumidification):** Driven via GPIO 19. Engages during high relative humidity (> 65%) or when the Bridge AE flags a `DEGRADED` or `STALE` health status.
+* **Amber LED Actuator (Alert / Dehumidification):** Driven via GPIO 15. Engages during high relative humidity (> 65%) or when the Bridge AE flags a `DEGRADED` or `STALE` health status.
+
 
 #### 2.3 Optical Status Indicator (WS2812B)
 ```text
