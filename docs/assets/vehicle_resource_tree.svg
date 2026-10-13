@@ -73,7 +73,6 @@
   <g transform="translate(60, 40)">
     <rect x="0" y="0" width="8" height="44" rx="4" fill="#2563eb" />
     <text x="24" y="26" fill="#0f172a" font-size="24" font-weight="800" letter-spacing="0.5">oneM2M Expandable Fleet Resource Hierarchy</text>
-    <text x="24" y="44" fill="#64748b" font-size="13">Standardised light enterprise architecture for connected vehicle cabin environmental telemetry</text>
   </g>
 
   <!-- ================= TOP LEGEND ================= -->
