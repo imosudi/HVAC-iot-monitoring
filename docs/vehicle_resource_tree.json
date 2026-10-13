@@ -1,0 +1,281 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "oneM2M Expandable Vehicle Fleet Resource Tree",
+  "description": "Standardised hierarchical resource tree for connected vehicle cabin environmental monitoring and fleet telemetry.",
+  "cseBase": {
+    "m2m:cb": {
+      "rn": "cse-in",
+      "ri": "id-in",
+      "ty": 5,
+      "pi": "",
+      "ct": "20261006T200128",
+      "lt": "20261013T200000",
+      "csi": "/id-in",
+      "spid": "//acme.mioemi.com",
+      "cst": 1,
+      "srv": ["2a", "3", "4"],
+      "poa": ["http://192.168.122.91:8080"]
+    }
+  },
+  "fleet_management": {
+    "access_control": {
+      "m2m:acp": {
+        "rn": "acp_fleet_manager",
+        "ri": "acp_fleet_001",
+        "ty": 1,
+        "pi": "id-in",
+        "pv": {
+          "acr": [
+            {
+              "acor": ["CAdmin"],
+              "acop": 63
+            },
+            {
+              "acor": ["C_vehicle_nodes"],
+              "acop": 35
+            }
+          ]
+        }
+      }
+    },
+    "group_fan_out": {
+      "m2m:grp": {
+        "rn": "grp_fleet_telemetry",
+        "ri": "grp_fleet_001",
+        "ty": 9,
+        "pi": "id-in",
+        "mt": 3,
+        "cnm": 2,
+        "mnm": 1000,
+        "mid": [
+          "id-in/vehicle-001/raw-telemetry",
+          "id-in/vehicle-002/raw-telemetry"
+        ],
+        "lbl": ["fleet", "telemetry", "sdv-cluster"]
+      }
+    }
+  },
+  "vehicles": [
+    {
+      "m2m:ae": {
+        "rn": "vehicle-001",
+        "ri": "ae_v001",
+        "ty": 2,
+        "pi": "id-in",
+        "api": "N.org.fhtw.sdv.cabin",
+        "aei": "C_vehicle-001",
+        "rr": true,
+        "srv": ["2a", "3"],
+        "lbl": ["vehicle", "car-001", "fleet-alpha"],
+        "containers": [
+          {
+            "m2m:cnt": {
+              "rn": "temperature-cabin",
+              "ri": "cnt_v001_temp",
+              "ty": 3,
+              "pi": "ae_v001",
+              "mni": 1000,
+              "mbs": 1048576,
+              "lbl": ["sensor", "cabin", "temperature"],
+              "latest_contentInstance": {
+                "m2m:cin": {
+                  "rn": "cin_temp_latest",
+                  "ri": "cin_v001_t_01",
+                  "ty": 4,
+                  "pi": "cnt_v001_temp",
+                  "cnf": "application/json",
+                  "con": "{\"val\": 22.4, \"unit\": \"C\", \"status\": \"OK\", \"ts\": 1791639000}"
+                }
+              }
+            }
+          },
+          {
+            "m2m:cnt": {
+              "rn": "humidity-cabin",
+              "ri": "cnt_v001_hum",
+              "ty": 3,
+              "pi": "ae_v001",
+              "mni": 1000,
+              "mbs": 1048576,
+              "lbl": ["sensor", "cabin", "humidity"],
+              "latest_contentInstance": {
+                "m2m:cin": {
+                  "rn": "cin_hum_latest",
+                  "ri": "cin_v001_h_01",
+                  "ty": 4,
+                  "pi": "cnt_v001_hum",
+                  "cnf": "application/json",
+                  "con": "{\"val\": 46.5, \"unit\": \"%RH\", \"status\": \"OK\", \"ts\": 1791639000}"
+                }
+              }
+            }
+          },
+          {
+            "m2m:cnt": {
+              "rn": "co2-cabin",
+              "ri": "cnt_v001_co2",
+              "ty": 3,
+              "pi": "ae_v001",
+              "mni": 1000,
+              "mbs": 1048576,
+              "lbl": ["sensor", "cabin", "co2"],
+              "latest_contentInstance": {
+                "m2m:cin": {
+                  "rn": "cin_co2_latest",
+                  "ri": "cin_v001_co2_01",
+                  "ty": 4,
+                  "pi": "cnt_v001_co2",
+                  "cnf": "application/json",
+                  "con": "{\"val\": 620, \"unit\": \"ppm\", \"quality\": \"GOOD\", \"ts\": 1791639000}"
+                }
+              }
+            }
+          },
+          {
+            "m2m:cnt": {
+              "rn": "co-cabin",
+              "ri": "cnt_v001_co",
+              "ty": 3,
+              "pi": "ae_v001",
+              "mni": 1000,
+              "mbs": 1048576,
+              "lbl": ["sensor", "safety", "toxic-gas"],
+              "latest_contentInstance": {
+                "m2m:cin": {
+                  "rn": "cin_co_latest",
+                  "ri": "cin_v001_co_01",
+                  "ty": 4,
+                  "pi": "cnt_v001_co",
+                  "cnf": "application/json",
+                  "con": "{\"val\": 0.2, \"unit\": \"ppm\", \"alarm\": false, \"ts\": 1791639000}"
+                }
+              },
+              "subscriptions": [
+                {
+                  "m2m:sub": {
+                    "rn": "sub_co_alert",
+                    "ri": "sub_v001_co_01",
+                    "ty": 23,
+                    "pi": "cnt_v001_co",
+                    "nu": ["http://192.168.122.91:8080/emergency-monitor"],
+                    "nct": 1,
+                    "enc": {
+                      "net": [3]
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "m2m:cnt": {
+              "rn": "air-quality-cabin",
+              "ri": "cnt_v001_iaq",
+              "ty": 3,
+              "pi": "ae_v001",
+              "mni": 1000,
+              "mbs": 1048576,
+              "lbl": ["sensor", "cabin", "iaq"],
+              "latest_contentInstance": {
+                "m2m:cin": {
+                  "rn": "cin_iaq_latest",
+                  "ri": "cin_v001_iaq_01",
+                  "ty": 4,
+                  "pi": "cnt_v001_iaq",
+                  "cnf": "application/json",
+                  "con": "{\"score\": 42, \"rating\": \"EXCELLENT\", \"voc_ppb\": 85, \"ts\": 1791639000}"
+                }
+              }
+            }
+          },
+          {
+            "m2m:cnt": {
+              "rn": "air-quality-exterior",
+              "ri": "cnt_v001_aqe",
+              "ty": 3,
+              "pi": "ae_v001",
+              "mni": 1000,
+              "mbs": 1048576,
+              "lbl": ["sensor", "exterior", "ambient-aqi"],
+              "latest_contentInstance": {
+                "m2m:cin": {
+                  "rn": "cin_aqe_latest",
+                  "ri": "cin_v001_aqe_01",
+                  "ty": 4,
+                  "pi": "cnt_v001_aqe",
+                  "cnf": "application/json",
+                  "con": "{\"aqi\": 28, \"pm2_5\": 7.8, \"pm10\": 14.2, \"ts\": 1791639000}"
+                }
+              }
+            }
+          },
+          {
+            "m2m:cnt": {
+              "rn": "raw-telemetry",
+              "ri": "cnt_v001_raw",
+              "ty": 3,
+              "pi": "ae_v001",
+              "mni": 1440,
+              "mbs": 2097152,
+              "lbl": ["telemetry", "synchronised", "snapshot"],
+              "latest_contentInstance": {
+                "m2m:cin": {
+                  "rn": "cin_raw_latest",
+                  "ri": "cin_v001_raw_01",
+                  "ty": 4,
+                  "pi": "cnt_v001_raw",
+                  "cnf": "application/json",
+                  "con": "{\"vehicle_id\":\"vehicle-001\",\"ts\":1791639000,\"cabin\":{\"temp_c\":22.4,\"hum_pct\":46.5,\"co2_ppm\":620,\"co_ppm\":0.2,\"iaq\":42},\"exterior\":{\"aqi\":28,\"pm2_5\":7.8},\"gps\":{\"lat\":48.2082,\"lon\":16.3738}}"
+                }
+              },
+              "subscriptions": [
+                {
+                  "m2m:sub": {
+                    "rn": "sub_fleet_telemetry",
+                    "ri": "sub_v001_raw_01",
+                    "ty": 23,
+                    "pi": "cnt_v001_raw",
+                    "nu": ["http://192.168.122.91:8080/fleet-ingest"],
+                    "nct": 1,
+                    "enc": {
+                      "net": [3]
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "m2m:ae": {
+        "rn": "vehicle-002",
+        "ri": "ae_v002",
+        "ty": 2,
+        "pi": "id-in",
+        "api": "N.org.fhtw.sdv.cabin",
+        "aei": "C_vehicle-002",
+        "rr": true,
+        "srv": ["2a", "3"],
+        "lbl": ["vehicle", "car-002", "fleet-alpha"],
+        "containers_summary": "Identical 7-container subtree: [temperature-cabin, humidity-cabin, co2-cabin, co-cabin, air-quality-cabin, air-quality-exterior, raw-telemetry]"
+      }
+    },
+    {
+      "m2m:ae_template": {
+        "description": "Onboarding pattern for vehicle-N",
+        "pattern": "id-in/vehicle-{N}",
+        "mandatory_containers": [
+          "temperature-cabin",
+          "humidity-cabin",
+          "co2-cabin",
+          "co-cabin",
+          "air-quality-cabin",
+          "air-quality-exterior",
+          "raw-telemetry"
+        ]
+      }
+    }
+  ]
+}

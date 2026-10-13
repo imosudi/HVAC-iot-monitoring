@@ -1,0 +1,387 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 1280" width="100%" height="100%" style="background:#f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+  <defs>
+    <!-- Background Gradient -->
+    <linearGradient id="bgLight" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="100%" stop-color="#f1f5f9" />
+    </linearGradient>
+
+    <!-- Node Specific Gradients -->
+    <!-- CSEBase: Deep Navy Blue (matching user's reference diagram) -->
+    <linearGradient id="cseLightGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e3a8a" />
+      <stop offset="100%" stop-color="#172554" />
+    </linearGradient>
+
+    <!-- AE Primary: Clean Soft Blue (matching reference diagram) -->
+    <linearGradient id="aeLightGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#e0edfd" />
+      <stop offset="100%" stop-color="#d4e6fc" />
+    </linearGradient>
+
+    <!-- Fleet Group: Fresh Mint Light -->
+    <linearGradient id="grpLightGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ecfdf5" />
+      <stop offset="100%" stop-color="#d1fae5" />
+    </linearGradient>
+
+    <!-- ACP: Soft Lavender Light -->
+    <linearGradient id="acpLightGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#faf5ff" />
+      <stop offset="100%" stop-color="#f3e8ff" />
+    </linearGradient>
+
+    <!-- Combined Telemetry: Soft Indigo Light -->
+    <linearGradient id="rawLightGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#eef2ff" />
+      <stop offset="100%" stop-color="#e0e7ff" />
+    </linearGradient>
+
+    <!-- Card Soft Shadow -->
+    <filter id="softShadow" x="-5%" y="-5%" width="110%" height="115%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#0f172a" flood-opacity="0.06" />
+    </filter>
+
+    <filter id="elevatedShadow" x="-8%" y="-8%" width="116%" height="120%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#0f172a" flood-opacity="0.10" />
+    </filter>
+
+    <!-- Markers -->
+    <marker id="arrowSlate" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#64748b" />
+    </marker>
+    <marker id="arrowBlue" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#2563eb" />
+    </marker>
+    <marker id="arrowGreen" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#059669" />
+    </marker>
+  </defs>
+
+  <!-- Background Base -->
+  <rect width="1440" height="1280" fill="url(#bgLight)" />
+
+  <!-- Architectural Dot Grid -->
+  <g opacity="0.35">
+    <pattern id="dotGrid" width="30" height="30" patternUnits="userSpaceOnUse">
+      <circle cx="2" cy="2" r="1.2" fill="#cbd5e1" />
+    </pattern>
+    <rect width="1440" height="1280" fill="url(#dotGrid)" />
+  </g>
+
+  <!-- ================= TOP HEADER ================= -->
+  <g transform="translate(60, 40)">
+    <rect x="0" y="0" width="8" height="44" rx="4" fill="#2563eb" />
+    <text x="24" y="26" fill="#0f172a" font-size="24" font-weight="800" letter-spacing="0.5">oneM2M Expandable Fleet Resource Hierarchy</text>
+    <text x="24" y="44" fill="#64748b" font-size="13">Standardised light enterprise architecture for connected vehicle cabin environmental telemetry</text>
+  </g>
+
+  <!-- ================= TOP LEGEND ================= -->
+  <g transform="translate(860, 42)">
+    <rect x="0" y="0" width="520" height="42" rx="8" fill="#ffffff" stroke="#e2e8f0" stroke-width="1.5" filter="url(#softShadow)" />
+
+    <circle cx="24" cy="21" r="5" fill="#1e3a8a" />
+    <text x="36" y="25" fill="#334155" font-size="11" font-weight="600">CSEBase (ty:5)</text>
+
+    <circle cx="132" cy="21" r="5" fill="#0284c7" />
+    <text x="144" y="25" fill="#334155" font-size="11" font-weight="600">AE (ty:2)</text>
+
+    <circle cx="210" cy="21" r="5" fill="#64748b" />
+    <text x="222" y="25" fill="#334155" font-size="11" font-weight="600">CNT (ty:3)</text>
+
+    <circle cx="295" cy="21" r="5" fill="#0891b2" />
+    <text x="307" y="25" fill="#334155" font-size="11" font-weight="600">CIN (ty:4)</text>
+
+    <circle cx="380" cy="21" r="5" fill="#059669" />
+    <text x="392" y="25" fill="#334155" font-size="11" font-weight="600">GRP (ty:9)</text>
+
+    <circle cx="460" cy="21" r="5" fill="#db2777" />
+    <text x="472" y="25" fill="#334155" font-size="11" font-weight="600">SUB (ty:23)</text>
+  </g>
+
+  <!-- ========================================================================= -->
+  <!-- SECTION 1: ROOT INFRASTRUCTURE & FLEET GOVERNANCE                        -->
+  <!-- ========================================================================= -->
+
+  <!-- Left: Fleet Fan-Out Group -->
+  <g transform="translate(60, 115)">
+    <rect x="0" y="0" width="300" height="84" rx="12" fill="url(#grpLightGrad)" stroke="#10b981" stroke-width="1.5" filter="url(#softShadow)" />
+    <rect x="16" y="18" width="38" height="38" rx="8" fill="#d1fae5" stroke="#34d399" stroke-width="1" />
+    <text x="35" y="42" text-anchor="middle" font-size="18">👥</text>
+    <text x="66" y="32" fill="#047857" font-size="10" font-weight="700" letter-spacing="1">&lt;grp&gt; FLEET GROUP (ty: 9)</text>
+    <text x="66" y="52" fill="#064e3b" font-size="15" font-weight="700">grp_fleet_telemetry</text>
+    <text x="66" y="68" fill="#059669" font-size="11">Aggregates all vehicles' raw-telemetry</text>
+  </g>
+
+  <!-- Center: CSEBase Root (Navy Blue Card matching user diagram) -->
+  <g transform="translate(420, 115)">
+    <rect x="0" y="0" width="560" height="84" rx="14" fill="url(#cseLightGrad)" stroke="#1e40af" stroke-width="2" filter="url(#elevatedShadow)" />
+    <rect x="20" y="17" width="50" height="50" rx="10" fill="#1e40af" stroke="#60a5fa" stroke-width="1.5" />
+    <text x="45" y="48" text-anchor="middle" font-size="24">🗄️</text>
+    <text x="86" y="35" fill="#93c5fd" font-size="11" font-weight="700" letter-spacing="1.5">ROOT CSEBase (ty: 5)</text>
+    <text x="86" y="58" fill="#ffffff" font-size="19" font-weight="800">/id-in <tspan fill="#cbd5e1" font-size="15" font-weight="400">(cse-in)</tspan></text>
+    <text x="535" y="48" text-anchor="end" fill="#bfdbfe" font-size="11" font-family="monospace">spid: //acme.mioemi.com</text>
+  </g>
+
+  <!-- Right: Fleet Access Control Policy -->
+  <g transform="translate(1040, 115)">
+    <rect x="0" y="0" width="340" height="84" rx="12" fill="url(#acpLightGrad)" stroke="#c084fc" stroke-width="1.5" filter="url(#softShadow)" />
+    <rect x="16" y="18" width="38" height="38" rx="8" fill="#f3e8ff" stroke="#d8b4fe" stroke-width="1" />
+    <text x="35" y="42" text-anchor="middle" font-size="18">🔒</text>
+    <text x="66" y="32" fill="#7e22ce" font-size="10" font-weight="700" letter-spacing="1">&lt;acp&gt; ACCESS CONTROL (ty: 1)</text>
+    <text x="66" y="52" fill="#581c87" font-size="15" font-weight="700">acp_fleet_manager</text>
+    <text x="66" y="68" fill="#9333ea" font-size="11">Fleet Admin CRUD + Vehicle write rules</text>
+  </g>
+
+  <!-- Horizontal Root Connectors -->
+  <path d="M 420 157 L 360 157" fill="none" stroke="#10b981" stroke-width="2" stroke-dasharray="4 4" marker-end="url(#arrowGreen)" />
+  <path d="M 980 157 L 1040 157" fill="none" stroke="#a855f7" stroke-width="2" marker-end="url(#arrowSlate)" />
+
+  <!-- Center Vertical Trunk from CSEBase to Vehicles -->
+  <path d="M 700 199 L 700 245" fill="none" stroke="#2563eb" stroke-width="2.5" marker-end="url(#arrowBlue)" />
+
+  <!-- ========================================================================= -->
+  <!-- SECTION 2: APPLICATION ENTITIES (EXPANDABLE FLEET)                       -->
+  <!-- ========================================================================= -->
+
+  <!-- Connectors to Vehicle Nodes -->
+  <path d="M 700 225 L 1000 225 L 1000 245" fill="none" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arrowSlate)" />
+  <path d="M 1000 225 L 1230 225 L 1230 245" fill="none" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="3 3" marker-end="url(#arrowSlate)" />
+
+  <!-- Primary Featured Node: Vehicle-001 (Soft Blue Card matching user diagram) -->
+  <g transform="translate(420, 250)">
+    <rect x="0" y="0" width="560" height="86" rx="14" fill="url(#aeLightGrad)" stroke="#3b82f6" stroke-width="2" filter="url(#elevatedShadow)" />
+    <rect x="20" y="18" width="50" height="50" rx="10" fill="#ffffff" stroke="#93c5fd" stroke-width="1.5" />
+    <text x="45" y="49" text-anchor="middle" font-size="24">🚗</text>
+
+    <text x="86" y="36" fill="#1d4ed8" font-size="11" font-weight="700" letter-spacing="1.5">APPLICATION ENTITY (ty: 2)</text>
+    <text x="86" y="59" fill="#1e3a8a" font-size="20" font-weight="800">/id-in/vehicle-001</text>
+
+    <text x="535" y="36" text-anchor="end" fill="#1e40af" font-size="11">api: N.org.fhtw.sdv.cabin</text>
+    <text x="535" y="57" text-anchor="end" fill="#2563eb" font-size="10" font-family="monospace">srv: ["2a", "3"] | rr: true</text>
+  </g>
+
+  <!-- Expandable Vehicle-002 -->
+  <g transform="translate(1000, 250)">
+    <rect x="0" y="0" width="200" height="86" rx="12" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5" filter="url(#softShadow)" />
+    <text x="18" y="32" fill="#64748b" font-size="10" font-weight="700">&lt;AE&gt; FLEET NODE (ty: 2)</text>
+    <text x="18" y="54" fill="#1e293b" font-size="15" font-weight="700">vehicle-002</text>
+    <text x="18" y="70" fill="#94a3b8" font-size="11">Identical 7-container tree</text>
+  </g>
+
+  <!-- Expandable Vehicle-N -->
+  <g transform="translate(1220, 250)">
+    <rect x="0" y="0" width="160" height="86" rx="12" fill="#ffffff" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="4 4" filter="url(#softShadow)" />
+    <text x="18" y="32" fill="#64748b" font-size="10" font-weight="700">&lt;AE&gt; FLEET ...</text>
+    <text x="18" y="54" fill="#334155" font-size="15" font-weight="700">vehicle-N</text>
+    <text x="18" y="70" fill="#94a3b8" font-size="11">Expandable to N cars</text>
+  </g>
+
+  <!-- Trunk Connector from Vehicle-001 into Sensor Section -->
+  <path d="M 700 336 L 700 375" fill="none" stroke="#2563eb" stroke-width="2.5" marker-end="url(#arrowBlue)" />
+
+  <!-- ========================================================================= -->
+  <!-- LEFT COLUMN CONDUIT: GROUP AGGREGATION BUS (NO OVERLAP WITH SENSORS)     -->
+  <!-- ========================================================================= -->
+  <g transform="translate(60, 220)">
+    <!-- Dedicated vertical conduit channel -->
+    <path d="M 150 0 L 150 640 L 350 640" fill="none" stroke="#059669" stroke-width="2.5" stroke-dasharray="6 4" marker-end="url(#arrowGreen)" />
+
+    <!-- Explanatory Callout Box in Left Column -->
+    <rect x="0" y="200" width="230" height="150" rx="12" fill="#ecfdf5" stroke="#10b981" stroke-width="1.5" filter="url(#softShadow)" />
+    <text x="16" y="228" fill="#047857" font-size="11" font-weight="700">⚡ FLEET FAN-OUT BUS</text>
+    <text x="16" y="248" fill="#065f46" font-size="12" font-weight="700">GET /grp_fleet_telemetry/fopt/la</text>
+    <text x="16" y="272" fill="#047857" font-size="10">Queries latest snapshot across</text>
+    <text x="16" y="286" fill="#047857" font-size="10">ALL registered vehicles in one</text>
+    <text x="16" y="300" fill="#047857" font-size="10">atomic REST call without polling.</text>
+    <rect x="16" y="314" width="198" height="22" rx="4" fill="#d1fae5" />
+    <text x="24" y="329" fill="#065f46" font-size="9" font-family="monospace">Target: raw-telemetry /la</text>
+  </g>
+
+  <!-- ========================================================================= -->
+  <!-- SECTION 3: SENSOR-SPECIFIC CONTAINERS (WHITE CARDS MATCHING REFERENCE)   -->
+  <!-- ========================================================================= -->
+  <g transform="translate(360, 380)">
+    <!-- Background Container Frame -->
+    <rect x="0" y="0" width="1020" height="395" rx="16" fill="#ffffff" stroke="#e2e8f0" stroke-width="1.5" filter="url(#elevatedShadow)" />
+
+    <text x="28" y="30" fill="#64748b" font-size="11" font-weight="700" letter-spacing="1">VEHICLE-001 SENSOR-SPECIFIC CONTAINERS</text>
+    <text x="28" y="46" fill="#94a3b8" font-size="11">Contains sensor-specific telemetry and environmental monitoring containers</text>
+
+    <!-- GRID ROW 1 (y: 65) -->
+    <!-- Card 1: Cabin Temperature -->
+    <g transform="translate(28, 65)">
+      <rect x="0" y="0" width="465" height="90" rx="10" fill="#ffffff" stroke="#e2e8f0" stroke-width="1.5" filter="url(#softShadow)" />
+      <rect x="14" y="16" width="38" height="38" rx="8" fill="#fff7ed" stroke="#fed7aa" stroke-width="1" />
+      <text x="33" y="41" text-anchor="middle" font-size="18">🌡️</text>
+      <text x="64" y="28" fill="#0f172a" font-size="15" font-weight="700">Cabin temperature</text>
+
+      <!-- Pill Badge (matching reference) -->
+      <rect x="64" y="36" width="135" height="20" rx="4" fill="#f1f5f9" />
+      <text x="72" y="50" fill="#475569" font-size="11" font-family="monospace">temperature-cabin</text>
+      <text x="64" y="74" fill="#64748b" font-size="10">Internal cabin temperature stream (°C) | mni: 1000</text>
+
+      <rect x="375" y="14" width="75" height="20" rx="4" fill="#f0f9ff" stroke="#bae6fd" stroke-width="1" />
+      <text x="412" y="28" text-anchor="middle" fill="#0284c7" font-size="10" font-family="monospace">Target: /la</text>
+    </g>
+
+    <!-- Card 2: Cabin Humidity -->
+    <g transform="translate(525, 65)">
+      <rect x="0" y="0" width="465" height="90" rx="10" fill="#ffffff" stroke="#e2e8f0" stroke-width="1.5" filter="url(#softShadow)" />
+      <rect x="14" y="16" width="38" height="38" rx="8" fill="#f0f9ff" stroke="#bae6fd" stroke-width="1" />
+      <text x="33" y="41" text-anchor="middle" font-size="18">💧</text>
+      <text x="64" y="28" fill="#0f172a" font-size="15" font-weight="700">Cabin humidity</text>
+
+      <rect x="64" y="36" width="125" height="20" rx="4" fill="#f1f5f9" />
+      <text x="72" y="50" fill="#475569" font-size="11" font-family="monospace">humidity-cabin</text>
+      <text x="64" y="74" fill="#64748b" font-size="10">Cabin relative humidity (%RH) | mni: 1000</text>
+
+      <rect x="375" y="14" width="75" height="20" rx="4" fill="#f0f9ff" stroke="#bae6fd" stroke-width="1" />
+      <text x="412" y="28" text-anchor="middle" fill="#0284c7" font-size="10" font-family="monospace">Target: /la</text>
+    </g>
+
+    <!-- GRID ROW 2 (y: 175) -->
+    <!-- Card 3: Cabin CO2 -->
+    <g transform="translate(28, 175)">
+      <rect x="0" y="0" width="465" height="90" rx="10" fill="#ffffff" stroke="#e2e8f0" stroke-width="1.5" filter="url(#softShadow)" />
+      <rect x="14" y="16" width="38" height="38" rx="8" fill="#f0fdfa" stroke="#99f6e4" stroke-width="1" />
+      <text x="33" y="41" text-anchor="middle" font-size="18">💨</text>
+      <text x="64" y="28" fill="#0f172a" font-size="15" font-weight="700">Cabin CO₂</text>
+
+      <rect x="64" y="36" width="105" height="20" rx="4" fill="#f1f5f9" />
+      <text x="72" y="50" fill="#475569" font-size="11" font-family="monospace">co2-cabin</text>
+      <text x="64" y="74" fill="#64748b" font-size="10">CO₂ level monitoring (ppm) | Fresh air threshold trigger</text>
+
+      <rect x="375" y="14" width="75" height="20" rx="4" fill="#f0f9ff" stroke="#bae6fd" stroke-width="1" />
+      <text x="412" y="28" text-anchor="middle" fill="#0284c7" font-size="10" font-family="monospace">Target: /la</text>
+    </g>
+
+    <!-- Card 4: Cabin CO (With Safety Alert Badge) -->
+    <g transform="translate(525, 175)">
+      <rect x="0" y="0" width="465" height="90" rx="10" fill="#ffffff" stroke="#fecaca" stroke-width="1.5" filter="url(#softShadow)" />
+      <rect x="14" y="16" width="38" height="38" rx="8" fill="#fef2f2" stroke="#fca5a5" stroke-width="1" />
+      <text x="33" y="41" text-anchor="middle" font-size="18">🛡️</text>
+      <text x="64" y="28" fill="#991b1b" font-size="15" font-weight="700">Cabin CO (Carbon Monoxide)</text>
+
+      <rect x="64" y="36" width="95" height="20" rx="4" fill="#fef2f2" stroke="#fecaca" stroke-width="1" />
+      <text x="72" y="50" fill="#b91c1c" font-size="11" font-family="monospace">co-cabin</text>
+      <text x="64" y="74" fill="#b91c1c" font-size="10">Toxic gas safety monitor (ppm) with emergency webhook alert</text>
+
+      <!-- Subscription Pill on Card -->
+      <rect x="320" y="14" width="130" height="22" rx="4" fill="#ffe4e6" stroke="#f43f5e" stroke-width="1" />
+      <text x="385" y="29" text-anchor="middle" fill="#9f1239" font-size="9" font-weight="700">🚨 &lt;sub&gt; sub_co_alert</text>
+    </g>
+
+    <!-- GRID ROW 3 (y: 285) -->
+    <!-- Card 5: Cabin Air Quality -->
+    <g transform="translate(28, 285)">
+      <rect x="0" y="0" width="465" height="90" rx="10" fill="#ffffff" stroke="#e2e8f0" stroke-width="1.5" filter="url(#softShadow)" />
+      <rect x="14" y="16" width="38" height="38" rx="8" fill="#faf5ff" stroke="#e9d5ff" stroke-width="1" />
+      <text x="33" y="41" text-anchor="middle" font-size="18">📊</text>
+      <text x="64" y="28" fill="#0f172a" font-size="15" font-weight="700">Cabin air quality</text>
+
+      <rect x="64" y="36" width="145" height="20" rx="4" fill="#f1f5f9" />
+      <text x="72" y="50" fill="#475569" font-size="11" font-family="monospace">air-quality-cabin</text>
+      <text x="64" y="74" fill="#64748b" font-size="10">Indoor Air Quality (IAQ) &amp; volatile organic compounds (VOC)</text>
+
+      <rect x="375" y="14" width="75" height="20" rx="4" fill="#f0f9ff" stroke="#bae6fd" stroke-width="1" />
+      <text x="412" y="28" text-anchor="middle" fill="#0284c7" font-size="10" font-family="monospace">Target: /la</text>
+    </g>
+
+    <!-- Card 6: External Air Quality -->
+    <g transform="translate(525, 285)">
+      <rect x="0" y="0" width="465" height="90" rx="10" fill="#ffffff" stroke="#e2e8f0" stroke-width="1.5" filter="url(#softShadow)" />
+      <rect x="14" y="16" width="38" height="38" rx="8" fill="#f0fdf4" stroke="#bbf7d0" stroke-width="1" />
+      <text x="33" y="41" text-anchor="middle" font-size="18">🌲</text>
+      <text x="64" y="28" fill="#0f172a" font-size="15" font-weight="700">External air quality</text>
+
+      <rect x="64" y="36" width="165" height="20" rx="4" fill="#f1f5f9" />
+      <text x="72" y="50" fill="#475569" font-size="11" font-family="monospace">air-quality-exterior</text>
+      <text x="64" y="74" fill="#64748b" font-size="10">Ambient exterior particulate matter (PM2.5 / PM10 / AQI)</text>
+
+      <rect x="375" y="14" width="75" height="20" rx="4" fill="#f0f9ff" stroke="#bae6fd" stroke-width="1" />
+      <text x="412" y="28" text-anchor="middle" fill="#0284c7" font-size="10" font-family="monospace">Target: /la</text>
+    </g>
+  </g>
+
+  <!-- Vertical Trunk into Combined Telemetry -->
+  <path d="M 870 775 L 870 820" fill="none" stroke="#4f46e5" stroke-width="2.5" marker-end="url(#arrowBlue)" />
+
+  <!-- ========================================================================= -->
+  <!-- SECTION 4: SYNCHRONISED COMBINED TELEMETRY (SOFT INDIGO LIGHT SECTION)   -->
+  <!-- ========================================================================= -->
+  <g transform="translate(360, 825)">
+    <!-- Container Outline -->
+    <rect x="0" y="0" width="1020" height="380" rx="16" fill="url(#rawLightGrad)" stroke="#c7d2fe" stroke-width="2" filter="url(#elevatedShadow)" />
+
+    <!-- Container Header -->
+    <g transform="translate(28, 22)">
+      <rect x="0" y="0" width="44" height="44" rx="10" fill="#4f46e5" />
+      <text x="22" y="29" text-anchor="middle" font-size="22">📦</text>
+
+      <text x="60" y="18" fill="#4338ca" font-size="11" font-weight="700" letter-spacing="1.5">COMBINED TELEMETRY CONTAINER (ty: 3)</text>
+      <text x="60" y="40" fill="#1e1b4b" font-size="20" font-weight="800">raw-telemetry <tspan fill="#4f46e5" font-size="13" font-weight="500">(/cse-in/vehicle-001/raw-telemetry)</tspan></text>
+      <text x="965" y="30" text-anchor="end" fill="#3730a3" font-size="12" font-family="monospace">mni: 1440 (24h retention) | mbs: 2 MB</text>
+    </g>
+
+    <!-- Sub-Cards Inside Combined Telemetry (Non-Overlapping Columns) -->
+    <g transform="translate(28, 85)">
+
+      <!-- SUB-CARD 1: Historic Stream (ty: 4) -->
+      <g transform="translate(0, 0)">
+        <rect x="0" y="0" width="295" height="260" rx="12" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5" stroke-dasharray="4 4" filter="url(#softShadow)" />
+        <text x="18" y="28" fill="#64748b" font-size="11" font-weight="700">&lt;cin&gt; HISTORIC STREAM (ty: 4)</text>
+        <text x="18" y="48" fill="#334155" font-size="12" font-family="monospace">ri: cin_1791638940</text>
+        <text x="18" y="66" fill="#94a3b8" font-size="10">Earlier sampled snapshot</text>
+
+        <rect x="14" y="80" width="267" height="162" rx="6" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1" />
+        <text x="24" y="104" fill="#0284c7" font-size="10" font-family="monospace">"vehicle_id": "vehicle-001",</text>
+        <text x="24" y="124" fill="#475569" font-size="10" font-family="monospace">"ts": 1791638940,</text>
+        <text x="24" y="144" fill="#475569" font-size="10" font-family="monospace">"cabin": {</text>
+        <text x="36" y="164" fill="#475569" font-size="10" font-family="monospace">"temp_c": 22.1, "co2": 590</text>
+        <text x="24" y="184" fill="#475569" font-size="10" font-family="monospace">},</text>
+        <text x="24" y="204" fill="#64748b" font-size="10" font-family="monospace">"status": "ARCHIVED"</text>
+      </g>
+
+      <!-- SUB-CARD 2: Latest Snapshot /la (ty: 4) (Featured Active Node) -->
+      <g transform="translate(320, 0)">
+        <rect x="0" y="0" width="375" height="260" rx="12" fill="#ffffff" stroke="#3b82f6" stroke-width="2" filter="url(#elevatedShadow)" />
+
+        <rect x="290" y="14" width="70" height="22" rx="4" fill="#2563eb" />
+        <text x="325" y="29" text-anchor="middle" fill="#ffffff" font-size="10" font-weight="800">LATEST /la</text>
+
+        <text x="18" y="28" fill="#1d4ed8" font-size="11" font-weight="800">&lt;cin&gt; ACTIVE SNAPSHOT (ty: 4)</text>
+        <text x="18" y="48" fill="#0f172a" font-size="13" font-family="monospace" font-weight="700">ri: cin_1791639000</text>
+        <text x="18" y="66" fill="#2563eb" font-size="10">Synchronised multi-sensor frame</text>
+
+        <rect x="14" y="80" width="347" height="162" rx="6" fill="#f0f9ff" stroke="#bae6fd" stroke-width="1" />
+        <text x="24" y="104" fill="#0284c7" font-size="10" font-family="monospace">"vehicle_id": "vehicle-001",</text>
+        <text x="24" y="122" fill="#0284c7" font-size="10" font-family="monospace">"ts": 1791639000,</text>
+        <text x="24" y="140" fill="#0f172a" font-size="10" font-family="monospace">"cabin": {</text>
+        <text x="36" y="158" fill="#059669" font-size="10" font-family="monospace">"temp_c": 22.4, "hum_pct": 46.5,</text>
+        <text x="36" y="174" fill="#059669" font-size="10" font-family="monospace">"co2_ppm": 620, "co_ppm": 0.2,</text>
+        <text x="36" y="190" fill="#059669" font-size="10" font-family="monospace">"iaq_score": 42</text>
+        <text x="24" y="206" fill="#0f172a" font-size="10" font-family="monospace">},</text>
+        <text x="24" y="224" fill="#0284c7" font-size="10" font-family="monospace">"exterior": {"aqi": 28, "pm2_5": 7.8}</text>
+      </g>
+
+      <!-- SUB-CARD 3: Subscription Webhook (ty: 23) -->
+      <g transform="translate(720, 0)">
+        <rect x="0" y="0" width="245" height="260" rx="12" fill="#ffffff" stroke="#c084fc" stroke-width="1.5" filter="url(#softShadow)" />
+        <text x="18" y="28" fill="#7e22ce" font-size="11" font-weight="700">&lt;sub&gt; STREAM DISPATCH</text>
+        <text x="18" y="48" fill="#581c87" font-size="13" font-family="monospace">sub_fleet_telemetry</text>
+        <text x="18" y="66" fill="#9333ea" font-size="10">Cloud Ingest Notification</text>
+
+        <rect x="14" y="80" width="217" height="162" rx="6" fill="#faf5ff" stroke="#e9d5ff" stroke-width="1" />
+        <text x="22" y="104" fill="#7e22ce" font-size="10" font-family="monospace">nu: [</text>
+        <text x="28" y="124" fill="#9333ea" font-size="9" font-family="monospace">"http://cloud/ingest"</text>
+        <text x="22" y="144" fill="#7e22ce" font-size="10" font-family="monospace">],</text>
+        <text x="22" y="168" fill="#6b21a8" font-size="10" font-family="monospace">net: [3] (On Child Added),</text>
+        <text x="22" y="192" fill="#6b21a8" font-size="10" font-family="monospace">nct: 1 (Whole Resource)</text>
+        <text x="22" y="218" fill="#059669" font-size="10" font-family="monospace">status: ACTIVE</text>
+      </g>
+
+    </g>
+  </g>
+
+</svg>
