@@ -55,7 +55,7 @@ collection:
           throw new Error('Preflight validation failed: "rvi" is required in environment.');
       }
 
-      // Normalize base_url trailing slash
+      // Normalise base_url trailing slash
       const cleanBase = baseUrl.replace(/\/+$/, '');
       if (cleanBase !== baseUrl) {
           insomnia.baseEnvironment.set('base_url', cleanBase);
