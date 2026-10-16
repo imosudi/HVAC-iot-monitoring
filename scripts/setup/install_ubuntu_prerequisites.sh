@@ -233,7 +233,8 @@ apt-get install -y --no-install-recommends \
     python3 \
     python3-pip \
     python3-venv \
-    net-tools
+    net-tools \
+    util-linux-extra || apt-get install -y --no-install-recommends util-linux
 
 log_ok "Core utilities installed successfully."
 
@@ -321,11 +322,20 @@ if audit_requirements; then
     log_section "Setup Completed Successfully"
     log_ok "All system requirements for SDV Automotive IoT HVAC Monitoring are satisfied!"
     echo -e "\n${CLR_GREEN}Next Steps:${CLR_RESET}"
-    echo "  1. If your user was just added to the docker group, refresh your session:"
-    echo "     $ newgrp docker"
-    echo "     (or log out and log back in to your SSH session)"
-    echo "  2. Deploy the edge gateway container mesh:"
-    echo "     $ make deploy-gateway"
+    if docker info >/dev/null 2>&1; then
+        echo "  [READY] Docker permissions are already active in this shell!"
+        echo "  Deploy the edge gateway container mesh directly:"
+        echo "     $ make deploy-gateway"
+    else
+        echo "  1. If your user was just added to the docker group, refresh your session:"
+        if command -v newgrp >/dev/null 2>&1; then
+            echo "     $ newgrp docker"
+        else
+            echo "     $ su - ${TARGET_USER}   (or log out and re-connect via SSH)"
+        fi
+        echo "  2. Deploy the edge gateway container mesh:"
+        echo "     $ make deploy-gateway"
+    fi
     echo "  3. Provision the oneM2M semantic tree:"
     echo "     $ make init-onem2m"
 else
