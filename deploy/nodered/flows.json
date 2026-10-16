@@ -133,7 +133,7 @@
     "type": "function",
     "z": "tab_sdv_ipe",
     "name": "Parse oneM2M Command",
-    "func": "const body = msg.payload;\nlet cmdPayload = null;\n\ntry {\n    const sgn = body['m2m:sgn'] || body;\n    const nev = sgn.nev || {};\n    const rep = nev.rep || {};\n    const cin = rep['m2m:cin'] || rep;\n    const con = cin.con;\n    cmdPayload = typeof con === 'string' ? JSON.parse(con) : con;\n} catch (e) {\n    node.error('Failed to parse command notification: ' + e.message);\n    return null;\n}\n\nif (!cmdPayload || cmdPayload.target_pwm === undefined) {\n    return null;\n}\n\nmsg.topic = 'sdv/vehicle_01/control/cmd';\nmsg.payload = cmdPayload;\nmsg.qos = 1;\nmsg.retain = false;\nreturn msg;",
+    "func": "const body = msg.payload;\nlet cmdPayload = null;\n\ntry {\n    const sgn = body['m2m:sgn'] || body;\n    const nev = sgn.nev || {};\n    const rep = nev.rep || {};\n    const cin = rep['m2m:cin'] || rep;\n    const con = cin.con;\n    cmdPayload = typeof con === 'string' ? JSON.parse(con) : con;\n} catch (e) {\n    node.error('Failed to parse command notification: ' + e.message);\n    return null;\n}\n\nif (!cmdPayload) {\n    return null;\n}\n\n// Support both consolidated target_fan_pwm and legacy target_pwm\nif (cmdPayload.target_pwm === undefined && cmdPayload.target_fan_pwm !== undefined) {\n    cmdPayload.target_pwm = cmdPayload.target_fan_pwm;\n}\n\nif (cmdPayload.target_pwm === undefined) {\n    return null;\n}\n\nnode.warn('Downlink command routed to MQTT: ' + JSON.stringify(cmdPayload));\nmsg.topic = 'sdv/vehicle_01/control/cmd';\nmsg.payload = cmdPayload;\nmsg.qos = 1;\nmsg.retain = false;\nreturn msg;",
     "outputs": 1,
     "timeout": 0,
     "noerr": 0,

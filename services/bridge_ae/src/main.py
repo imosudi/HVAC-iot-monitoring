@@ -89,5 +89,38 @@ def process_notification():
     }), 200
 
 
+@app.route("/emergency-monitor", methods=["POST"])
+def process_emergency_monitor():
+    """
+    Receives oneM2M subscription notifications for emergency threshold events (e.g. toxic CO elevation).
+    """
+    try:
+        body = request.get_json(force=True)
+    except Exception as exc:
+        logger.warning("Malformed emergency notification payload: %s", exc)
+        return jsonify({"error": "Invalid JSON"}), 400
+
+    cin_data = None
+    if isinstance(body, dict):
+        sgn = body.get("m2m:sgn", body)
+        nev = sgn.get("nev", {})
+        rep = nev.get("rep", {})
+        cin_data = rep.get("m2m:cin", rep)
+
+    if not cin_data:
+        logger.debug("Received verification or empty subscription trigger on emergency monitor.")
+        return jsonify({"status": "ACK"}), 200
+
+    con_str = cin_data.get("con")
+    try:
+        payload = json.loads(con_str) if isinstance(con_str, str) else con_str
+    except Exception:
+        payload = {"raw": con_str}
+
+    logger.critical("EMERGENCY MONITOR EVENT DETECTED: %s", json.dumps(payload))
+    return jsonify({"status": "EMERGENCY_ACKNOWLEDGED"}), 200
+
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=config.port)
+

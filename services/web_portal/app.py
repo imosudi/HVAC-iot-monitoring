@@ -188,6 +188,7 @@ def api_actuator_dispatch():
 
     cmd_payload = {
         "target_pwm": target_pwm,
+        "target_fan_pwm": target_pwm,
         "mode": mode,
         "timestamp_unix_s": int(time.time()),
         "source_entity": source
@@ -200,45 +201,58 @@ def api_actuator_dispatch():
         }
     }
 
-    onem2m_target_url = f"{config.onem2m_cse_url}/AE_CabinNode_Car01/cnt_actuator_commands"
     headers = {
         "X-M2M-Origin": "C_CabinNode_Car01",
         "X-M2M-RI": f"web_cmd_{int(time.time() * 1000)}",
-        "X-M2M-RVI": "2a",
+        "X-M2M-RVI": "3",
         "Content-Type": "application/json;ty=4",
         "Accept": "application/json"
     }
 
-    try:
-        req = urllib.request.Request(
-            onem2m_target_url,
-            data=json.dumps(cin_body).encode("utf-8"),
-            headers=headers,
-            method="POST"
-        )
-        with urllib.request.urlopen(req, timeout=2.5) as resp:
-            status_code = resp.status
+    # Attempt dispatch to consolidated 'commands' container, falling back to legacy 'cnt_actuator_commands'
+    candidates = [
+        f"{config.onem2m_cse_url}/AE_CabinNode_Car01/commands",
+        f"{config.onem2m_cse_url}/AE_CabinNode_Car01/cnt_actuator_commands"
+    ]
+    last_err = None
+    for onem2m_target_url in candidates:
+        try:
+            req = urllib.request.Request(
+                onem2m_target_url,
+                data=json.dumps(cin_body).encode("utf-8"),
+                headers=headers,
+                method="POST"
+            )
+            with urllib.request.urlopen(req, timeout=2.5) as resp:
+                status_code = resp.status
+                return jsonify({
+                    "status": "DISPATCHED",
+                    "status_code": status_code,
+                    "command": cmd_payload,
+                    "target_resource": onem2m_target_url
+                }), 200
+        except urllib.error.HTTPError as http_err:
+            last_err = http_err
+            if http_err.code == 404:
+                continue
+            logger.warning("oneM2M actuation dispatch HTTP error: %d %s", http_err.code, http_err.reason)
             return jsonify({
-                "status": "DISPATCHED",
-                "status_code": status_code,
+                "status": "DISPATCHED_OFFLINE_SIMULATION",
+                "status_code": http_err.code,
                 "command": cmd_payload,
-                "target_resource": onem2m_target_url
+                "notice": f"oneM2M returned HTTP {http_err.code}; simulated fallback applied."
             }), 200
-    except urllib.error.HTTPError as http_err:
-        logger.warning("oneM2M actuation dispatch HTTP error: %d %s", http_err.code, http_err.reason)
-        return jsonify({
-            "status": "DISPATCHED_OFFLINE_SIMULATION",
-            "status_code": http_err.code,
-            "command": cmd_payload,
-            "notice": f"oneM2M returned HTTP {http_err.code}; simulated fallback applied."
-        }), 200
-    except Exception as exc:
-        logger.warning("oneM2M dispatch connection failure: %s", exc)
-        return jsonify({
-            "status": "DISPATCHED_OFFLINE_SIMULATION",
-            "command": cmd_payload,
-            "notice": "oneM2M unreachable; simulated fallback applied."
-        }), 200
+        except Exception as exc:
+            last_err = exc
+            break
+
+    if last_err:
+        logger.warning("oneM2M dispatch failure: %s", last_err)
+    return jsonify({
+        "status": "DISPATCHED_OFFLINE_SIMULATION",
+        "command": cmd_payload,
+        "notice": "oneM2M unreachable or returned error; simulated fallback applied."
+    }), 200
 
 
 if __name__ == "__main__":
