@@ -90,3 +90,35 @@ class TestHealthClassifier:
         )
 
         assert state == HealthState.FAULT
+
+    def test_humidity_divergence_evaluates_to_degraded(self, classifier, nominal_telemetry_frame):
+        sample_time = nominal_telemetry_frame["timestamp_unix_s"]
+        eval_time = sample_time + 1.0
+
+        # Inject 15% RH discrepancy (> 10% threshold)
+        nominal_telemetry_frame["scd30"]["humidity_pct"] = 45.0
+        nominal_telemetry_frame["dht22"]["humidity_pct"] = 62.0
+
+        state, tau_age, delta_t = classifier.evaluate_frame(
+            nominal_telemetry_frame, eval_time_unix_s=eval_time
+        )
+
+        assert state == HealthState.DEGRADED
+
+    def test_blower_motor_stall_evaluates_to_fault(self, classifier, nominal_telemetry_frame):
+        sample_time = nominal_telemetry_frame["timestamp_unix_s"]
+        eval_time = sample_time + 1.0
+
+        # Inject stall condition: PWM >= 30% with Tachometer RPM < 100
+        nominal_telemetry_frame["actuator_state"] = {
+            "pwm_duty_pct": 50,
+            "tachometer_rpm": 45,
+            "carrier_freq_hz": 25000
+        }
+
+        state, tau_age, _ = classifier.evaluate_frame(
+            nominal_telemetry_frame, eval_time_unix_s=eval_time
+        )
+
+        assert state == HealthState.FAULT
+

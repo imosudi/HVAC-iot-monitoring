@@ -16,10 +16,17 @@ class HealthState(str, Enum):
 class HealthClassifier:
     """Evaluates telemetry frames against temporal latency and inter-transducer divergence."""
 
-    def __init__(self, max_latency_s: float = 2.5, max_stale_s: float = 10.0, max_delta_t_c: float = 1.5):
+    def __init__(
+        self,
+        max_latency_s: float = 2.5,
+        max_stale_s: float = 10.0,
+        max_delta_t_c: float = 1.5,
+        max_delta_rh_pct: float = 10.0
+    ):
         self.max_latency_s = max_latency_s
         self.max_stale_s = max_stale_s
         self.max_delta_t_c = max_delta_t_c
+        self.max_delta_rh_pct = max_delta_rh_pct
 
     def evaluate_frame(
         self,
@@ -58,12 +65,30 @@ class HealthClassifier:
 
         delta_t = abs(float(t_scd30) - float(t_dht22))
 
+        # Check for blower motor stall/slip fault (PWM >= 30% with Tachometer RPM < 100)
+        actuator = payload.get("actuator_state", {})
+        if isinstance(actuator, dict):
+            pwm = actuator.get("pwm_duty_pct")
+            rpm = actuator.get("tachometer_rpm")
+            if pwm is not None and rpm is not None:
+                if float(pwm) >= 30.0 and float(rpm) < 100.0:
+                    return HealthState.FAULT, tau_age, delta_t
+
         # Evaluate piecewise health boundaries
         if tau_age > self.max_stale_s:
             return HealthState.FAULT, tau_age, delta_t
 
+        # Check thermal divergence (Delta T > 1.5°C)
         if delta_t > self.max_delta_t_c:
             return HealthState.DEGRADED, tau_age, delta_t
+
+        # Check relative humidity divergence (Delta RH > 10%)
+        rh_scd30 = scd30.get("humidity_pct") if isinstance(scd30, dict) else None
+        rh_dht22 = dht22.get("humidity_pct") if isinstance(dht22, dict) else None
+        if rh_scd30 is not None and rh_dht22 is not None:
+            delta_rh = abs(float(rh_scd30) - float(rh_dht22))
+            if delta_rh > self.max_delta_rh_pct:
+                return HealthState.DEGRADED, tau_age, delta_t
 
         if tau_age > self.max_latency_s:
             return HealthState.STALE, tau_age, delta_t
