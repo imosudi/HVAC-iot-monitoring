@@ -35,8 +35,26 @@ elif command -v docker-compose >/dev/null 2>&1; then
 elif command -v podman-compose >/dev/null 2>&1; then
     COMPOSE_CMD="podman-compose"
 else
-    echo "[ERROR] Neither docker compose, docker-compose, nor podman-compose found in PATH." >&2
-    exit 1
+    echo "[WARNING] Neither docker compose, docker-compose, nor podman-compose found in PATH." >&2
+    SETUP_SCRIPT="${ROOT_DIR}/scripts/setup/install_ubuntu_prerequisites.sh"
+    if [ -f "${SETUP_SCRIPT}" ]; then
+        echo "[INFO] Running automated requirements setup script on Ubuntu Server..."
+        bash "${SETUP_SCRIPT}"
+        if docker compose version >/dev/null 2>&1; then
+            COMPOSE_CMD="docker compose"
+        elif command -v docker-compose >/dev/null 2>&1; then
+            COMPOSE_CMD="docker-compose"
+        elif command -v podman-compose >/dev/null 2>&1; then
+            COMPOSE_CMD="podman-compose"
+        else
+            echo "[ERROR] Container compose is still not detected after running setup script." >&2
+            echo "[INFO] If your user was just added to the docker group, execute 'newgrp docker' and re-run." >&2
+            exit 1
+        fi
+    else
+        echo "[ERROR] Setup script not found at ${SETUP_SCRIPT}." >&2
+        exit 1
+    fi
 fi
 
 ${COMPOSE_CMD} build

@@ -7,10 +7,11 @@ VENV ?= .venv
 PYTHON ?= $(shell if [ -f $(VENV)/bin/python ]; then echo $(VENV)/bin/python; else echo python3; fi)
 PYTEST ?= $(shell if [ -f $(VENV)/bin/pytest ]; then echo $(VENV)/bin/pytest; else echo pytest; fi)
 
-.PHONY: help setup-pki deploy-gateway stop-gateway init-onem2m test test-unit test-integration run-web simulate-telemetry inject-faults clean
+.PHONY: help setup-prerequisites setup-pki deploy-gateway stop-gateway init-onem2m test test-unit test-integration run-web simulate-telemetry inject-faults clean
 
 help:
 	@echo "Available build and orchestration targets:"
+	@echo "  setup-prerequisites Install Docker/Podman and system dependencies on Ubuntu Server"
 	@echo "  setup-pki           Generate X.509 Root CA, broker, and client certificates"
 	@echo "  deploy-gateway      Launch the onboard vehicular MEC container mesh"
 	@echo "  stop-gateway        Halt all MEC container services"
@@ -22,6 +23,10 @@ help:
 	@echo "  simulate-telemetry  Stream synthetic sensor frames to the gateway broker"
 	@echo "  inject-faults       Run the adversarial fault-injection test suite"
 	@echo "  clean               Remove temporary test caches and logs"
+
+setup-prerequisites:
+	@echo "Verifying and installing system prerequisites on Ubuntu Server..."
+	@bash scripts/setup/install_ubuntu_prerequisites.sh
 
 setup-pki:
 	@echo "Generating X.509 certificate infrastructure..."
