@@ -4,7 +4,6 @@
 
 **Document Version:** 1.0.0  
 **Target Platform:** Espressif ESP32-S3-WROOM-1 (N16R8 Dual-Core SoC)  
-**Lead Hardware Engineer:** Ashok Ramalingam  
 **Academic Affiliation:** University of Applied Sciences Technikum Wien (FH Technikum Wien)  
 
 ---

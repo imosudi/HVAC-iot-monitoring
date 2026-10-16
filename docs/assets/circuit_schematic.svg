@@ -1,0 +1,757 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1680 1160" width="100%" height="100%" style="background:#ffffff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
+  <defs>
+    <!-- Crisp Engineering Grid (Light Theme) -->
+    <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
+      <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#f1f5f9" stroke-width="0.8" />
+    </pattern>
+    <pattern id="majorGrid" width="100" height="100" patternUnits="userSpaceOnUse">
+      <rect width="100" height="100" fill="url(#grid)" />
+      <path d="M 100 0 L 0 0 0 100" fill="none" stroke="#e2e8f0" stroke-width="1.2" />
+    </pattern>
+
+    <!-- Component Box Gradients (Clean Modern Light Aesthetic) -->
+    <linearGradient id="icGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="100%" stop-color="#f8fafc" />
+    </linearGradient>
+
+    <linearGradient id="sensorGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="100%" stop-color="#f0fdfa" />
+    </linearGradient>
+
+    <linearGradient id="powerGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="100%" stop-color="#fff1f2" />
+    </linearGradient>
+
+    <!-- Subtle Shadows for Modern Elevated Cards -->
+    <filter id="cardShadow" x="-5%" y="-5%" width="110%" height="110%">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#0f172a" flood-opacity="0.06"/>
+    </filter>
+
+    <filter id="softGlowBlue" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="0" stdDeviation="3" flood-color="#0284c7" flood-opacity="0.25"/>
+    </filter>
+    <filter id="softGlowRed" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="0" stdDeviation="3" flood-color="#dc2626" flood-opacity="0.25"/>
+    </filter>
+    <filter id="softGlowGreen" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="0" stdDeviation="3" flood-color="#16a34a" flood-opacity="0.25"/>
+    </filter>
+    <filter id="softGlowAmber" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="0" stdDeviation="3" flood-color="#d97706" flood-opacity="0.25"/>
+    </filter>
+
+    <!-- Symbols -->
+    <!-- Ground Symbol (Dark Slate for Contrast on White) -->
+    <g id="gnd">
+      <line x1="0" y1="0" x2="0" y2="12" stroke="#475569" stroke-width="2"/>
+      <line x1="-12" y1="12" x2="12" y2="12" stroke="#475569" stroke-width="2"/>
+      <line x1="-8" y1="17" x2="8" y2="17" stroke="#475569" stroke-width="1.8"/>
+      <line x1="-4" y1="22" x2="4" y2="22" stroke="#475569" stroke-width="1.5"/>
+    </g>
+
+    <!-- +3.3V Power Flag -->
+    <g id="vcc33">
+      <line x1="0" y1="12" x2="0" y2="0" stroke="#e11d48" stroke-width="2"/>
+      <polygon points="0,-2 -7,10 7,10" fill="#e11d48"/>
+      <text x="0" y="-8" fill="#be123c" font-size="11" font-weight="bold" text-anchor="middle">+3.3V</text>
+    </g>
+
+    <!-- +5.0V Power Flag -->
+    <g id="vcc50">
+      <line x1="0" y1="12" x2="0" y2="0" stroke="#ea580c" stroke-width="2"/>
+      <polygon points="0,-2 -7,10 7,10" fill="#ea580c"/>
+      <text x="0" y="-8" fill="#c2410c" font-size="11" font-weight="bold" text-anchor="middle">+5.0V</text>
+    </g>
+
+    <!-- Connection Dots -->
+    <circle id="dot" r="4" fill="#0284c7"/>
+    <circle id="dotRed" r="4" fill="#e11d48"/>
+    <circle id="dotOrange" r="4" fill="#ea580c"/>
+    <circle id="dotGnd" r="4" fill="#475569"/>
+
+    <!-- Resistor Horizontal Symbol (IEC / IEEE Zig-Zag) -->
+    <g id="resistorH">
+      <line x1="0" y1="0" x2="10" y2="0" stroke="#475569" stroke-width="2"/>
+      <path d="M 10 0 L 14 -7 L 22 7 L 30 -7 L 38 7 L 46 -7 L 50 0" fill="none" stroke="#0284c7" stroke-width="2.2" stroke-linejoin="round"/>
+      <line x1="50" y1="0" x2="60" y2="0" stroke="#475569" stroke-width="2"/>
+    </g>
+
+    <!-- Resistor Vertical Symbol -->
+    <g id="resistorV">
+      <line x1="0" y1="0" x2="0" y2="10" stroke="#475569" stroke-width="2"/>
+      <path d="M 0 10 L -7 14 L 7 22 L -7 30 L 7 38 L -7 46 L 0 50" fill="none" stroke="#0284c7" stroke-width="2.2" stroke-linejoin="round"/>
+      <line x1="0" y1="50" x2="0" y2="60" stroke="#475569" stroke-width="2"/>
+    </g>
+
+    <!-- Capacitor Vertical Symbol -->
+    <g id="capacitorV">
+      <line x1="0" y1="0" x2="0" y2="10" stroke="#475569" stroke-width="2"/>
+      <line x1="-12" y1="10" x2="12" y2="10" stroke="#0284c7" stroke-width="2.5"/>
+      <line x1="-12" y1="16" x2="12" y2="16" stroke="#0284c7" stroke-width="2.5"/>
+      <line x1="0" y1="16" x2="0" y2="26" stroke="#475569" stroke-width="2"/>
+    </g>
+
+    <!-- LED Symbol Horizontal (Anode on left, Cathode on right) -->
+    <g id="ledH">
+      <line x1="0" y1="0" x2="15" y2="0" stroke="#475569" stroke-width="2"/>
+      <polygon points="15,-10 15,10 32,0" fill="#f8fafc" stroke="#334155" stroke-width="2"/>
+      <line x1="32" y1="-10" x2="32" y2="10" stroke="#334155" stroke-width="2.5"/>
+      <!-- Light Emission Arrows -->
+      <line x1="22" y1="-12" x2="28" y2="-19" stroke="#64748b" stroke-width="1.5"/>
+      <polygon points="28,-19 25,-16 29,-14" fill="#64748b"/>
+      <line x1="28" y1="-8" x2="34" y2="-15" stroke="#64748b" stroke-width="1.5"/>
+      <polygon points="34,-15 31,-12 35,-10" fill="#64748b"/>
+      <line x1="32" y1="0" x2="45" y2="0" stroke="#475569" stroke-width="2"/>
+    </g>
+  </defs>
+
+  <!-- Background Grid Canvas -->
+  <rect width="100%" height="100%" fill="url(#majorGrid)" />
+
+  <!-- Outer Drawing Frame -->
+  <rect x="20" y="20" width="1640" height="1120" fill="none" stroke="#94a3b8" stroke-width="2" rx="6" />
+  <rect x="25" y="25" width="1630" height="1110" fill="none" stroke="#cbd5e1" stroke-width="1" rx="4" />
+
+  <!-- ========================================================================= -->
+  <!-- TITLE BLOCK & HEADER (TOP) - MODERN LIGHT NAVY ACCENT                     -->
+  <!-- ========================================================================= -->
+  <g id="title-block">
+    <rect x="25" y="25" width="1630" height="75" fill="#0f233d" rx="4" />
+    <line x1="25" y1="100" x2="1655" y2="100" stroke="#0284c7" stroke-width="2" />
+    
+    <text x="50" y="58" fill="#ffffff" font-size="22" font-weight="bold" letter-spacing="0.5">SOFTWARE-DEFINED VEHICLE (SDV) - MASTER HARDWARE CIRCUIT SCHEMATIC</text>
+    <text x="50" y="82" fill="#93c5fd" font-size="13">ESP32-S3 Cabin Node IoT Environmental Sensing &amp; Coloured LED Actuator Matrix | FH Technikum Wien</text>
+    
+    <!-- Title Meta Box (Right) -->
+    <rect x="1255" y="33" width="385" height="60" fill="#1e3a5f" rx="4" stroke="#38bdf8" stroke-width="1" />
+    <text x="1270" y="55" fill="#38bdf8" font-size="11.5" font-weight="bold">PROJECT: HVAC-IOT-MONITORING (SDV)</text>
+    <text x="1270" y="75" fill="#cbd5e1" font-size="10.5">REV: 2.0.0 (ETSI TS 118 101 / oneM2M Compliant) | SHEET: 1/1</text>
+  </g>
+
+  <!-- ========================================================================= -->
+  <!-- SUBSYSTEM 1: POWER SUPPLY & VOLTAGE REGULATION (TOP LEFT)                 -->
+  <!-- ========================================================================= -->
+  <g id="subsystem-power" transform="translate(60, 130)" filter="url(#cardShadow)">
+    <rect x="0" y="0" width="380" height="230" fill="url(#powerGrad)" stroke="#f43f5e" stroke-width="1.8" stroke-dasharray="5,3" rx="8"/>
+    <rect x="15" y="-12" width="235" height="24" fill="#ffe4e6" rx="4" stroke="#f43f5e" stroke-width="1.2"/>
+    <text x="25" y="4" fill="#9f1239" font-size="11" font-weight="bold">1. POWER REGULATION (USB 5V / 3.3V)</text>
+
+    <!-- USB-C Connector (J1) -->
+    <rect x="25" y="45" width="85" height="115" fill="#ffffff" stroke="#64748b" stroke-width="1.8" rx="5" />
+    <text x="67" y="65" fill="#0369a1" font-size="11" font-weight="bold" text-anchor="middle">J1: USB-C</text>
+    <text x="67" y="79" fill="#64748b" font-size="9" text-anchor="middle">VBUS 5.0V</text>
+    <line x1="35" y1="92" x2="100" y2="92" stroke="#cbd5e1" stroke-width="1"/>
+    <text x="95" y="115" fill="#e11d48" font-size="10" font-weight="bold" text-anchor="end">VBUS</text>
+    <text x="95" y="145" fill="#475569" font-size="10" font-weight="bold" text-anchor="end">GND</text>
+
+    <!-- AMS1117-3.3 LDO (U1) -->
+    <rect x="175" y="45" width="120" height="115" fill="#ffffff" stroke="#0284c7" stroke-width="2" rx="6"/>
+    <text x="235" y="70" fill="#0f172a" font-size="12" font-weight="bold" text-anchor="middle">U1: AMS1117</text>
+    <text x="235" y="85" fill="#0284c7" font-size="10" font-weight="bold" text-anchor="middle">3.3V LDO 800mA</text>
+    
+    <!-- Pin Labels U1 -->
+    <text x="183" y="110" fill="#334155" font-size="10" font-weight="bold">VIN (3)</text>
+    <text x="287" y="110" fill="#334155" font-size="10" font-weight="bold" text-anchor="end">VOUT (2)</text>
+    <text x="235" y="150" fill="#475569" font-size="9.5" text-anchor="middle">GND/ADJ (1)</text>
+
+    <!-- Power Traces -->
+    <!-- 5V VBUS to VIN -->
+    <line x1="110" y1="115" x2="175" y2="115" stroke="#ea580c" stroke-width="2.5" />
+    <use href="#dotOrange" x="145" y="115"/>
+    <line x1="145" y1="115" x2="145" y2="65" stroke="#ea580c" stroke-width="2"/>
+    <use href="#vcc50" x="145" y="50"/>
+
+    <!-- Input Cap C1 (10uF) -->
+    <use href="#capacitorV" x="145" y="120"/>
+    <text x="155" y="135" fill="#475569" font-size="9" font-weight="bold">C1: 10µF</text>
+    <use href="#gnd" x="145" y="148"/>
+
+    <!-- 3.3V VOUT Trace -->
+    <line x1="295" y1="115" x2="360" y2="115" stroke="#e11d48" stroke-width="2.5" />
+    <use href="#dotRed" x="330" y="115"/>
+    <line x1="330" y1="115" x2="330" y2="65" stroke="#e11d48" stroke-width="2"/>
+    <use href="#vcc33" x="330" y="50"/>
+
+    <!-- Output Cap C2 (22uF) -->
+    <use href="#capacitorV" x="330" y="120"/>
+    <text x="340" y="135" fill="#475569" font-size="9" font-weight="bold">C2: 22µF</text>
+    <use href="#gnd" x="330" y="148"/>
+
+    <!-- U1 GND Pin -->
+    <line x1="235" y1="160" x2="235" y2="175" stroke="#475569" stroke-width="2"/>
+    <use href="#gnd" x="235" y="175"/>
+    
+    <!-- Power Specs Note (Positioned with ample clearance) -->
+    <text x="25" y="215" fill="#64748b" font-size="9.5">Thermal Dissipation: &lt; 0.28W @ 165mA typical operating load.</text>
+  </g>
+
+  <!-- ========================================================================= -->
+  <!-- CENTRAL COMPONENT: ESP32-S3-WROOM-1 DUAL-CORE SOC (EXPANDED TO 380px)     -->
+  <!-- ========================================================================= -->
+  <g id="subsystem-esp32" transform="translate(540, 130)" filter="url(#cardShadow)">
+    <!-- SoC Boundary Box (width 380) -->
+    <rect x="0" y="0" width="380" height="950" fill="url(#icGrad)" stroke="#0284c7" stroke-width="2.5" rx="10" />
+    
+    <!-- Chip Header Details -->
+    <rect x="15" y="15" width="350" height="65" fill="#f0f9ff" stroke="#bae6fd" stroke-width="1.5" rx="6" />
+    <text x="190" y="42" fill="#0f172a" font-size="16" font-weight="bold" text-anchor="middle">U2: ESP32-S3-WROOM-1</text>
+    <text x="190" y="60" fill="#0369a1" font-size="11" font-weight="bold" text-anchor="middle">Xtensa Dual-Core 240MHz | N16R8 (16MB Flash, 8MB PSRAM)</text>
+    <text x="190" y="73" fill="#64748b" font-size="9.5" text-anchor="middle">Wi-Fi 802.11 b/g/n + BLE 5.0 | FreeRTOS v10.5</text>
+
+    <!-- LEFT PINS (Power & Inputs / Buses) -->
+    <!-- Pin: 3.3V System In -->
+    <g transform="translate(0, 120)">
+      <line x1="-30" y1="0" x2="0" y2="0" stroke="#e11d48" stroke-width="2.5" />
+      <circle cx="0" cy="0" r="3.5" fill="#e11d48"/>
+      <text x="12" y="4" fill="#e11d48" font-size="12" font-weight="bold">3V3</text>
+      <text x="65" y="4" fill="#64748b" font-size="9.5">Pin 2 (Power)</text>
+      <use href="#vcc33" x="-30" y="-12"/>
+    </g>
+
+    <!-- Pin: GND Common -->
+    <g transform="translate(0, 160)">
+      <line x1="-30" y1="0" x2="0" y2="0" stroke="#475569" stroke-width="2.5" />
+      <circle cx="0" cy="0" r="3.5" fill="#475569"/>
+      <text x="12" y="4" fill="#475569" font-size="12" font-weight="bold">GND</text>
+      <text x="65" y="4" fill="#64748b" font-size="9.5">Pin 1 (Return)</text>
+      <use href="#gnd" x="-30" y="0"/>
+    </g>
+
+    <!-- Decoupling Cap C3 on 3V3 rail -->
+    <g transform="translate(45, 120)">
+      <use href="#capacitorV" x="0" y="6"/>
+      <text x="12" y="20" fill="#475569" font-size="8.5" font-weight="bold">100nF</text>
+      <line x1="0" y1="32" x2="0" y2="40" stroke="#475569" stroke-width="1.5"/>
+    </g>
+
+    <!-- Pin: EN / Reset -->
+    <g transform="translate(0, 220)">
+      <line x1="-40" y1="0" x2="0" y2="0" stroke="#475569" stroke-width="2" />
+      <circle cx="0" cy="0" r="3.5" fill="#475569"/>
+      <text x="12" y="4" fill="#0f172a" font-size="11" font-weight="bold">CHIP_EN</text>
+      <text x="80" y="4" fill="#64748b" font-size="9">Pin 3 (10k Pull-up)</text>
+      <use href="#resistorV" x="-40" y="-60"/>
+      <use href="#vcc33" x="-40" y="-72"/>
+      <text x="-50" y="-30" fill="#475569" font-size="9" text-anchor="end">10kΩ</text>
+    </g>
+
+    <!-- SECTION DIVIDER LEFT -->
+    <line x1="15" y1="260" x2="160" y2="260" stroke="#e2e8f0" stroke-width="1.5" />
+    <text x="15" y="275" fill="#0284c7" font-size="9.5" font-weight="bold">I²C BUS 0 &amp; DIGITAL SENSORS</text>
+
+    <!-- Pin: GPIO 8 (SCD30 SDA) -->
+    <g transform="translate(0, 310)">
+      <circle cx="0" cy="0" r="3.5" fill="#0284c7"/>
+      <text x="12" y="4" fill="#0284c7" font-size="11" font-weight="bold">GPIO 8</text>
+      <text x="70" y="4" fill="#334155" font-size="9.5">SDA (400kHz)</text>
+    </g>
+
+    <!-- Pin: GPIO 9 (SCD30 SCL) -->
+    <g transform="translate(0, 360)">
+      <circle cx="0" cy="0" r="3.5" fill="#0284c7"/>
+      <text x="12" y="4" fill="#0284c7" font-size="11" font-weight="bold">GPIO 9</text>
+      <text x="70" y="4" fill="#334155" font-size="9.5">SCL (400kHz)</text>
+    </g>
+
+    <!-- Pin: GPIO 4 (DHT22 DATA) -->
+    <g transform="translate(0, 480)">
+      <circle cx="0" cy="0" r="3.5" fill="#0891b2"/>
+      <text x="12" y="4" fill="#0891b2" font-size="11" font-weight="bold">GPIO 4</text>
+      <text x="70" y="4" fill="#334155" font-size="9.5">1-Wire Bus</text>
+    </g>
+
+    <!-- Pin: GPIO 19 (Bench Tachometer Input) -->
+    <g transform="translate(0, 620)">
+      <circle cx="0" cy="0" r="3.5" fill="#7c3aed"/>
+      <text x="12" y="4" fill="#7c3aed" font-size="11" font-weight="bold">GPIO 19</text>
+      <text x="70" y="4" fill="#334155" font-size="9.5">Tacho Pulse In</text>
+    </g>
+
+    <!-- Internal Architecture Block Diagram Inside ESP32 -->
+    <g transform="translate(25, 710)">
+      <rect x="0" y="0" width="330" height="215" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.5" rx="6" />
+      <text x="165" y="22" fill="#0f172a" font-size="10" font-weight="bold" text-anchor="middle">INTERNAL FIRMWARE CORES &amp; BUS MATRIX</text>
+      
+      <rect x="15" y="35" width="140" height="40" fill="#ffffff" stroke="#cbd5e1" rx="4" />
+      <text x="85" y="55" fill="#0f172a" font-size="9" font-weight="bold" text-anchor="middle">Core 0: Network</text>
+      <text x="85" y="68" fill="#0284c7" font-size="8" text-anchor="middle">mbedTLS / MQTT</text>
+
+      <rect x="175" y="35" width="140" height="40" fill="#ffffff" stroke="#cbd5e1" rx="4" />
+      <text x="245" y="55" fill="#0f172a" font-size="9" font-weight="bold" text-anchor="middle">Core 1: Control</text>
+      <text x="245" y="68" fill="#16a34a" font-size="8" text-anchor="middle">SCD30/DHT22/LEDC</text>
+
+      <rect x="15" y="90" width="300" height="50" fill="#ffffff" stroke="#cbd5e1" rx="4" />
+      <text x="165" y="110" fill="#0f172a" font-size="9.5" font-weight="bold" text-anchor="middle">LEDC Timer 0: 25.0 kHz / 10-bit PWM</text>
+      <text x="165" y="128" fill="#64748b" font-size="8.5" text-anchor="middle">PCNT Unit 0: Tachometer Pulse Accumulator (2 P/R)</text>
+
+      <rect x="15" y="150" width="300" height="48" fill="#ffffff" stroke="#cbd5e1" rx="4" />
+      <text x="165" y="170" fill="#0f172a" font-size="9.5" font-weight="bold" text-anchor="middle">RMT Transmitter: WS2812B Waveform</text>
+      <text x="165" y="186" fill="#64748b" font-size="8.5" text-anchor="middle">800 kHz Self-Clocking RZ Bitstream</text>
+    </g>
+
+    <!-- RIGHT PINS (Actuators & Status Annunciators at x=380) -->
+    <!-- Pin: GPIO 18 (Blue Actuator PWM) -->
+    <g transform="translate(380, 260)">
+      <circle cx="0" cy="0" r="3.5" fill="#0284c7"/>
+      <text x="-12" y="4" fill="#0284c7" font-size="11" font-weight="bold" text-anchor="end">GPIO 18</text>
+      <text x="-75" y="4" fill="#334155" font-size="9.5" text-anchor="end">Purge PWM</text>
+    </g>
+
+    <!-- Pin: GPIO 17 (Red Actuator Heat) -->
+    <g transform="translate(380, 360)">
+      <circle cx="0" cy="0" r="3.5" fill="#dc2626"/>
+      <text x="-12" y="4" fill="#dc2626" font-size="11" font-weight="bold" text-anchor="end">GPIO 17</text>
+      <text x="-75" y="4" fill="#334155" font-size="9.5" text-anchor="end">Cabin Heat DO</text>
+    </g>
+
+    <!-- Pin: GPIO 16 (Green Actuator Eco Vent) -->
+    <g transform="translate(380, 460)">
+      <circle cx="0" cy="0" r="3.5" fill="#16a34a"/>
+      <text x="-12" y="4" fill="#16a34a" font-size="11" font-weight="bold" text-anchor="end">GPIO 16</text>
+      <text x="-75" y="4" fill="#334155" font-size="9.5" text-anchor="end">Eco Vent DO</text>
+    </g>
+
+    <!-- Pin: GPIO 15 (Amber Actuator Alert) -->
+    <g transform="translate(380, 560)">
+      <circle cx="0" cy="0" r="3.5" fill="#d97706"/>
+      <text x="-12" y="4" fill="#d97706" font-size="11" font-weight="bold" text-anchor="end">GPIO 15</text>
+      <text x="-75" y="4" fill="#334155" font-size="9.5" text-anchor="end">Alert/Dehum DO</text>
+    </g>
+
+    <!-- Pin: GPIO 38 (WS2812B Annunciator) -->
+    <g transform="translate(380, 680)">
+      <circle cx="0" cy="0" r="3.5" fill="#db2777"/>
+      <text x="-12" y="4" fill="#db2777" font-size="11" font-weight="bold" text-anchor="end">GPIO 38</text>
+      <text x="-75" y="4" fill="#334155" font-size="9.5" text-anchor="end">WS2812B DIN</text>
+    </g>
+  </g>
+
+  <!-- ========================================================================= -->
+  <!-- SUBSYSTEM 2: DUAL TRANSDUCER BUS (MIDDLE & BOTTOM LEFT)                   -->
+  <!-- ========================================================================= -->
+  <!-- Sensirion SCD30 Sensor Module (U3) -->
+  <g id="subsystem-scd30" transform="translate(60, 400)" filter="url(#cardShadow)">
+    <rect x="0" y="0" width="380" height="190" fill="url(#sensorGrad)" stroke="#0d9488" stroke-width="1.8" rx="8" />
+    <rect x="15" y="-12" width="220" height="24" fill="#ccfbf1" rx="4" stroke="#0d9488" stroke-width="1.2"/>
+    <text x="25" y="4" fill="#115e59" font-size="11" font-weight="bold">2. SENSIRION SCD30 NDIR CO₂</text>
+
+    <!-- SCD30 Sensor Pinout -->
+    <rect x="250" y="30" width="105" height="135" fill="#ffffff" stroke="#64748b" stroke-width="1.5" rx="5"/>
+    <text x="302" y="50" fill="#0f172a" font-size="11" font-weight="bold" text-anchor="middle">SCD30</text>
+    <text x="302" y="63" fill="#0d9488" font-size="9" font-weight="bold" text-anchor="middle">NDIR Optical</text>
+
+    <text x="260" y="85" fill="#e11d48" font-size="10" font-weight="bold">1: VDD</text>
+    <text x="260" y="108" fill="#475569" font-size="10" font-weight="bold">2: GND</text>
+    <text x="260" y="130" fill="#0284c7" font-size="10" font-weight="bold">3: TX/SCL</text>
+    <text x="260" y="152" fill="#0284c7" font-size="10" font-weight="bold">4: RX/SDA</text>
+
+    <!-- I2C Bus Pull-Ups (Arranged with generous clearance from top badge) -->
+    <!-- Pull-Up Rail (+3.3V) -->
+    <line x1="80" y1="45" x2="200" y2="45" stroke="#e11d48" stroke-width="2"/>
+    <use href="#vcc33" x="80" y="30"/>
+
+    <!-- R1 (4.7k SCL Pullup) -->
+    <use href="#resistorV" x="135" y="45"/>
+    <text x="143" y="75" fill="#475569" font-size="9" font-weight="bold">R1: 4.7kΩ</text>
+    <line x1="135" y1="105" x2="135" y2="130" stroke="#0284c7" stroke-width="2"/>
+    <line x1="135" y1="130" x2="250" y2="130" stroke="#0284c7" stroke-width="2"/>
+    <use href="#dot" x="135" y="130"/>
+
+    <!-- R2 (4.7k SDA Pullup) -->
+    <use href="#resistorV" x="185" y="45"/>
+    <text x="193" y="75" fill="#475569" font-size="9" font-weight="bold">R2: 4.7kΩ</text>
+    <line x1="185" y1="105" x2="185" y2="152" stroke="#0284c7" stroke-width="2"/>
+    <line x1="185" y1="152" x2="250" y2="152" stroke="#0284c7" stroke-width="2"/>
+    <use href="#dot" x="185" y="152"/>
+
+    <!-- VDD and GND wires -->
+    <line x1="200" y1="45" x2="230" y2="45" stroke="#e11d48" stroke-width="2"/>
+    <line x1="230" y1="45" x2="230" y2="80" stroke="#e11d48" stroke-width="2"/>
+    <line x1="230" y1="80" x2="250" y2="80" stroke="#e11d48" stroke-width="2"/>
+
+    <line x1="230" y1="105" x2="250" y2="105" stroke="#475569" stroke-width="2"/>
+    <use href="#gnd" x="220" y="95"/>
+    <line x1="220" y1="105" x2="230" y2="105" stroke="#475569" stroke-width="2"/>
+  </g>
+
+  <!-- External Clean Interconnect Wires: SCD30 -> ESP32-S3 (Global coordinates) -->
+  <!-- SCD30 SCL (global 415, 530) to ESP32 GPIO 9 (global 540, 490) -->
+  <path d="M 415 530 L 445 530 L 445 490 L 540 490" fill="none" stroke="#0284c7" stroke-width="2" />
+  <!-- SCD30 SDA (global 415, 552) to ESP32 GPIO 8 (global 540, 440) -->
+  <path d="M 415 552 L 465 552 L 465 440 L 540 440" fill="none" stroke="#0284c7" stroke-width="2" />
+
+
+  <!-- Subsystem 3: DHT22 Humidity & Temp Sensor (U4) -->
+  <g id="subsystem-dht22" transform="translate(60, 620)" filter="url(#cardShadow)">
+    <rect x="0" y="0" width="380" height="190" fill="url(#icGrad)" stroke="#0891b2" stroke-width="1.8" rx="8" />
+    <rect x="15" y="-12" width="235" height="24" fill="#cffafe" rx="4" stroke="#0891b2" stroke-width="1.2"/>
+    <text x="25" y="4" fill="#155e75" font-size="11" font-weight="bold">3. DHT22 CABIN SENSOR (AM2302)</text>
+
+    <!-- DHT22 Module Box -->
+    <rect x="250" y="30" width="105" height="135" fill="#ffffff" stroke="#64748b" stroke-width="1.5" rx="5"/>
+    <text x="302" y="50" fill="#0f172a" font-size="11" font-weight="bold" text-anchor="middle">DHT22</text>
+    <text x="302" y="63" fill="#0891b2" font-size="9" font-weight="bold" text-anchor="middle">Capacitive RH</text>
+
+    <text x="260" y="85" fill="#e11d48" font-size="10" font-weight="bold">1: VCC</text>
+    <text x="260" y="108" fill="#0891b2" font-size="10" font-weight="bold">2: DATA</text>
+    <text x="260" y="130" fill="#64748b" font-size="10">3: NC</text>
+    <text x="260" y="152" fill="#475569" font-size="10" font-weight="bold">4: GND</text>
+
+    <!-- Pull-Up Resistor R3 (10k) -->
+    <use href="#vcc33" x="160" y="30"/>
+    <use href="#resistorV" x="160" y="45"/>
+    <text x="170" y="75" fill="#475569" font-size="9" font-weight="bold">R3: 10kΩ</text>
+
+    <line x1="160" y1="105" x2="250" y2="105" stroke="#0891b2" stroke-width="2"/>
+    <use href="#dot" x="160" y="105" fill="#0891b2"/>
+
+    <!-- Power & GND for DHT22 -->
+    <line x1="210" y1="45" x2="230" y2="45" stroke="#e11d48" stroke-width="2"/>
+    <line x1="230" y1="45" x2="230" y2="80" stroke="#e11d48" stroke-width="2"/>
+    <line x1="230" y1="80" x2="250" y2="80" stroke="#e11d48" stroke-width="2"/>
+    <use href="#vcc33" x="210" y="30"/>
+
+    <line x1="250" y1="150" x2="220" y2="150" stroke="#475569" stroke-width="2"/>
+    <use href="#gnd" x="220" y="140"/>
+  </g>
+
+  <!-- External Clean Interconnect Wire: DHT22 DATA -> ESP32 GPIO 4 (Global coordinates) -->
+  <!-- From DHT22 Pin 2 (global 415, 728) to ESP32 GPIO 4 (global 540, 610) -->
+  <path d="M 415 728 L 485 728 L 485 610 L 540 610" fill="none" stroke="#0891b2" stroke-width="2" />
+
+
+  <!-- Subsystem 4: Tachometer Subsystem (Bottom Left) -->
+  <g id="subsystem-tacho" transform="translate(60, 840)" filter="url(#cardShadow)">
+    <rect x="0" y="0" width="380" height="150" fill="url(#icGrad)" stroke="#7c3aed" stroke-width="1.8" rx="8" />
+    <rect x="15" y="-12" width="250" height="24" fill="#ede9fe" rx="4" stroke="#7c3aed" stroke-width="1.2"/>
+    <text x="25" y="4" fill="#5b21b6" font-size="11" font-weight="bold">4. BENCH TACHOMETER FEEDBACK</text>
+
+    <!-- Terminal Header (J2) -->
+    <rect x="250" y="30" width="105" height="95" fill="#ffffff" stroke="#64748b" stroke-width="1.5" rx="5"/>
+    <text x="302" y="52" fill="#0f172a" font-size="11" font-weight="bold" text-anchor="middle">J2: TACHO</text>
+    <text x="260" y="75" fill="#e11d48" font-size="10" font-weight="bold">1: +3.3V</text>
+    <text x="260" y="95" fill="#7c3aed" font-size="10" font-weight="bold">2: PULSE</text>
+    <text x="260" y="115" fill="#475569" font-size="10" font-weight="bold">3: GND</text>
+
+    <!-- Pull-Up Resistor R4 (4.7k) -->
+    <use href="#vcc33" x="160" y="20"/>
+    <use href="#resistorV" x="160" y="35"/>
+    <text x="170" y="65" fill="#475569" font-size="9" font-weight="bold">R4: 4.7kΩ</text>
+    <line x1="160" y1="95" x2="250" y2="95" stroke="#7c3aed" stroke-width="2"/>
+    <use href="#dot" x="160" y="95" fill="#7c3aed"/>
+
+    <!-- GND and VCC connections for Tacho -->
+    <use href="#vcc33" x="220" y="55"/>
+    <line x1="220" y1="70" x2="250" y2="70" stroke="#e11d48" stroke-width="2"/>
+    <use href="#gnd" x="220" y="105"/>
+    <line x1="220" y1="115" x2="250" y2="115" stroke="#475569" stroke-width="2"/>
+  </g>
+
+  <!-- External Clean Interconnect Wire: Tachometer -> ESP32 GPIO 19 (Global coordinates) -->
+  <!-- From J2 Pin 2 (global 415, 935) to ESP32 GPIO 19 (global 540, 750) -->
+  <path d="M 415 935 L 505 935 L 505 750 L 540 750" fill="none" stroke="#7c3aed" stroke-width="2" />
+
+
+  <!-- ========================================================================= -->
+  <!-- SUBSYSTEM 5: COLOURED LED ACTUATOR MATRIX (TOP & MIDDLE RIGHT)            -->
+  <!-- ========================================================================= -->
+  <g id="subsystem-actuators" transform="translate(1000, 130)" filter="url(#cardShadow)">
+    <rect x="0" y="0" width="620" height="520" fill="url(#icGrad)" stroke="#0284c7" stroke-width="1.8" rx="8"/>
+    <rect x="15" y="-12" width="345" height="24" fill="#e0f2fe" rx="4" stroke="#0284c7" stroke-width="1.2"/>
+    <text x="25" y="4" fill="#0369a1" font-size="11" font-weight="bold">5. COLOURED LED ACTUATOR SUBSYSTEM (EMULATION)</text>
+
+    <!-- Common Ground Return Bus (Vertical along right side) -->
+    <line x1="550" y1="110" x2="550" y2="450" stroke="#475569" stroke-width="3"/>
+    <use href="#gnd" x="550" y="460"/>
+    <text x="565" y="280" fill="#475569" font-size="11" font-weight="bold" transform="rotate(90,565,280)">COMMON RETURN BUS</text>
+
+    <!-- Channel 1: Blue LED Actuator (Purge Blower / Cooling) - GPIO 18 -->
+    <g id="actuator-blue" transform="translate(0, 110)">
+      <text x="30" y="-12" fill="#0369a1" font-size="11.5" font-weight="bold">CHANNEL 1: PURGE VENTILATION / COOLING ACTUATOR (BLOWER MOTOR EMULATION)</text>
+      <text x="30" y="3" fill="#64748b" font-size="9.5">LEDC Timer 0 | 25.0 kHz Ultrasonic Carrier | 1024 Discrete Duty Steps | Failsafe Duty: 50%</text>
+      
+      <!-- Input Wire from ESP32 GPIO 18 (global 920 to 1030) -->
+      <line x1="-80" y1="20" x2="30" y2="20" stroke="#0284c7" stroke-width="2.5" filter="url(#softGlowBlue)"/>
+
+      <!-- Resistor R5 (150 Ohm) -->
+      <use href="#resistorH" x="30" y="20"/>
+      <text x="60" y="40" fill="#0f172a" font-size="10" font-weight="bold">R5: 150 Ω</text>
+      <text x="60" y="52" fill="#64748b" font-size="8.5">1/4W 5%</text>
+
+      <line x1="90" y1="20" x2="160" y2="20" stroke="#0284c7" stroke-width="2"/>
+      <circle cx="160" cy="20" r="3" fill="#0284c7"/>
+
+      <!-- Blue LED (D1) -->
+      <use href="#ledH" x="160" y="20"/>
+      <circle cx="182" cy="20" r="14" fill="#0284c7" opacity="0.2" filter="url(#softGlowBlue)"/>
+      <text x="182" y="42" fill="#0284c7" font-size="11" font-weight="bold" text-anchor="middle">D1: BLUE LED</text>
+      <text x="182" y="54" fill="#64748b" font-size="8.5" text-anchor="middle">λ = 468nm | InGaN</text>
+
+      <line x1="205" y1="20" x2="550" y2="20" stroke="#475569" stroke-width="2"/>
+      <use href="#dotGnd" x="550" y="20"/>
+
+      <rect x="250" y="-8" width="260" height="42" fill="#f0f9ff" rx="5" stroke="#bae6fd" stroke-width="1"/>
+      <text x="260" y="8" fill="#0369a1" font-size="9.5" font-weight="bold">Vf = 3.00 V | If = 2.00 mA</text>
+      <text x="260" y="24" fill="#475569" font-size="9">P_res = 0.60 mW | Intensity ∝ Commanded Duty (0-100%)</text>
+    </g>
+
+
+    <!-- Channel 2: Red LED Actuator (Cabin Heating) - GPIO 17 -->
+    <g id="actuator-red" transform="translate(0, 210)">
+      <text x="30" y="-12" fill="#b91c1c" font-size="11.5" font-weight="bold">CHANNEL 2: PTC CABIN HEATER CORE ACTUATOR</text>
+      <text x="30" y="3" fill="#64748b" font-size="9.5">Digital DO | Active when Temperature &lt; 19.0 °C (Comfort Deficit Threshold)</text>
+
+      <!-- Input Wire from ESP32 GPIO 17 (global 920 to 1030) -->
+      <line x1="-80" y1="20" x2="30" y2="20" stroke="#dc2626" stroke-width="2" filter="url(#softGlowRed)"/>
+
+      <!-- Resistor R6 (330 Ohm) -->
+      <use href="#resistorH" x="30" y="20"/>
+      <text x="60" y="40" fill="#0f172a" font-size="10" font-weight="bold">R6: 330 Ω</text>
+      <text x="60" y="52" fill="#64748b" font-size="8.5">1/4W 5%</text>
+
+      <line x1="90" y1="20" x2="160" y2="20" stroke="#dc2626" stroke-width="2"/>
+      <circle cx="160" cy="20" r="3" fill="#dc2626"/>
+
+      <!-- Red LED (D2) -->
+      <use href="#ledH" x="160" y="20"/>
+      <circle cx="182" cy="20" r="14" fill="#dc2626" opacity="0.2" filter="url(#softGlowRed)"/>
+      <text x="182" y="42" fill="#dc2626" font-size="11" font-weight="bold" text-anchor="middle">D2: RED LED</text>
+      <text x="182" y="54" fill="#64748b" font-size="8.5" text-anchor="middle">λ = 625nm | AlGaInP</text>
+
+      <line x1="205" y1="20" x2="550" y2="20" stroke="#475569" stroke-width="2"/>
+      <use href="#dotGnd" x="550" y="20"/>
+
+      <rect x="250" y="-8" width="260" height="42" fill="#fff1f2" rx="5" stroke="#fecdd3" stroke-width="1"/>
+      <text x="260" y="8" fill="#b91c1c" font-size="9.5" font-weight="bold">Vf = 1.90 V | If = 4.24 mA</text>
+      <text x="260" y="24" fill="#475569" font-size="9">P_res = 5.94 mW | Emulates PTC Heating Element</text>
+    </g>
+
+
+    <!-- Channel 3: Green LED Actuator (Eco Baseline Ventilation) - GPIO 16 -->
+    <g id="actuator-green" transform="translate(0, 310)">
+      <text x="30" y="-12" fill="#15803d" font-size="11.5" font-weight="bold">CHANNEL 3: ECO-MODE BASELINE RECIRCULATION ACTUATOR</text>
+      <text x="30" y="3" fill="#64748b" font-size="9.5">Digital DO | Active under Air-Quality Equilibrium (CO₂ &lt; 800 ppm, 20.0°C - 23.5°C)</text>
+
+      <!-- Input Wire from ESP32 GPIO 16 (global 920 to 1030) -->
+      <line x1="-80" y1="20" x2="30" y2="20" stroke="#16a34a" stroke-width="2" filter="url(#softGlowGreen)"/>
+
+      <!-- Resistor R7 (330 Ohm) -->
+      <use href="#resistorH" x="30" y="20"/>
+      <text x="60" y="40" fill="#0f172a" font-size="10" font-weight="bold">R7: 330 Ω</text>
+      <text x="60" y="52" fill="#64748b" font-size="8.5">1/4W 5%</text>
+
+      <line x1="90" y1="20" x2="160" y2="20" stroke="#16a34a" stroke-width="2"/>
+      <circle cx="160" cy="20" r="3" fill="#16a34a"/>
+
+      <!-- Green LED (D3) -->
+      <use href="#ledH" x="160" y="20"/>
+      <circle cx="182" cy="20" r="14" fill="#16a34a" opacity="0.2" filter="url(#softGlowGreen)"/>
+      <text x="182" y="42" fill="#16a34a" font-size="11" font-weight="bold" text-anchor="middle">D3: GREEN LED</text>
+      <text x="182" y="54" fill="#64748b" font-size="8.5" text-anchor="middle">λ = 525nm | GaP</text>
+
+      <line x1="205" y1="20" x2="550" y2="20" stroke="#475569" stroke-width="2"/>
+      <use href="#dotGnd" x="550" y="20"/>
+
+      <rect x="250" y="-8" width="260" height="42" fill="#f0fdf4" rx="5" stroke="#bbf7d0" stroke-width="1"/>
+      <text x="260" y="8" fill="#15803d" font-size="9.5" font-weight="bold">Vf = 2.10 V | If = 3.64 mA</text>
+      <text x="260" y="24" fill="#475569" font-size="9">P_res = 4.37 mW | Emulates Energy-Efficient Baseline</text>
+    </g>
+
+
+    <!-- Channel 4: Amber LED Actuator (Alert / Dehumidification) - GPIO 15 -->
+    <g id="actuator-amber" transform="translate(0, 410)">
+      <text x="30" y="-12" fill="#b45309" font-size="11.5" font-weight="bold">CHANNEL 4: ALERT &amp; CABIN DEHUMIDIFICATION ACTUATOR</text>
+      <text x="30" y="3" fill="#64748b" font-size="9.5">Digital DO | Active when Relative Humidity &gt; 65% RH or Bridge AE Reports DEGRADED State</text>
+
+      <!-- Input Wire from ESP32 GPIO 15 (global 920 to 1030) -->
+      <line x1="-80" y1="20" x2="30" y2="20" stroke="#d97706" stroke-width="2" filter="url(#softGlowAmber)"/>
+
+      <!-- Resistor R8 (330 Ohm) -->
+      <use href="#resistorH" x="30" y="20"/>
+      <text x="60" y="40" fill="#0f172a" font-size="10" font-weight="bold">R8: 330 Ω</text>
+      <text x="60" y="52" fill="#64748b" font-size="8.5">1/4W 5%</text>
+
+      <line x1="90" y1="20" x2="160" y2="20" stroke="#d97706" stroke-width="2"/>
+      <circle cx="160" cy="20" r="3" fill="#d97706"/>
+
+      <!-- Amber LED (D4) -->
+      <use href="#ledH" x="160" y="20"/>
+      <circle cx="182" cy="20" r="14" fill="#d97706" opacity="0.2" filter="url(#softGlowAmber)"/>
+      <text x="182" y="42" fill="#d97706" font-size="11" font-weight="bold" text-anchor="middle">D4: AMBER LED</text>
+      <text x="182" y="54" fill="#64748b" font-size="8.5" text-anchor="middle">λ = 590nm | GaAsP</text>
+
+      <line x1="205" y1="20" x2="550" y2="20" stroke="#475569" stroke-width="2"/>
+      <use href="#dotGnd" x="550" y="20"/>
+
+      <rect x="250" y="-8" width="260" height="42" fill="#fffbeb" rx="5" stroke="#fde68a" stroke-width="1"/>
+      <text x="260" y="8" fill="#b45309" font-size="9.5" font-weight="bold">Vf = 2.00 V | If = 3.94 mA</text>
+      <text x="260" y="24" fill="#475569" font-size="9">P_res = 5.12 mW | Emulates A/C Evaporator Reheat</text>
+    </g>
+  </g>
+
+
+  <!-- ========================================================================= -->
+  <!-- SUBSYSTEM 6: WS2812B SMART RGB OPTICAL ANNUNCIATOR (BOTTOM RIGHT)          -->
+  <!-- ========================================================================= -->
+  <g id="subsystem-rgb" transform="translate(1000, 680)" filter="url(#cardShadow)">
+    <rect x="0" y="0" width="620" height="210" fill="url(#icGrad)" stroke="#db2777" stroke-width="1.8" rx="8"/>
+    <rect x="15" y="-12" width="345" height="24" fill="#fce7f3" rx="4" stroke="#db2777" stroke-width="1.2"/>
+    <text x="25" y="4" fill="#9d174d" font-size="11" font-weight="bold">6. OPTICAL STATUS ANNUNCIATOR (WS2812B RGB)</text>
+
+    <!-- WS2812B IC (U5) -->
+    <rect x="210" y="35" width="150" height="135" fill="#ffffff" stroke="#db2777" stroke-width="2" rx="6"/>
+    <text x="285" y="60" fill="#0f172a" font-size="13" font-weight="bold" text-anchor="middle">U5: WS2812B</text>
+    <text x="285" y="75" fill="#db2777" font-size="9.5" font-weight="bold" text-anchor="middle">Addressable 5050 RGB LED</text>
+
+    <text x="225" y="105" fill="#ea580c" font-size="10" font-weight="bold">1: VDD (+5V)</text>
+    <text x="225" y="130" fill="#db2777" font-size="10" font-weight="bold">4: DIN</text>
+    <text x="345" y="105" fill="#475569" font-size="10" font-weight="bold" text-anchor="end">3: GND</text>
+    <text x="345" y="130" fill="#94a3b8" font-size="10" text-anchor="end">2: DOUT (NC)</text>
+
+    <!-- Input from GPIO 38 (global 920 to 1030) -->
+    <line x1="-80" y1="125" x2="30" y2="125" stroke="#db2777" stroke-width="2" />
+
+    <!-- Damping Resistor R9 (330 Ohm) -->
+    <use href="#resistorH" x="30" y="125"/>
+    <text x="50" y="148" fill="#0f172a" font-size="10" font-weight="bold">R9: 330 Ω</text>
+    <text x="50" y="160" fill="#64748b" font-size="8.5">Damping / Anti-Ringing</text>
+
+    <line x1="90" y1="125" x2="210" y2="125" stroke="#db2777" stroke-width="2"/>
+
+    <!-- Power & Decoupling Capacitor -->
+    <use href="#vcc50" x="150" y="85"/>
+    <line x1="150" y1="100" x2="210" y2="100" stroke="#ea580c" stroke-width="2"/>
+    <use href="#dotOrange" x="175" y="100"/>
+
+    <use href="#capacitorV" x="175" y="110"/>
+    <text x="185" y="125" fill="#475569" font-size="9" font-weight="bold">C5: 100nF</text>
+    <use href="#gnd" x="175" y="140"/>
+
+    <!-- GND connection from U5 Pin 3 -->
+    <line x1="360" y1="100" x2="395" y2="100" stroke="#475569" stroke-width="2"/>
+    <use href="#gnd" x="395" y="90"/>
+
+    <!-- Optical Health Status Mapping Table -->
+    <rect x="430" y="28" width="170" height="150" fill="#ffffff" rx="5" stroke="#cbd5e1" stroke-width="1"/>
+    <text x="440" y="45" fill="#0f172a" font-size="9" font-weight="bold">OPTICAL STATE MAPPING:</text>
+    <circle cx="445" cy="65" r="4" fill="#16a34a"/>
+    <text x="455" y="68" fill="#334155" font-size="8.5">GREEN: FRESH / Nominal</text>
+    <circle cx="445" cy="85" r="4" fill="#0284c7"/>
+    <text x="455" y="88" fill="#334155" font-size="8.5">CYAN: MQTT Connecting</text>
+    <circle cx="445" cy="105" r="4" fill="#d97706"/>
+    <text x="455" y="108" fill="#334155" font-size="8.5">AMBER: STALE / Warn</text>
+    <circle cx="445" cy="125" r="4" fill="#dc2626"/>
+    <text x="455" y="128" fill="#334155" font-size="8.5">RED: DEGRADED / Fault</text>
+    <circle cx="445" cy="145" r="4" fill="#db2777"/>
+    <text x="455" y="148" fill="#334155" font-size="8.5">PURPLE: Downlink Actuate</text>
+  </g>
+
+
+  <!-- ========================================================================= -->
+  <!-- BOTTOM PANEL: SYSTEM BILL OF MATERIALS (BOM) & POWER BUDGET               -->
+  <!-- ========================================================================= -->
+  <g id="bottom-panel" transform="translate(60, 920)" filter="url(#cardShadow)">
+    <rect x="0" y="0" width="1560" height="190" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.8" rx="8"/>
+    
+    <!-- Left Column: Master Bill of Materials -->
+    <text x="25" y="24" fill="#0f233d" font-size="12" font-weight="bold">BILL OF MATERIALS (BOM) &amp; DESIGNATOR REFERENCE</text>
+    <line x1="25" y1="32" x2="1000" y2="32" stroke="#e2e8f0" stroke-width="1.5"/>
+
+    <g font-size="9.5" fill="#334155">
+      <!-- Col 1 Header -->
+      <text x="25" y="52" fill="#0f172a" font-weight="bold">Designator</text>
+      <text x="95" y="52" fill="#0f172a" font-weight="bold">Component Description</text>
+      <text x="320" y="52" fill="#0f172a" font-weight="bold">Value / Part Number</text>
+      <text x="500" y="52" fill="#0f172a" font-weight="bold">Package / Footprint</text>
+
+      <text x="25" y="70" fill="#0284c7" font-weight="bold">U1</text>
+      <text x="95" y="70">Linear Voltage Regulator (3.3V LDO)</text>
+      <text x="320" y="70">AMS1117-3.3 (800mA)</text>
+      <text x="500" y="70">SOT-223 / TO-252</text>
+
+      <text x="25" y="88" fill="#0284c7" font-weight="bold">U2</text>
+      <text x="95" y="88">Dual-Core Microcontroller SoC</text>
+      <text x="320" y="88">ESP32-S3-WROOM-1 (N16R8)</text>
+      <text x="500" y="88">SMD Module 18x25.5mm</text>
+
+      <text x="25" y="106" fill="#0284c7" font-weight="bold">U3</text>
+      <text x="95" y="106">NDIR CO₂ &amp; T/RH Sensor Module</text>
+      <text x="320" y="106">Sensirion SCD30</text>
+      <text x="500" y="106">Shielded Sensor Module</text>
+
+      <text x="25" y="124" fill="#0284c7" font-weight="bold">U4</text>
+      <text x="95" y="124">Capacitive Humidity &amp; Temp Sensor</text>
+      <text x="320" y="124">DHT22 (AM2302)</text>
+      <text x="500" y="124">4-Pin Single-Row TH</text>
+
+      <text x="25" y="142" fill="#0284c7" font-weight="bold">U5</text>
+      <text x="95" y="142">Optical Status Annunciator</text>
+      <text x="320" y="142">WS2812B Smart RGB LED</text>
+      <text x="500" y="142">SMD 5050 Top-View</text>
+
+      <text x="25" y="160" fill="#0284c7" font-weight="bold">D1 - D4</text>
+      <text x="95" y="160">Coloured LED Actuator Matrix</text>
+      <text x="320" y="160">Blue, Red, Green, Amber</text>
+      <text x="500" y="160">5mm Diffused Radial</text>
+    </g>
+
+    <!-- Vertical Splitter 1 -->
+    <line x1="645" y1="40" x2="645" y2="175" stroke="#e2e8f0" stroke-width="1.2"/>
+
+    <!-- Middle Column: Passive Components -->
+    <g font-size="9.5" fill="#334155" transform="translate(665, 0)">
+      <text x="0" y="52" fill="#0f172a" font-weight="bold">Passive Components &amp; Ratings</text>
+
+      <text x="0" y="70" fill="#0284c7" font-weight="bold">R1, R2, R4</text>
+      <text x="90" y="70">4.7 kΩ 5% 0.25W (I²C &amp; Tacho Pull-Ups)</text>
+
+      <text x="0" y="88" fill="#0284c7" font-weight="bold">R3</text>
+      <text x="90" y="88">10.0 kΩ 5% 0.25W (DHT22 Single-Wire Pull-Up)</text>
+
+      <text x="0" y="106" fill="#0284c7" font-weight="bold">R5</text>
+      <text x="90" y="106">150 Ω 5% 0.25W (Blue Actuator Current Limiter)</text>
+
+      <text x="0" y="124" fill="#0284c7" font-weight="bold">R6, R7, R8</text>
+      <text x="90" y="124">330 Ω 5% 0.25W (Red, Green, Amber Limiters)</text>
+
+      <text x="0" y="142" fill="#0284c7" font-weight="bold">R9</text>
+      <text x="90" y="142">330 Ω 5% 0.25W (WS2812B Transmission Damping)</text>
+
+      <text x="0" y="160" fill="#0284c7" font-weight="bold">C1 - C5</text>
+      <text x="90" y="160">10µF Tant., 22µF Ceramic, 3x 100nF Decoupling</text>
+    </g>
+
+    <!-- Vertical Splitter 2 -->
+    <line x1="1075" y1="40" x2="1075" y2="175" stroke="#e2e8f0" stroke-width="1.2"/>
+
+    <!-- Right Column: Electrical Budget & Verification -->
+    <g font-size="9.5" fill="#334155" transform="translate(1095, 0)">
+      <text x="0" y="24" fill="#15803d" font-size="11" font-weight="bold">ELECTRICAL BUDGET &amp; SAFETY VERIFICATION</text>
+      <line x1="0" y1="32" x2="435" y2="32" stroke="#e2e8f0" stroke-width="1.5"/>
+
+      <text x="0" y="52" fill="#64748b">USB-C Input Voltage:</text>
+      <text x="240" y="52" fill="#0f172a" font-weight="bold">5.00 V DC ± 5%</text>
+
+      <text x="0" y="70" fill="#64748b">Regulated 3.3V Rail:</text>
+      <text x="240" y="70" fill="#0f172a" font-weight="bold">3.30 V DC ± 1.5% (Ripple &lt; 20mV)</text>
+
+      <text x="0" y="88" fill="#64748b">Continuous Node Current:</text>
+      <text x="240" y="88" fill="#0369a1" font-weight="bold">165 mA (Typical)</text>
+
+      <text x="0" y="106" fill="#64748b">Peak Current (Wi-Fi Burst):</text>
+      <text x="240" y="106" fill="#dc2626" font-weight="bold">385 mA (&lt; 500mA USB limit)</text>
+
+      <text x="0" y="124" fill="#64748b">Total Actuator Current (4 LEDs):</text>
+      <text x="240" y="124" fill="#16a34a" font-weight="bold">13.82 mA (Safe for ESP32 GPIOs)</text>
+
+      <text x="0" y="142" fill="#64748b">I²C Bus Rise-Time (4.7kΩ + 50pF):</text>
+      <text x="240" y="142" fill="#16a34a" font-weight="bold">199.1 ns (&lt; 300ns Fast-Mode)</text>
+
+      <text x="0" y="160" fill="#64748b">Audit Status:</text>
+      <text x="240" y="160" fill="#15803d" font-weight="bold">PASSED - 100% SPEC COMPLIANT</text>
+    </g>
+  </g>
+</svg>

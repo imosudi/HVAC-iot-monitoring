@@ -80,7 +80,7 @@ For the MVP deployment, physical mechanical actuators (such as 12 V high-current
 * **Blue LED Actuator (Purge Ventilation / Cooling):** Driven on GPIO 18 by the LEDC timer using 25.0 kHz PWM with 10-bit resolution (0 to 1,023 duty steps). Luminous intensity visualises commanded fan purge speed (0 to 100% duty cycle) dispatched upon elevated carbon dioxide concentration (> 800 ppm).
 * **Red LED Actuator (Cabin Heating):** Driven on GPIO 17, illuminating when cabin temperature drops below 19.0 °C to emulate auxiliary heater core activation.
 * **Green LED Actuator (Baseline Eco-Ventilation):** Driven on GPIO 16, illuminating during nominal air quality (CO₂ between 400 and 800 ppm, temperature between 20.0 and 23.5 °C).
-* **Amber LED Actuator (Alert / Dehumidification):** Driven on GPIO 19, active during elevated relative humidity (> 65%) or when the Bridge AE flags a `DEGRADED` or `STALE` health status.
+* **Amber LED Actuator (Alert / Dehumidification):** Driven on GPIO 15, active during elevated relative humidity (> 65%) or when the Bridge AE flags a `DEGRADED` or `STALE` health status.
 
 #### 2.3 Closed-Loop Actuator Feedback
 To confirm actuator command reception and detect electrical fault conditions, the feedback loop reads back GPIO logic states and duty cycles. In bench setups with tachometer pulse emulation, pulse accumulation over 1.0-second integration windows calculates simulated rotor revolutions per minute (RPM).

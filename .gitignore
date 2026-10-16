@@ -235,3 +235,23 @@ certs/
 
 SDV_Expandable_Fleet_ACME_CSE_SOP.md
 ACME_CSE_Collection_Optimisation_Specification.md
+generate_pdf_report.py
+
+# Generated Insomnia Sub-Collections (subsets of acme_fleet_insomnia_collection.yaml)
+collections/environment_base_cse_collection.yaml
+collections/environment_base_cse_collections.yaml
+collections/single_vehicle_deploy_validation_collection.yaml
+collections/single_vehicle_deploy&validation_collection.yaml
+collections/single_vehicle_validate_decommission_collection.yaml
+collections/single_vehicle_validate&decommision_collection.yaml
+collections/environment_csebase_validation_verification_collection.yaml
+collections/enviroment_csenase_validation&verification_collection.yaml
+collections/split_collections_architecture_guide.md
+split_collections_architecture_guide.md
+
+# Testing Scripts
+testing/
+scripts/testing/
+
+# Scratch & temporary generation files
+scratch/

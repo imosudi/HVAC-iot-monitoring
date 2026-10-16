@@ -154,8 +154,10 @@ collection:
           console.warn('[WARN] "notification_base_url" is set to localhost/127.0.0.1. Ensure this is routable from the ACME CSE host, not only your workstation.');
       }
       console.log('Notification Callback Base URL configured as:', notifUrl);
-    afterResponse: |
-      console.log('Preflight reachability & callback configuration confirmed.');
+    afterResponse: 'console.log(''Preflight reachability & callback configuration
+      confirmed.'');
+
+      '
 - name: 01_Fleet_Governance
   meta:
     id: fld_fleet_governance_001
@@ -345,7 +347,7 @@ collection:
   - name: Accept
     value: application/json
   - name: X-M2M-Origin
-    value: '{{ originator }}'
+    value: S
   - name: X-M2M-RI
     value: req_{% now 'unix' %}
   - name: X-M2M-RVI
@@ -454,35 +456,40 @@ collection:
       \ {\n            console.log(`[EXISTING] Container already verified: ${def.name}`);\n\
       \            registry.containers[def.name] = {\n                path: expectedPath,\n\
       \                status: 'verified'\n            };\n        } else if (sendFn)\
-      \ {\n            console.log(`[CREATING] Provisioning manifest container: ${def.name}`);\n\
-      \            try {\n                const postRes = await sendFn({\n       \
-      \             url: `${baseUrl}/${cseRn}/${aeRn}`,\n                    method:\
-      \ 'POST',\n                    headers: {\n                        'Content-Type':\
-      \ 'application/json;ty=3',\n                        'Accept': 'application/json',\n\
-      \                        'X-M2M-Origin': originator,\n                     \
-      \   'X-M2M-RI': 'req_' + Date.now() + '_' + Math.floor(Math.random() * 1000),\n\
-      \                        'X-M2M-RVI': rvi\n                    },\n        \
-      \            body: JSON.stringify({\n                        \"m2m:cnt\": {\n\
-      \                            \"rn\": def.name,\n                           \
-      \ \"mni\": def.name === 'raw-telemetry' ? 1440 : 1000,\n                   \
-      \         \"mbs\": def.name === 'raw-telemetry' ? 2097152 : 1048576,\n     \
-      \                       \"lbl\": [\"sensor\", def.location, def.measurement,\
+      \ {\n            console.log(`[CREATING] Provisioning manifest container: ${def.name}\
+      \ with mia: 86400`);\n            try {\n                const isRaw = def.name\
+      \ === 'raw-telemetry';\n                const isCmd = def.name === 'commands';\n\
+      \                const mniVal = isRaw ? 1440 : (isCmd ? 100 : 1000);\n     \
+      \           const mbsVal = isRaw ? 2097152 : (isCmd ? 262144 : 1048576);\n\n\
+      \                const postRes = await sendFn({\n                    url: `${baseUrl}/${cseRn}/${aeRn}`,\n\
+      \                    method: 'POST',\n                    headers: {\n     \
+      \                   'Content-Type': 'application/json;ty=3',\n             \
+      \           'Accept': 'application/json',\n                        'X-M2M-Origin':\
+      \ originator,\n                        'X-M2M-RI': 'req_' + Date.now() + '_'\
+      \ + Math.floor(Math.random() * 1000),\n                        'X-M2M-RVI':\
+      \ rvi\n                    },\n                    body: JSON.stringify({\n\
+      \                        \"m2m:cnt\": {\n                            \"rn\"\
+      : def.name,\n                            \"mni\": mniVal,\n                \
+      \            \"mbs\": mbsVal,\n                            \"mia\": 86400,\n\
+      \                            \"lbl\": [\"sensor\", def.location, def.measurement,\
       \ aeRn]\n                        }\n                    })\n               \
       \ });\n                const resData = typeof postRes.body === 'string' ? JSON.parse(postRes.body)\
       \ : postRes.body;\n                const cnt = resData && resData['m2m:cnt']\
       \ ? resData['m2m:cnt'] : {};\n                registry.containers[def.name]\
       \ = {\n                    ri: cnt.ri || null,\n                    path: expectedPath,\n\
       \                    status: 'created'\n                };\n               \
-      \ console.log(`[SUCCESS] Provisioned ${def.name} (RI: ${cnt.ri})`);\n      \
-      \      } catch (postErr) {\n                console.error(`Failed to create\
+      \ console.log(`[SUCCESS] Provisioned ${def.name} (RI: ${cnt.ri}, mia: 86400)`);\n\
+      \            } catch (postErr) {\n                console.error(`Failed to create\
       \ container ${def.name}:`, postErr.message);\n            }\n        }\n   \
       \ }\n\n    // Persist registry & downstream variables\n    insomnia.baseEnvironment.set('vehicle_registry',\
       \ registry);\n    insomnia.baseEnvironment.set('target_raw_cnt_path', `${cseRn}/${aeRn}/raw-telemetry`);\n\
       \    insomnia.baseEnvironment.set('target_co_cnt_path', `${cseRn}/${aeRn}/co-cabin`);\n\
+      \    insomnia.baseEnvironment.set('target_commands_cnt_path', `${cseRn}/${aeRn}/commands`);\n\
       \    insomnia.baseEnvironment.set('target_raw_cnt_rn', 'raw-telemetry');\n \
-      \   insomnia.baseEnvironment.set('target_co_cnt_rn', 'co-cabin');\n    \n  \
-      \  // Update fleet member list dynamically\n    const rawPath = `${cseRn}/${aeRn}/raw-telemetry`;\n\
-      \    let members = insomnia.environment.get('fleet_member_ids');\n    if (!Array.isArray(members))\
+      \   insomnia.baseEnvironment.set('target_co_cnt_rn', 'co-cabin');\n    insomnia.baseEnvironment.set('target_commands_cnt_rn',\
+      \ 'commands');\n    \n    // Update fleet member list dynamically with telemetry\
+      \ containers only\n    const rawPath = `${cseRn}/${aeRn}/raw-telemetry`;\n \
+      \   let members = insomnia.environment.get('fleet_member_ids');\n    if (!Array.isArray(members))\
       \ members = [];\n    if (!members.includes(rawPath)) {\n        members.push(rawPath);\n\
       \        insomnia.baseEnvironment.set('fleet_member_ids', members);\n    }\n\
       \    console.log('Reconciliation complete. Updated fleet members:', members);\n\
@@ -505,6 +512,7 @@ collection:
           "rn": "{{ target_container_rn }}",
           "mni": {{ target_container_mni }},
           "mbs": {{ target_container_mbs }},
+          "mia": {{ target_container_mia }},
           "lbl": ["sensor", "{{ target_container_location }}", "{{ target_container_measurement }}", "{{ active_vehicle_ae_rn }}"]
         }
       }
@@ -529,6 +537,9 @@ collection:
       }
       if (!insomnia.environment.get('target_container_mbs')) {
           insomnia.baseEnvironment.set('target_container_mbs', 2097152);
+      }
+      if (!insomnia.environment.get('target_container_mia')) {
+          insomnia.baseEnvironment.set('target_container_mia', 86400);
       }
       if (!insomnia.environment.get('target_container_location')) {
           insomnia.baseEnvironment.set('target_container_location', 'vehicle');
@@ -661,6 +672,63 @@ collection:
       } else if (insomnia.response.status === 409) {
           console.log('Subscription sub_fleet_telemetry already exists on target container (idempotent 409).');
       }
+- url: '{{ base_url }}/{{ cse_rn }}/{{ active_vehicle_ae_rn }}/commands'
+  name: 3.3 Reconcile Downlink Actuator Subscription (sub_downlink)
+  meta:
+    id: req_sub_003
+    parentId: fld_subscriptions_001
+    created: 1791360033000
+    modified: 1791360033000
+    isPrivate: false
+    sortKey: -35
+  method: POST
+  body:
+    mimeType: application/json
+    text: |-
+      {
+        "m2m:sub": {
+          "rn": "sub_downlink",
+          "nu": ["{{ downlink_notification_url }}"],
+          "nct": 1,
+          "enc": {
+            "net": [3]
+          }
+        }
+      }
+  headers:
+  - name: Content-Type
+    value: application/json;ty=23
+  - name: Accept
+    value: application/json
+  - name: X-M2M-Origin
+    value: '{{ originator }}'
+  - name: X-M2M-RI
+    value: req_{% now 'unix' %}
+  - name: X-M2M-RVI
+    value: '{{ rvi }}'
+  scripts:
+    preRequest: |
+      const aeRn = insomnia.environment.get('active_vehicle_ae_rn');
+      if (!aeRn) {
+          throw new Error('Subscription creation failed: active_vehicle_ae_rn is not set.');
+      }
+      let downlinkNu = insomnia.environment.get('downlink_notification_url');
+      if (!downlinkNu || downlinkNu.trim() === '') {
+          // Default to native oneM2M TS-0010 MQTT notification URI
+          downlinkNu = `mqtt://mosquitto:1883/oneM2M/req/id-sdv/${aeRn}/json`;
+          insomnia.baseEnvironment.set('downlink_notification_url', downlinkNu);
+      }
+      console.log('Configuring Downlink Actuator subscription for AE:', aeRn, 'Target NU:', downlinkNu);
+    afterResponse: |
+      if (insomnia.response.status >= 200 && insomnia.response.status < 300) {
+          const body = insomnia.response.json();
+          if (body && body['m2m:sub']) {
+              insomnia.baseEnvironment.set('sub_downlink_ri', body['m2m:sub'].ri);
+              console.log('Created Downlink Actuator subscription:', body['m2m:sub'].rn, 'RI:', body['m2m:sub'].ri);
+          }
+      } else if (insomnia.response.status === 409) {
+          console.log('Subscription sub_downlink already exists on commands container (idempotent 409).');
+      }
 - name: 04_Telemetry
   meta:
     id: fld_telemetry_001
@@ -684,7 +752,7 @@ collection:
     text: |-
       {
         "m2m:cin": {
-          "cnf": "application/json",
+          "cnf": "application/json:0",
           "con": {{ generated_telemetry_con_json }}
         }
       }
@@ -723,18 +791,27 @@ collection:
               timestamp_unix_s: Math.floor(Date.now() / 1000),
               cabin: {
                   temperature_c: Number(tempC.toFixed(2)),
+                  temperature_scd30: Number(tempC.toFixed(2)),
+                  temperature_dht22: Number((tempC - 0.3).toFixed(2)),
                   humidity_pct: Number(humidityPct.toFixed(1)),
+                  humidity_scd30: Number(humidityPct.toFixed(1)),
+                  humidity_dht22: Number((humidityPct - 1.3).toFixed(1)),
                   co2_ppm: Number((540 + Math.random() * 180).toFixed(1)),
                   co_ppm: 0.2,
-                  air_quality_score: 42
+                  air_quality_score: 42,
+                  exterior_aqi: 28
               },
               actuator_state: {
-                  pwm_duty_pct: 25,
-                  tachometer_rpm: Math.floor(980 + Math.random() * 30),
-                  carrier_freq_hz: 25000
+                  pwm_duty_pct: 75,
+                  tachometer_rpm: Math.floor(1820 + Math.random() * 40),
+                  carrier_freq_hz: 25000,
+                  heater_state: "STANDBY",
+                  eco_vent_state: "ACTIVE",
+                  dehumidifier_state: "STANDBY",
+                  recirculation_flap: "FRESH_AIR"
               }
           };
-          console.log('[SIMULATION] Generated synthetic telemetry frame for:', aeRn);
+          console.log('[SIMULATION] Generated synthetic multi-hazard telemetry frame for:', aeRn);
       } else {
           const live = insomnia.environment.get('live_telemetry_payload');
           if (!live) {
@@ -749,8 +826,13 @@ collection:
       if (insomnia.response.status >= 200 && insomnia.response.status < 300) {
           const body = insomnia.response.json();
           if (body && body['m2m:cin']) {
-              insomnia.baseEnvironment.set('latest_cin_ri', body['m2m:cin'].ri);
-              console.log('Published contentInstance to raw-telemetry. RI:', body['m2m:cin'].ri);
+              const cin = body['m2m:cin'];
+              insomnia.baseEnvironment.set('latest_cin_ri', cin.ri);
+              const labels = cin.lbl || [];
+              console.log('Published contentInstance to raw-telemetry. RI:', cin.ri);
+              if (labels.length > 0) {
+                  console.log('[IN-CSE HEALTH LABELS]:', labels);
+              }
           }
       }
 - url: '{{ base_url }}/{{ cse_rn }}/{{ active_vehicle_ae_rn }}/co-cabin'
@@ -768,7 +850,7 @@ collection:
     text: |-
       {
         "m2m:cin": {
-          "cnf": "application/json",
+          "cnf": "application/json:0",
           "con": {{ generated_co_con_json }}
         }
       }
@@ -821,6 +903,64 @@ collection:
           const body = insomnia.response.json();
           if (body && body['m2m:cin']) {
               console.log('Published CO reading to co-cabin. RI:', body['m2m:cin'].ri, '(Triggered sub_co_alert notification)');
+          }
+      }
+- url: '{{ base_url }}/{{ cse_rn }}/{{ active_vehicle_ae_rn }}/commands'
+  name: 4.3 Dispatch Closed-Loop Actuator Command
+  meta:
+    id: req_tel_003
+    parentId: fld_telemetry_001
+    created: 1791360043000
+    modified: 1791360043000
+    isPrivate: false
+    sortKey: -10
+  method: POST
+  body:
+    mimeType: application/json
+    text: |-
+      {
+        "m2m:cin": {
+          "cnf": "application/json:0",
+          "con": {{ generated_command_con_json }}
+        }
+      }
+  headers:
+  - name: Content-Type
+    value: application/json;ty=4
+  - name: Accept
+    value: application/json
+  - name: X-M2M-Origin
+    value: '{{ originator }}'
+  - name: X-M2M-RI
+    value: req_{% now 'unix' %}
+  - name: X-M2M-RVI
+    value: '{{ rvi }}'
+  scripts:
+    preRequest: |
+      const aeRn = insomnia.environment.get('active_vehicle_ae_rn');
+      if (!aeRn) {
+          throw new Error('Command dispatch failed: active_vehicle_ae_rn is not set. Run 02_Vehicle_Onboarding first.');
+      }
+
+      const cmdPayload = {
+          target_fan_pwm: 75.0,
+          fan_mode: "AUTO",
+          aux_heater_state: "STANDBY",
+          eco_vent_state: "ACTIVE",
+          dehumidifier_state: "STANDBY",
+          recirculation_flap: "FRESH_AIR",
+          trigger_source: "IN_CSE_REGULATION_RULE_1",
+          dispatched_at: Math.floor(Date.now() / 1000)
+      };
+
+      insomnia.baseEnvironment.set('generated_command_con_json', JSON.stringify(JSON.stringify(cmdPayload)));
+      console.log('Dispatching closed-loop actuation command to:', `${aeRn}/commands`);
+    afterResponse: |
+      if (insomnia.response.status >= 200 && insomnia.response.status < 300) {
+          const body = insomnia.response.json();
+          if (body && body['m2m:cin']) {
+              insomnia.baseEnvironment.set('latest_command_cin_ri', body['m2m:cin'].ri);
+              console.log('Actuation command committed to commands container. RI:', body['m2m:cin'].ri, '(Dispatched via sub_downlink)');
           }
       }
 - name: 05_Fleet_Registry_and_Discovery
@@ -981,7 +1121,15 @@ collection:
     afterResponse: |
       if (insomnia.response.status >= 200 && insomnia.response.status < 300) {
           const body = insomnia.response.json();
-          console.log('Retrieved latest vehicle contentInstance:', body);
+          const cin = body['m2m:cin'] || {};
+          console.log('Retrieved latest vehicle contentInstance:', cin.ri);
+          if (cin.lbl) {
+              console.log('[HEALTH AUDIT] In-CSE evaluated semantic labels:', cin.lbl);
+          }
+          if (cin.con) {
+              const con = typeof cin.con === 'string' ? JSON.parse(cin.con) : cin.con;
+              console.log('[TELEMETRY SNAPSHOT] Latest payload:', con);
+          }
       }
 - url: '{{ base_url }}/{{ cse_rn }}?fu=1&rcn=6'
   name: 5.6 General oneM2M Discovery (fu=1 & rcn=6)
@@ -1144,7 +1292,7 @@ environments:
     fleet_acp_rn: acp_fleet_manager
     fleet_grp_rn: grp_fleet_telemetry
     vehicle_identity_input: VIN-WAUZZZ-SDV-2026-0042
-    vehicle_ae_rn: ''
+    vehicle_ae_rn: vehicle-001
     provisioning_mode: reconcile
     simulation_enabled: false
     sensor_manifest:
@@ -1176,3 +1324,9 @@ environments:
       measurement: combined-telemetry
       location: vehicle
       unit: mixed
+    - name: commands
+      measurement: actuation-control
+      location: vehicle
+      unit: mixed
+    target_container_mia: 86400
+    downlink_notification_url: http://192.168.122.91:8080/downlink
