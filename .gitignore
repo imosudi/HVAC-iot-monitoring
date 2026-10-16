@@ -255,3 +255,8 @@ scripts/testing/
 
 # Scratch & temporary generation files
 scratch/
+
+# Confirmation Assessment PDF (untracked documentation)
+docs/architecture/confirmation_assessment_native_in_cse_route.pdf
+docs/architecture/confirmation_assessment_*.pdf
+scripts/generate_confirmation_assessment_pdf.py
