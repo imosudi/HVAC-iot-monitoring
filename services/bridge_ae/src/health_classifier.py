@@ -27,6 +27,40 @@ class HealthClassifier:
         self.max_stale_s = max_stale_s
         self.max_delta_t_c = max_delta_t_c
         self.max_delta_rh_pct = max_delta_rh_pct
+        self._previous_observations: Dict[str, Dict[str, Any]] = {}
+
+    def compute_thermal_derivative(
+        self,
+        car_id: str,
+        current_temp_c: float,
+        timestamp_unix_s: float,
+        ext_temp_c: Optional[float] = None
+    ) -> Tuple[Optional[float], Optional[float]]:
+        """
+        Computes temporal temperature derivative (dT_cabin/dt) and differential against exterior (dT_cabin/dt - dT_ext/dt).
+
+        Returns:
+            Tuple of (dT_cabin_per_sec, dT_diff_per_sec)
+        """
+        prev = self._previous_observations.get(car_id)
+        dt_cabin_dt = None
+        dt_diff_dt = None
+
+        if prev is not None:
+            dt_s = timestamp_unix_s - prev["timestamp"]
+            if dt_s > 0:
+                dt_cabin_dt = (current_temp_c - prev["cabin_temp"]) / dt_s
+                if ext_temp_c is not None and prev.get("ext_temp") is not None:
+                    dt_ext_dt = (ext_temp_c - prev["ext_temp"]) / dt_s
+                    dt_diff_dt = dt_cabin_dt - dt_ext_dt
+
+        self._previous_observations[car_id] = {
+            "timestamp": timestamp_unix_s,
+            "cabin_temp": current_temp_c,
+            "ext_temp": ext_temp_c
+        }
+
+        return dt_cabin_dt, dt_diff_dt
 
     def evaluate_frame(
         self,

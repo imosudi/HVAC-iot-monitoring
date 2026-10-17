@@ -73,19 +73,45 @@ def process_notification():
 
     # Evaluate algorithmic data health state
     state, tau_age, delta_t = classifier.evaluate_frame(payload)
+    car_id = payload.get("car_id") or payload.get("vehicle_id") or "vehicle_01"
+
+    # Compute mathematical derivative (dT_cabin/dt - dT_ext/dt)
+    scd30 = payload.get("scd30", {})
+    t_cabin = scd30.get("temperature_c") if isinstance(scd30, dict) else None
+    sample_time = payload.get("timestamp_unix_s")
+    ext = payload.get("exterior", {}) if isinstance(payload.get("exterior"), dict) else {}
+    t_ext = ext.get("temperature_c")
+
+    dt_cabin, dt_diff = (None, None)
+    if t_cabin is not None and sample_time is not None:
+        dt_cabin, dt_diff = classifier.compute_thermal_derivative(
+            car_id=car_id,
+            current_temp_c=float(t_cabin),
+            timestamp_unix_s=float(sample_time),
+            ext_temp_c=float(t_ext) if t_ext is not None else None
+        )
+
     logger.info(
-        "Evaluated frame: car_id=%s, state=%s, tau_age=%.2fs, delta_t=%s",
-        payload.get("car_id"), state.value, tau_age, f"{delta_t:.2f}°C" if delta_t is not None else "N/A"
+        "Evaluated frame: car_id=%s, state=%s, tau_age=%.2fs, delta_t=%s, dT/dt=%s",
+        car_id, state.value, tau_age,
+        f"{delta_t:.2f}°C" if delta_t is not None else "N/A",
+        f"{dt_cabin:.4f}°C/s" if dt_cabin is not None else "N/A"
     )
 
-    # Persist record to InfluxDB with categorical metadata
-    writer.write_telemetry(payload, state, tau_age, delta_t)
+    # Persist record to InfluxDB with categorical metadata and mathematical derivatives
+    writer.write_telemetry(
+        payload, state, tau_age, delta_t,
+        dt_derivative=dt_cabin,
+        dt_diff_derivative=dt_diff
+    )
 
     return jsonify({
         "status": "PROCESSED",
         "health_state": state.value,
         "tau_age_s": tau_age,
-        "delta_t_c": delta_t
+        "delta_t_c": delta_t,
+        "dt_cabin_derivative": dt_cabin,
+        "dt_diff_derivative": dt_diff
     }), 200
 
 

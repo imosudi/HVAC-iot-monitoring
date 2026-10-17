@@ -122,3 +122,55 @@ class TestHealthClassifier:
 
         assert state == HealthState.FAULT
 
+    def test_thermal_derivative_calculation(self, classifier):
+        """Verifies calculation of temporal derivative dT_cabin/dt and differential against exterior."""
+        # Initial observation establishes baseline
+        dt_cabin_1, dt_diff_1 = classifier.compute_thermal_derivative(
+            car_id="vehicle_01",
+            current_temp_c=21.0,
+            timestamp_unix_s=1715000000,
+            ext_temp_c=18.0
+        )
+        assert dt_cabin_1 is None
+        assert dt_diff_1 is None
+
+        # Second observation (+1.0°C cabin, +0.5°C exterior over 10 seconds)
+        dt_cabin_2, dt_diff_2 = classifier.compute_thermal_derivative(
+            car_id="vehicle_01",
+            current_temp_c=22.0,
+            timestamp_unix_s=1715000010,
+            ext_temp_c=18.5
+        )
+        assert pytest.approx(dt_cabin_2, 0.001) == 0.10  # 1.0°C / 10s = 0.10 °C/s
+        assert pytest.approx(dt_diff_2, 0.001) == 0.05   # 0.10 - 0.05 = 0.05 °C/s
+
+        # Third observation cooling (-0.5°C cabin, constant exterior over 10 seconds)
+        dt_cabin_3, dt_diff_3 = classifier.compute_thermal_derivative(
+            car_id="vehicle_01",
+            current_temp_c=21.5,
+            timestamp_unix_s=1715000020,
+            ext_temp_c=18.5
+        )
+        assert pytest.approx(dt_cabin_3, 0.001) == -0.05
+        assert pytest.approx(dt_diff_3, 0.001) == -0.05
+
+    def test_blower_motor_stall_heuristic_boundaries(self, classifier, nominal_telemetry_frame):
+        """Verifies precise boundary transitions for blower motor stall/slip detection."""
+        sample_time = nominal_telemetry_frame["timestamp_unix_s"]
+
+        # Boundary A: PWM 29% (< 30% threshold) with 0 RPM is not flagged as blower stall
+        nominal_telemetry_frame["actuator_state"] = {"pwm_duty_pct": 29, "tachometer_rpm": 0}
+        state, _, _ = classifier.evaluate_frame(nominal_telemetry_frame, eval_time_unix_s=sample_time + 0.5)
+        assert state == HealthState.FRESH
+
+        # Boundary B: PWM 30% with 99 RPM (< 100 RPM threshold) flags FAULT
+        nominal_telemetry_frame["actuator_state"] = {"pwm_duty_pct": 30, "tachometer_rpm": 99}
+        state, _, _ = classifier.evaluate_frame(nominal_telemetry_frame, eval_time_unix_s=sample_time + 0.5)
+        assert state == HealthState.FAULT
+
+        # Boundary C: PWM 30% with 100 RPM (threshold met) evaluates to FRESH
+        nominal_telemetry_frame["actuator_state"] = {"pwm_duty_pct": 30, "tachometer_rpm": 100}
+        state, _, _ = classifier.evaluate_frame(nominal_telemetry_frame, eval_time_unix_s=sample_time + 0.5)
+        assert state == HealthState.FRESH
+
+

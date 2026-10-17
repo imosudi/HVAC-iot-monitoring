@@ -1,6 +1,7 @@
 """End-to-end integration test verifying telemetry parsing, health evaluation, and actuation."""
 
 import json
+import time
 from pathlib import Path
 import jsonschema
 import pytest
@@ -263,6 +264,103 @@ class TestEndToEndPipeline:
         assert "sdv_nodered_ipe" not in content
         for required_service in ["mosquitto:", "onem2m_cse:", "bridge_ae:", "influxdb:", "grafana:", "web_portal:"]:
             assert required_service in content
+
+    def test_bridge_ae_notification_event_pipeline(self, telemetry_schema):
+        """Verifies Bridge AE ingestion of oneM2M subscription notifications and persistence pipeline."""
+        from main import app as bridge_app
+
+        bridge_app.config["TESTING"] = True
+        client = bridge_app.test_client()
+
+        # 1. Verify health probe
+        health_resp = client.get("/health")
+        assert health_resp.status_code == 200
+        assert health_resp.get_json()["status"] == "UP"
+
+        # 2. Simulate oneM2M notification primitive from sub_bridge_consumer
+        now_ts = int(time.time())
+        telemetry_payload = {
+            "car_id": "vehicle_01",
+            "zone": "cabin_front",
+            "timestamp_unix_s": now_ts,
+            "scd30": {
+                "co2_ppm": 520.0,
+                "temperature_c": 22.0,
+                "humidity_pct": 45.0
+            },
+            "dht22": {
+                "temperature_c": 22.1,
+                "humidity_pct": 45.2
+            },
+            "actuator_state": {
+                "pwm_duty_pct": 25,
+                "tachometer_rpm": 980,
+                "carrier_freq_hz": 25000
+            }
+        }
+        jsonschema.validate(instance=telemetry_payload, schema=telemetry_schema)
+
+        notification_body = {
+            "m2m:sgn": {
+                "nev": {
+                    "net": 3,
+                    "rep": {
+                        "m2m:cin": {
+                            "cnf": "application/json:0",
+                            "con": json.dumps(telemetry_payload)
+                        }
+                    }
+                },
+                "sur": "/id-sdv/sub_bridge_consumer"
+            }
+        }
+
+        # 3. Post notification primitive
+        resp = client.post("/notification", json=notification_body)
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert data["status"] == "PROCESSED"
+        assert data["health_state"] == "FRESH"
+        assert "delta_t_c" in data
+
+        # 4. Post consecutive frame to verify derivative calculation in event pipeline
+        telemetry_payload_2 = dict(telemetry_payload)
+        telemetry_payload_2["timestamp_unix_s"] = now_ts + 5
+        telemetry_payload_2["scd30"] = {
+            "co2_ppm": 525.0,
+            "temperature_c": 22.5,
+            "humidity_pct": 45.0
+        }
+        notification_body_2 = {
+            "m2m:sgn": {
+                "nev": {
+                    "net": 3,
+                    "rep": {
+                        "m2m:cin": {
+                            "cnf": "application/json:0",
+                            "con": json.dumps(telemetry_payload_2)
+                        }
+                    }
+                },
+                "sur": "/id-sdv/sub_bridge_consumer"
+            }
+        }
+        resp2 = client.post("/notification", json=notification_body_2)
+        assert resp2.status_code == 200
+        data2 = resp2.get_json()
+        assert data2["status"] == "PROCESSED"
+        assert pytest.approx(data2["dt_cabin_derivative"], 0.001) == 0.10  # 0.5°C / 5s = 0.10 °C/s
+
+        # 5. Verify emergency monitoring webhook
+        emerg_body = {
+            "m2m:sgn": {
+                "nev": {"net": 3, "rep": {"m2m:cin": {"con": json.dumps({"co_ppm": 45.0, "hazard": "CRITICAL"})}}},
+                "sur": "/id-sdv/sub_co_alert"
+            }
+        }
+        emerg_resp = client.post("/emergency-monitor", json=emerg_body)
+        assert emerg_resp.status_code == 200
+        assert emerg_resp.get_json()["status"] == "EMERGENCY_ACKNOWLEDGED"
 
 
 

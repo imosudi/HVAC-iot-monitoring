@@ -75,7 +75,9 @@ class InfluxWriter:
         payload: Dict[str, Any],
         health_state: HealthState,
         tau_age: float,
-        delta_t: Optional[float]
+        delta_t: Optional[float],
+        dt_derivative: Optional[float] = None,
+        dt_diff_derivative: Optional[float] = None
     ):
         """Converts structured telemetry frame into InfluxDB line-protocol points."""
         if not self.write_api:
@@ -97,6 +99,12 @@ class InfluxWriter:
 
         if delta_t is not None:
             point.field("delta_t_c", float(delta_t))
+
+        if dt_derivative is not None:
+            point.field("dt_cabin_c_per_s", float(dt_derivative))
+
+        if dt_diff_derivative is not None:
+            point.field("dt_diff_c_per_s", float(dt_diff_derivative))
 
         # Under FAULT regimes, omit corrupt numerical values to prevent false aggregation
         if health_state != HealthState.FAULT:
