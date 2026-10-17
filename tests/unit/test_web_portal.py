@@ -49,16 +49,15 @@ class TestWebPortalApplication:
         assert "DOWNLINK ACTUATION CONTROLLER" in content
 
     def test_multipage_routes_render_successfully(self, client):
-        """Verifies that all Stitch multipage screens render with HTTP 200 OK."""
-        pages = {
-            "/architecture": "5-Stage Deterministic Pipeline Topology",
-            "/security": "Data Health Evaluation",
-            "/validation": "Three-Tier Empirical Verification"
-        }
-        for route, expected_text in pages.items():
+        """Verifies that core operational views render HTTP 200 OK and pruned documentation pages return 404."""
+        # Operational dashboards
+        assert client.get("/").status_code == 200
+        assert client.get("/entities").status_code == 200
+
+        # Pruned documentation pages migrated to /foundational_document/
+        for route in ["/architecture", "/security", "/validation"]:
             response = client.get(route)
-            assert response.status_code == 200, f"Route {route} failed with status {response.status_code}"
-            assert expected_text in response.data.decode("utf-8"), f"Expected text missing on route {route}"
+            assert response.status_code == 404, f"Expected 404 for migrated documentation route {route}"
 
     def test_health_probe_returns_up(self, client):
         """Verifies the service liveness probe endpoint."""

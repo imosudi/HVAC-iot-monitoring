@@ -133,24 +133,6 @@ def index():
     return render_template("index.html", active_page="overview", telemetry=telemetry), 200
 
 
-@app.route("/architecture", methods=["GET"])
-def architecture():
-    """Renders the Edge-to-Middleware Pipeline and Technology Stack specification."""
-    return render_template("architecture.html", active_page="architecture"), 200
-
-
-@app.route("/security", methods=["GET"])
-def security():
-    """Renders the Security, PKI, and Data Health classification console."""
-    return render_template("security.html", active_page="security"), 200
-
-
-@app.route("/validation", methods=["GET"])
-def validation():
-    """Renders the Experimental Validation, Three-Tier benchmarks, and research artefacts."""
-    return render_template("validation.html", active_page="validation"), 200
-
-
 @app.route("/entities", methods=["GET"])
 def entities():
     """Renders the Application Entity (AE) Fleet Manager and oneM2M REST API client console."""
