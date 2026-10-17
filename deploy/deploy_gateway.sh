@@ -61,14 +61,27 @@ ${COMPOSE_CMD} build
 ${COMPOSE_CMD} up -d
 
 echo "[STEP 4/4] Initialising oneM2M semantic resource hierarchy..."
-echo "[INFO] Awaiting ACME CSE HTTP readiness on port 8080..."
-for i in $(seq 1 30); do
-    if curl -s -f "http://localhost:8080" >/dev/null 2>&1; then
-        echo "[OK] oneM2M CSE is responding."
+echo "[INFO] Awaiting ACME CSEBase HTTP readiness on port 8080 (/sdv-cse)..."
+CSE_READY=0
+for i in $(seq 1 45); do
+    if curl -s -f -o /dev/null \
+        -H "X-M2M-Origin: CAdmin" \
+        -H "X-M2M-RI: readiness_check" \
+        -H "X-M2M-RVI: 3" \
+        "http://localhost:8080/sdv-cse" >/dev/null 2>&1; then
+        echo "[OK] oneM2M CSEBase /sdv-cse is responding (HTTP 200)."
+        CSE_READY=1
+        sleep 2
         break
     fi
     sleep 1
 done
+
+if [ "${CSE_READY}" -ne 1 ]; then
+    echo "[ERROR] Timeout waiting for oneM2M CSEBase /sdv-cse to initialise." >&2
+    exit 1
+fi
+
 echo "[INFO] Verifying native In-CSE MQTT protocol binding..."
 if (echo > /dev/tcp/localhost/1883) >/dev/null 2>&1 || nc -z localhost 1883 >/dev/null 2>&1; then
     echo "[OK] Mosquitto internal mesh port 1883 active for native oneM2M TS-0010 MQTT binding."

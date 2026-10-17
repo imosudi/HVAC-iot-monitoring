@@ -29,20 +29,33 @@ create_resource() {
     local origin="${5:-$ORIGIN}"
 
     local http_code
-    http_code=$(curl -s -o /dev/null -w "%{http_code}" -X POST "${target_url}" \
+    local body
+    local response
+    response=$(curl -s -w "\n%{http_code}" -X POST "${target_url}" \
         -H "X-M2M-Origin: ${origin}" \
         -H "X-M2M-RI: req_$(date +%s%N)" \
         -H "X-M2M-RVI: 3" \
         -H "Content-Type: application/json;ty=${resource_type}" \
         -H "Accept: application/json" \
-        -d "${payload}") || http_code="000"
+        -d "${payload}") || response=$'\n000'
+
+    http_code=$(echo "${response}" | tail -n 1)
+    body=$(echo "${response}" | sed '$d')
 
     if [ "${http_code}" = "201" ]; then
         echo -e "  [CREATED]    ${name} (ty=${resource_type}) -> HTTP 201"
     elif [ "${http_code}" = "409" ]; then
         echo -e "  [IDEMPOTENT] ${name} already exists -> HTTP 409"
+    elif [ "${http_code}" = "403" ] && [ "${resource_type}" = "2" ]; then
+        echo -e "  [IDEMPOTENT] ${name} already registered -> HTTP 403"
     else
-        echo -e "  [WARN]       ${name} status HTTP ${http_code}"
+        local dbg_msg
+        dbg_msg=$(echo "${body}" | grep -o '"m2m:dbg"[[:space:]]*:[[:space:]]*"[^"]*"' | head -n 1 || echo "")
+        if [ -n "${dbg_msg}" ]; then
+            echo -e "  [WARN]       ${name} status HTTP ${http_code} (${dbg_msg})"
+        else
+            echo -e "  [WARN]       ${name} status HTTP ${http_code}"
+        fi
     fi
 }
 
@@ -195,15 +208,19 @@ GRP_UPDATE_PAYLOAD=$(cat <<EOF
 }
 EOF
 )
-curl -s -X PUT "${BASE_URL}/grp_fleet_telemetry" \
+GRP_SYNC_STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X PUT "${BASE_URL}/grp_fleet_telemetry" \
     -H "X-M2M-Origin: ${ORIGIN}" \
     -H "X-M2M-RI: req_$(date +%s%N)" \
     -H "X-M2M-RVI: 3" \
     -H "Content-Type: application/json" \
     -H "Accept: application/json" \
-    -d "${GRP_UPDATE_PAYLOAD}" > /dev/null || echo "  [WARN] Group update returned non-zero status."
+    -d "${GRP_UPDATE_PAYLOAD}") || GRP_SYNC_STATUS="000"
 
-echo "  [OK] grp_fleet_telemetry.mid synchronized."
+if [ "${GRP_SYNC_STATUS}" = "200" ] || [ "${GRP_SYNC_STATUS}" = "204" ]; then
+    echo "  [OK] grp_fleet_telemetry.mid synchronized -> HTTP ${GRP_SYNC_STATUS}"
+else
+    echo "  [WARN] grp_fleet_telemetry membership sync status HTTP ${GRP_SYNC_STATUS}"
+fi
 
 echo -e "\n================================================================================"
 echo "  [SUCCESS] oneM2M Semantic Resource Hierarchy fully provisioned under /${CSE_BASE}!"
