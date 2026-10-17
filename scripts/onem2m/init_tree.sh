@@ -57,7 +57,7 @@ ACP_PAYLOAD='{
         "pv": {
             "acr": [
                 {"acor": ["'"${ORIGIN}"'"], "acop": 63},
-                {"acor": ["C_vehicle_nodes", "C_CabinNode_Car01"], "acop": 35}
+                {"acor": ["C_vehicle_nodes", "C_CabinNode_Car01", "all"], "acop": 63}
             ]
         },
         "pvs": {
@@ -90,11 +90,12 @@ AE_PAYLOAD='{
         "api": "N.org.fhtw.sdv.cabin",
         "rr": true,
         "srv": ["2a", "3"],
+        "acpi": ["'"${CSE_BASE}/acp_fleet_manager"'"],
         "lbl": ["vehicle", "sdv-fleet", "identity:VIN-WAUZZZ-SDV-2026-0001"]
     }
 }'
-# AE creation uses unassigned originator 'S' per ETSI TS 118 101
-create_resource "${BASE_URL}" 2 "${AE_PAYLOAD}" "AE_CabinNode_Car01" "S"
+# AE creation uses registered originator 'C_CabinNode_Car01'
+create_resource "${BASE_URL}" 2 "${AE_PAYLOAD}" "AE_CabinNode_Car01" "C_CabinNode_Car01"
 
 AE_URL="${BASE_URL}/AE_CabinNode_Car01"
 
@@ -131,6 +132,7 @@ for CNT_NAME in "${!CONTAINERS[@]}"; do
         "mni": ${MNI},
         "mbs": ${MBS},
         "mia": ${MIA},
+        "acpi": ["${CSE_BASE}/acp_fleet_manager"],
         "lbl": ["sensor", "${LBL}", "AE_CabinNode_Car01"]
     }
 }
@@ -167,11 +169,11 @@ SUB_CO_PAYLOAD='{
 }'
 create_resource "${AE_URL}/co-cabin" 23 "${SUB_CO_PAYLOAD}" "sub_co_alert (co-cabin)"
 
-# 4.3 Downlink Actuator Subscription
+# 4.3 Downlink Actuator Subscription (Dual Native MQTT & Webhook dispatching)
 SUB_DOWNLINK_PAYLOAD='{
     "m2m:sub": {
         "rn": "sub_downlink_dispatcher",
-        "nu": ["http://nodered_ipe:1880/downlink"],
+        "nu": ["http://nodered_ipe:1880/downlink", "mqtt://mosquitto:1883/sdv/vehicle_01/control/cmd"],
         "nct": 1,
         "enc": {"net": [3]}
     }

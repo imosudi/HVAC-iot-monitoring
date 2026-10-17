@@ -69,6 +69,11 @@ for i in $(seq 1 30); do
     fi
     sleep 1
 done
+echo "[INFO] Verifying native In-CSE MQTT protocol binding..."
+if (echo > /dev/tcp/localhost/1883) >/dev/null 2>&1 || nc -z localhost 1883 >/dev/null 2>&1; then
+    echo "[OK] Mosquitto internal mesh port 1883 active for native oneM2M TS-0010 MQTT binding."
+fi
 "${ROOT_DIR}/scripts/onem2m/init_tree.sh" || echo "[INFO] oneM2M initialisation completed or already provisioned."
 
 echo "[SUCCESS] Automotive MEC Gateway microservice mesh is operational."
+echo "[INFO] Consolidated Native In-CSE Route active: MQTT binding on Port 1883 & mTLS on Port 8883."

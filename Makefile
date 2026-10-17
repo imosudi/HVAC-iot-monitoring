@@ -70,6 +70,17 @@ simulate-telemetry:
 		--client-key deploy/mosquitto/certs/client_esp32.key \
 		--mode normal
 
+simulate-telemetry-native:
+	@echo "Streaming synthetic vehicular telemetry via Native In-CSE Route..."
+	@$(PYTHON) scripts/testing/simulate_telemetry.py \
+		--host localhost \
+		--port 8883 \
+		--ca-cert deploy/mosquitto/certs/ca.crt \
+		--client-cert deploy/mosquitto/certs/client_esp32.crt \
+		--client-key deploy/mosquitto/certs/client_esp32.key \
+		--route native \
+		--mode normal
+
 inject-faults:
 	@echo "Injecting adversarial faults into edge pipeline..."
 	@$(PYTHON) scripts/testing/inject_faults.py \

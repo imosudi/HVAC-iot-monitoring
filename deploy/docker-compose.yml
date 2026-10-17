@@ -20,6 +20,7 @@ services:
     container_name: sdv_mosquitto_broker
     restart: unless-stopped
     ports:
+      - "1883:1883"
       - "8883:8883"
     volumes:
       - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
@@ -45,6 +46,8 @@ services:
       - HTTP_PORT=8080
     volumes:
       - ./onem2m/acme.ini:/data/acme.ini:ro
+    depends_on:
+      - mosquitto
     networks:
       - mec_mesh
 

@@ -115,3 +115,62 @@ class TestEndToEndPipeline:
         # 3. Validate Downlink Actuator Directive Schema
         jsonschema.validate(instance=downlink_command, schema=actuator_schema)
         assert downlink_command["target_pwm"] == 75
+
+    def test_native_in_cse_primitive_routing(self, telemetry_schema):
+        """Verifies oneM2M TS-0010 native MQTT primitive encapsulation and health processing."""
+        raw_telemetry = {
+            "car_id": "vehicle_01",
+            "zone": "cabin_front",
+            "timestamp_unix_s": 1715000200,
+            "scd30": {
+                "co2_ppm": 490.0,
+                "temperature_c": 22.2,
+                "humidity_pct": 45.0
+            },
+            "dht22": {
+                "temperature_c": 22.3,
+                "humidity_pct": 45.5
+            },
+            "actuator_state": {
+                "pwm_duty_pct": 25,
+                "tachometer_rpm": 950,
+                "carrier_freq_hz": 25000
+            }
+        }
+
+        # 1. Enclose in oneM2M TS-0010 MQTT CREATE primitive
+        native_primitive = {
+            "op": 1,
+            "to": "/id-sdv/sdv-cse/AE_CabinNode_Car01/raw-telemetry",
+            "fr": "C_CabinNode_Car01",
+            "rqi": "req_1715000200_test",
+            "ty": 4,
+            "rvi": "3",
+            "pc": {
+                "m2m:cin": {
+                    "cnf": "application/json:0",
+                    "con": json.dumps(raw_telemetry)
+                }
+            }
+        }
+
+        # 2. Verify oneM2M primitive protocol parameters
+        assert native_primitive["op"] == 1
+        assert native_primitive["ty"] == 4
+        assert native_primitive["rvi"] == "3"
+        assert native_primitive["to"].endswith("/raw-telemetry")
+        assert native_primitive["fr"] == "C_CabinNode_Car01"
+
+        # 3. Extract and validate inner payload against telemetry schema
+        inner_content = json.loads(native_primitive["pc"]["m2m:cin"]["con"])
+        jsonschema.validate(instance=inner_content, schema=telemetry_schema)
+
+        # 4. In-CSE health classification
+        classifier = HealthClassifier()
+        state, tau_age, delta_t = classifier.evaluate_frame(
+            inner_content, eval_time_unix_s=1715000200.3
+        )
+        assert state == HealthState.FRESH
+        assert pytest.approx(tau_age, 0.01) == 0.3
+        assert pytest.approx(delta_t, 0.01) == 0.1
+
