@@ -2,9 +2,8 @@
 Public-Facing Flask Web Application.
 
 Provides the primary user interface for the Software-Defined Vehicle (SDV)
-cyber-physical cabin environmental monitoring and closed-loop HVAC regulation system.
-Implements Bootstrap 5 views conforming to the Stitch design specification for
-High-Precision Instrument Brutalism and Cyber-Physical HUD.
+cabin environmental monitoring and closed-loop HVAC regulation system.
+Implements Bootstrap 5 views conforming to FH Technikum Wien design specifications.
 
 Note: In accordance with architectural constraints, this application uses direct
 module-level Flask instantiation rather than an application factory pattern.
@@ -142,7 +141,7 @@ def architecture():
 
 @app.route("/security", methods=["GET"])
 def security():
-    """Renders the Zero-Trust Security, PKI and Data Health classification console."""
+    """Renders the Security, PKI, and Data Health classification console."""
     return render_template("security.html", active_page="security"), 200
 
 

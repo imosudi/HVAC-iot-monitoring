@@ -7,14 +7,12 @@
 <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3 border-bottom border-grid-subtle pb-2">
     <div>
         <div class="d-flex align-items-center gap-2 font-monospace small text-secondary mb-1">
-            <span class="text-fhtw-blue fw-bold">ZERO-TRUST SECURITY</span>
-            <span>/</span>
-            <span class="text-warning fw-bold">SECTION 03</span>
+            <span class="text-fhtw-blue fw-bold">SECURITY &amp; INTEGRITY</span>
             <span>/</span>
             <span>DATA HEALTH CLASSIFIER &amp; X.509 PKI</span>
         </div>
         <h1 class="font-heading fw-bold fs-4 text-fhtw-blue m-0 text-uppercase">
-            Three-State Data Health Evaluation &amp; Cryptographic Identity
+            Data Health Evaluation &amp; Cryptographic Identity
         </h1>
         <p class="font-monospace small text-secondary m-0">
             Real-time latency evaluation, cross-transducer thermal disparity bounds, and X.509 mutual TLS 1.3 verification.
@@ -105,7 +103,7 @@
                     <ul class="list-unstyled text-secondary mb-0 space-y-1">
                         <li><strong class="text-dark">Trigger:</strong> Null readings, &tau; &gt; 60s</li>
                         <li><strong class="text-dark">Cause:</strong> Line detachment, out-of-range</li>
-                        <li><strong class="text-dark">Impact:</strong> ASIL safety candidate</li>
+                        <li><strong class="text-dark">Impact:</strong> Failsafe purge trigger</li>
                         <li><strong class="text-dark">Action:</strong> InfluxDB tag health_state=FAULT</li>
                     </ul>
                 </div>
@@ -154,24 +152,18 @@
                             <td>ECDSA P-256</td>
                             <td>2027-10-04</td>
                         </tr>
-                        <tr class="table-light text-muted opacity-75">
-                            <td class="text-secondary fw-semibold"><del>Node-RED Client</del> <span class="badge bg-secondary ms-1">Decommissioned</span></td>
-                            <td><del>nodered_ipe_gateway</del></td>
-                            <td>ECDSA P-256</td>
-                            <td><span class="badge bg-light text-secondary border">Retired</span></td>
-                        </tr>
                     </tbody>
                 </table>
             </div>
         </div>
     </div>
 
-    <!-- Adversarial Fault Injection Scenarios -->
+    <!-- Fault Injection Scenarios -->
     <div class="col-12 col-lg-6">
         <div class="card h-100 shadow-sm border-grid-subtle">
             <div class="card-header bg-white border-bottom border-grid-subtle py-2 px-3 d-flex justify-content-between align-items-center">
                 <span class="font-heading fw-bold text-fhtw-blue fs-6">
-                    <i class="bi bi-bug text-danger me-2"></i>ADVERSARIAL FAULT INJECTION SUITE
+                    <i class="bi bi-bug text-danger me-2"></i>FAULT INJECTION TEST SUITE
                 </span>
                 <span class="badge bg-fhtw-blue text-white font-monospace">make inject-faults</span>
             </div>

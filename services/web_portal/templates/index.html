@@ -10,15 +10,13 @@
         <div class="d-flex align-items-center gap-2 font-monospace small text-secondary mb-1">
             <span class="text-fhtw-blue fw-bold">CABIN MONITORING</span>
             <span>/</span>
-            <span class="text-fhtw-green fw-bold">STAGE 01</span>
-            <span>/</span>
-            <span>OVERVIEW &amp; CLOSED-LOOP ACTUATION CONSOLE</span>
+            <span>OVERVIEW &amp; ACTUATION CONSOLE</span>
         </div>
         <h1 class="font-heading fw-bold fs-4 text-fhtw-blue m-0 text-uppercase">
             Edge Transducer Telemetry &amp; Downlink HVAC Control
         </h1>
         <p class="font-monospace small text-secondary m-0">
-            Real-time sensor sampling, oneM2M semantic containment, and closed-loop purge modulation.
+            Real-time transducer telemetry, oneM2M container containment, and closed-loop ventilation control.
         </p>
     </div>
     <div class="d-flex align-items-center gap-2">
@@ -39,7 +37,7 @@
             status_badge="NOMINAL",
             status_variant="success",
             icon="wind",
-            subtext="Threshold: <800 ppm | Purge Trigger: >=800 ppm",
+            subtext="Nominal: <800 ppm | Purge Threshold: >=800 ppm",
             border_highlight="info"
         ) }}
     </div>
@@ -54,7 +52,7 @@
             status_badge="ΔT: 0.1°C",
             status_variant="success",
             icon="thermometer-half",
-            subtext="DHT22: 22.0°C | Disparity Boundary: ≤1.5°C"
+            subtext="Cross-check DHT22 | Boundary: ≤1.5°C"
         ) }}
     </div>
 
@@ -210,7 +208,7 @@
 <div class="card shadow-sm border-grid-subtle">
     <div class="card-header bg-white border-bottom border-grid-subtle py-2 px-3 d-flex align-items-center justify-content-between">
         <span class="font-heading fw-bold text-fhtw-blue fs-6">
-            <i class="bi bi-terminal text-fhtw-blue me-2"></i>REAL-TIME TELEMETRY STREAM &amp; HEALTH AUDIT LOG
+            <i class="bi bi-terminal text-fhtw-blue me-2"></i>TELEMETRY STREAM &amp; INGRESS LOG
         </span>
         <button class="btn btn-outline-secondary btn-sm font-monospace py-0 px-2" onclick="clearStreamLog()">
             CLEAR

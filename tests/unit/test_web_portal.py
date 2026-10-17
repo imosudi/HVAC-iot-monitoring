@@ -52,7 +52,7 @@ class TestWebPortalApplication:
         """Verifies that all Stitch multipage screens render with HTTP 200 OK."""
         pages = {
             "/architecture": "5-Stage Deterministic Pipeline Topology",
-            "/security": "Three-State Data Health Evaluation",
+            "/security": "Data Health Evaluation",
             "/validation": "Three-Tier Empirical Verification"
         }
         for route, expected_text in pages.items():
