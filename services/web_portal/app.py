@@ -136,18 +136,22 @@ def query_latest_influxdb_telemetry(car_id: Optional[str] = "vehicle_01"):
 @app.route("/", methods=["GET"])
 def index():
     """Renders the primary Overview and Closed-Loop Actuation console."""
-    car_id = request.args.get("car_id", "vehicle_01")
-    telemetry = query_latest_influxdb_telemetry(car_id=car_id)
     try:
         vehicles = onem2m_client.get_known_vehicles()
     except Exception:
-        vehicles = [{"id": "vehicle_01", "name": "VEHICLE 01", "ae_rn": "AE_CabinNode_Car01"}]
+        vehicles = []
+
+    car_id = request.args.get("car_id", "")
+    if not car_id and vehicles:
+        car_id = vehicles[0]["id"]
+
+    telemetry = query_latest_influxdb_telemetry(car_id=car_id) if (vehicles and car_id) else None
     return render_template(
         "index.html",
         active_page="overview",
         telemetry=telemetry,
         vehicles=vehicles,
-        active_car_id=car_id
+        active_car_id=car_id or ""
     ), 200
 
 

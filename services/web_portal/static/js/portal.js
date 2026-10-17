@@ -5,14 +5,13 @@
  * ==============================================================================
  */
 
-let currentVehicle = localStorage.getItem('sdv_active_vehicle') || 'vehicle_01';
+let currentVehicle = localStorage.getItem('sdv_active_vehicle') || null;
 let fleetVehicles = [];
 
 document.addEventListener('DOMContentLoaded', () => {
     initHudClock();
     loadFleetVehicles();
     initTelemetryStream();
-    selectActiveVehicle(currentVehicle);
 });
 
 /**
@@ -75,6 +74,20 @@ function initHudClock() {
 }
 
 /**
+ * Displays a clean standby banner in the stream log when the Base CSE is in vanilla mode.
+ */
+function showVanillaBaseStreamMessage() {
+    const streamConsole = document.getElementById('streamConsole');
+    if (streamConsole) {
+        const nowStr = formatLocalDateTime(new Date());
+        streamConsole.innerHTML = `
+            <div class="text-warning font-monospace small mb-1">[${nowStr}] <strong>VANILLA BASE CSE ACTIVE:</strong> Strictly zero Application Entities (&lt;m2m:ae&gt;) registered under /sdv-cse.</div>
+            <div class="text-secondary font-monospace small">[${nowStr}] Transducer telemetry stream paused. Onboard an Application Entity via the <a href="/entities" class="text-fhtw-green text-decoration-none">Entity Provisioner Workbench</a> to begin real-time telemetry ingestion.</div>
+        `;
+    }
+}
+
+/**
  * Discovers and renders the registered vehicles roster across the SDV fleet.
  */
 async function loadFleetVehicles() {
@@ -82,10 +95,20 @@ async function loadFleetVehicles() {
         const response = await fetch('/api/vehicles');
         if (!response.ok) return;
         const data = await response.json();
-        if (data.vehicles && data.vehicles.length > 0) {
-            fleetVehicles = data.vehicles;
+        fleetVehicles = (data.vehicles && Array.isArray(data.vehicles)) ? data.vehicles : [];
+        if (fleetVehicles.length > 0) {
+            if (!currentVehicle || !fleetVehicles.some(v => v.id === currentVehicle)) {
+                currentVehicle = fleetVehicles[0].id;
+            }
             renderFleetDropdown(fleetVehicles);
             renderVehiclePills(fleetVehicles);
+            selectActiveVehicle(currentVehicle);
+        } else {
+            currentVehicle = null;
+            localStorage.removeItem('sdv_active_vehicle');
+            renderFleetDropdown([]);
+            renderVehiclePills([]);
+            selectActiveVehicle(null);
         }
     } catch (err) {
         console.debug('Fleet vehicles discovery poll failed:', err);
@@ -96,7 +119,37 @@ async function loadFleetVehicles() {
  * Selects the active vehicular node across the UI consoles.
  */
 function selectActiveVehicle(carId) {
-    if (!carId) return;
+    if (!carId || !fleetVehicles || fleetVehicles.length === 0) {
+        currentVehicle = null;
+        localStorage.removeItem('sdv_active_vehicle');
+
+        const globalBadge = document.getElementById('globalActiveVehicleBadge');
+        if (globalBadge) globalBadge.textContent = 'VANILLA BASE (0 AEs)';
+
+        const breadcrumbBadge = document.getElementById('breadcrumbVehicleBadge');
+        if (breadcrumbBadge) breadcrumbBadge.textContent = 'VANILLA BASE (0 AEs)';
+
+        const actuationBadge = document.getElementById('actuationTargetBadge');
+        if (actuationBadge) actuationBadge.textContent = 'NO ACTIVE AE';
+
+        const filterBadge = document.getElementById('logFilterBadge');
+        if (filterBadge) filterBadge.textContent = 'FILTER: NONE';
+
+        const pipelinePath = document.getElementById('pipelineCsePath');
+        if (pipelinePath) pipelinePath.textContent = '/sdv-cse (Vanilla Base • 0 AEs)';
+
+        const pipelineBadge = document.getElementById('pipelineCseBadge');
+        if (pipelineBadge) {
+            pipelineBadge.textContent = 'AWAITING AE';
+            pipelineBadge.className = 'badge bg-secondary text-white';
+        }
+
+        renderFleetDropdown([]);
+        renderVehiclePills([]);
+        showVanillaBaseStreamMessage();
+        return;
+    }
+
     currentVehicle = carId;
     localStorage.setItem('sdv_active_vehicle', carId);
 
@@ -131,6 +184,11 @@ function selectActiveVehicle(carId) {
         const suffix = digits ? `Car${digits.padStart(2, '0')}` : carId.replace('vehicle_', 'Car');
         pipelinePath.textContent = `/sdv-cse/AE_CabinNode_${suffix}/cnt_raw_telemetry`;
     }
+    const pipelineBadge = document.getElementById('pipelineCseBadge');
+    if (pipelineBadge) {
+        pipelineBadge.textContent = 'STORED';
+        pipelineBadge.className = 'badge bg-fhtw-green text-white';
+    }
 
     // 6. Refresh active highlights in dropdown and pills
     renderFleetDropdown(fleetVehicles);
@@ -149,11 +207,14 @@ function renderFleetDropdown(vehicles) {
     const listEl = document.getElementById('fleetVehicleMenuItems');
     if (!listEl) return;
 
-    const roster = (vehicles && vehicles.length > 0) ? vehicles : [
-        { id: 'vehicle_01', name: 'VEHICLE 01', ae_rn: 'AE_CabinNode_Car01' }
-    ];
+    if (!vehicles || vehicles.length === 0) {
+        listEl.innerHTML = `
+            <li><span class="dropdown-item text-secondary disabled small"><i class="bi bi-info-circle me-2"></i>Zero AEs Registered</span></li>
+        `;
+        return;
+    }
 
-    listEl.innerHTML = roster.map(v => {
+    listEl.innerHTML = vehicles.map(v => {
         const isActive = v.id === currentVehicle;
         return `
             <li>
@@ -178,11 +239,14 @@ function renderVehiclePills(vehicles) {
     const pillsGroup = document.getElementById('vehiclePillsGroup');
     if (!pillsGroup) return;
 
-    const roster = (vehicles && vehicles.length > 0) ? vehicles : [
-        { id: 'vehicle_01', name: 'VEHICLE 01' }
-    ];
+    if (!vehicles || vehicles.length === 0) {
+        pillsGroup.innerHTML = `
+            <span class="badge bg-secondary font-monospace py-1 px-2">ZERO AEs REGISTERED</span>
+        `;
+        return;
+    }
 
-    pillsGroup.innerHTML = roster.map(v => {
+    pillsGroup.innerHTML = vehicles.map(v => {
         const isActive = v.id === currentVehicle;
         return `
             <button type="button" 
@@ -204,6 +268,10 @@ function initTelemetryStream() {
     if (!streamConsole) return;
 
     fetchActiveVehicleTelemetry = async function() {
+        if (!currentVehicle || !fleetVehicles || fleetVehicles.length === 0) {
+            showVanillaBaseStreamMessage();
+            return;
+        }
         try {
             const response = await fetch(`/api/telemetry/latest?car_id=${encodeURIComponent(currentVehicle)}`);
             if (!response.ok) return;
