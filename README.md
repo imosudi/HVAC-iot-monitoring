@@ -339,7 +339,7 @@ Conforming to **ETSI TS 118 101 (oneM2M Functional Architecture)**, the system m
 │   │
 │   └── cnt_actuator_commands (Container: Downlink Actuation Directives)
 │       ├── cin_cmd001 (ContentInstance: {"duty_pwm": 75, "override": false})
-│       └── sub_downlink_dispatcher (Subscription: Target -> Node-RED Downlink Hook)
+│       └── sub_downlink_dispatcher (Subscription: Target -> Native oneM2M TS-0010 MQTT Bus)
 │
 └── AE_CabinNode_Car02 (Application Entity - Multi-Zone Extensibility)
     └── ...
@@ -445,8 +445,8 @@ $$
      "timestamp": 1727701200
    }
    ```
-3. **oneM2M Event Trigger:** The IN-CSE triggers subscription `sub_downlink_dispatcher`, notifying the Node-RED IPE.
-4. **Egress MQTT Publication:** Node-RED parses the oneM2M primitive and publishes a targeted control message to `sdv/vehicle_01/control/cmd`.
+3. **oneM2M Event Trigger:** The IN-CSE triggers subscription `sub_downlink_dispatcher` via native oneM2M TS-0010 MQTT binding.
+4. **Direct Actuation Delivery:** The IN-CSE publishes a native `m2m:sgn` notification directly to the vehicular broker topic `sdv/vehicle_01/control/cmd` without intermediate HTTP hops.
 5. **Actuator Execution:** The ESP32-S3 receives the instruction, modulates its LEDC hardware timer to 75% duty cycle (1,850 RPM), measures rotor velocity via the PCNT Hall-effect counter, and adjusts the WS2812B optical indicator.
 
 ---

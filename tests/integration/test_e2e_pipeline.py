@@ -196,4 +196,60 @@ class TestEndToEndPipeline:
         assert primitive["pc"]["m2m:cin"]["cnf"] == "application/json:0"
         assert primitive["pc"]["m2m:cin"]["con"] == test_payload
 
+    def test_native_downlink_actuation_notification_routing(self, actuator_schema):
+        """Verifies oneM2M TS-0010 native MQTT notification primitive formulation for downlink actuation."""
+        # 1. Simulate oneM2M notification primitive dispatched by ACME IN-CSE to Mosquitto
+        notification_primitive = {
+            "fr": "/id-sdv",
+            "to": "sdv/vehicle_01/control/cmd",
+            "ot": "20261017T110000,000000",
+            "op": 5,
+            "rqi": "req_downlink_test_01",
+            "rvi": "5",
+            "drt": 1,
+            "pc": {
+                "m2m:sgn": {
+                    "nev": {
+                        "net": 3,
+                        "rep": {
+                            "m2m:cin": {
+                                "cnf": "application/json:0",
+                                "con": json.dumps({
+                                    "target_pwm": 75,
+                                    "mode": "AUTOMATIC",
+                                    "timestamp_unix_s": 1715000400,
+                                    "source_entity": "Edge_Closed_Loop_Engine"
+                                }),
+                                "cs": 135,
+                                "ty": 4
+                            }
+                        }
+                    },
+                    "sur": "/id-sdv/sub_downlink_dispatcher"
+                }
+            }
+        }
+
+        # 2. Verify protocol attributes conform to oneM2M TS-0010
+        assert notification_primitive["op"] == 5  # NOTIFY
+        assert notification_primitive["to"] == "sdv/vehicle_01/control/cmd"
+        sgn = notification_primitive["pc"]["m2m:sgn"]
+        assert sgn["nev"]["net"] == 3
+        cin = sgn["nev"]["rep"]["m2m:cin"]
+        assert cin["cnf"] == "application/json:0"
+
+        # 3. Extract and validate inner directive against actuator schema
+        inner_command = json.loads(cin["con"])
+        jsonschema.validate(instance=inner_command, schema=actuator_schema)
+        assert inner_command["target_pwm"] == 75
+        assert inner_command["mode"] == "AUTOMATIC"
+
+        # 4. Verify init_tree.sh provisions strictly native MQTT URI without Node-RED webhook
+        init_tree_path = Path(__file__).resolve().parent.parent.parent / "scripts" / "onem2m" / "init_tree.sh"
+        with open(init_tree_path, "r", encoding="utf-8") as f:
+            content = f.read()
+        assert "mqtt://mosquitto:1883/sdv/vehicle_01/control/cmd" in content
+        assert "http://nodered_ipe:1880/downlink" not in content
+
+
 

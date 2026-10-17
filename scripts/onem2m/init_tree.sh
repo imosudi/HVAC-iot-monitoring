@@ -45,6 +45,29 @@ create_resource() {
     if [ "${http_code}" = "201" ]; then
         echo -e "  [CREATED]    ${name} (ty=${resource_type}) -> HTTP 201"
     elif [ "${http_code}" = "409" ]; then
+        if [ "${resource_type}" = "23" ]; then
+            local rn
+            rn=$(echo "${payload}" | grep -o '"rn"[[:space:]]*:[[:space:]]*"[^"]*"' | head -n 1 | cut -d'"' -f4 || echo "")
+            if [ -n "${rn}" ]; then
+                # Strip immutable "rn" for PUT update per oneM2M TS-0004
+                local put_payload
+                put_payload=$(echo "${payload}" | sed '/"rn"[[:space:]]*:/d')
+                local put_resp
+                put_resp=$(curl -s -w "\n%{http_code}" -X PUT "${target_url}/${rn}" \
+                    -H "X-M2M-Origin: ${origin}" \
+                    -H "X-M2M-RI: req_$(date +%s%N)" \
+                    -H "X-M2M-RVI: 3" \
+                    -H "Content-Type: application/json" \
+                    -H "Accept: application/json" \
+                    -d "${put_payload}") || put_resp=$'\n000'
+                local put_code
+                put_code=$(echo "${put_resp}" | tail -n 1)
+                if [ "${put_code}" = "200" ]; then
+                    echo -e "  [RECONCILED] ${name} (ty=23) updated -> HTTP 200"
+                    return 0
+                fi
+            fi
+        fi
         echo -e "  [IDEMPOTENT] ${name} already exists -> HTTP 409"
     elif [ "${http_code}" = "403" ] && [ "${resource_type}" = "2" ]; then
         echo -e "  [IDEMPOTENT] ${name} already registered -> HTTP 403"
@@ -182,11 +205,11 @@ SUB_CO_PAYLOAD='{
 }'
 create_resource "${AE_URL}/co-cabin" 23 "${SUB_CO_PAYLOAD}" "sub_co_alert (co-cabin)"
 
-# 4.3 Downlink Actuator Subscription (Dual Native MQTT & Webhook dispatching)
+# 4.3 Downlink Actuator Subscription (Consolidated Native oneM2M TS-0010 MQTT Dispatching)
 SUB_DOWNLINK_PAYLOAD='{
     "m2m:sub": {
         "rn": "sub_downlink_dispatcher",
-        "nu": ["http://nodered_ipe:1880/downlink", "mqtt://mosquitto:1883/sdv/vehicle_01/control/cmd"],
+        "nu": ["mqtt://mosquitto:1883/sdv/vehicle_01/control/cmd"],
         "nct": 1,
         "enc": {"net": [3]}
     }

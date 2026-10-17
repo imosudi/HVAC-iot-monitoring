@@ -170,8 +170,8 @@ def api_actuator_dispatch():
     """
     Dispatches an actuation directive ContentInstance to the oneM2M CSE.
 
-    Triggers the downstream oneM2M subscription hook to Node-RED, which
-    subsequently publishes the command to the vehicular MQTT broker.
+    Triggers the downstream oneM2M subscription (sub_downlink_dispatcher), which
+    publishes the command directly to the vehicular MQTT broker via native TS-0010 binding.
     """
     data = request.get_json(silent=True) or {}
     target_pwm = data.get("target_pwm", 25)

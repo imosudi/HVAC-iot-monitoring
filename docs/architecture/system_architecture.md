@@ -127,7 +127,7 @@ The middleware layer conforms to ETSI TS 118 101, exposing standard Mca and Mcc 
       ├── cnt_humidity (Container: relative humidity)
       ├── cnt_data_health (Container: categorical health states)
       └── cnt_actuator_commands (Container: downlink directives)
-           └── sub_downlink_dispatcher (Subscription -> Node-RED Egress)
+           └── sub_downlink_dispatcher (Subscription -> Native oneM2M TS-0010 MQTT Bus)
 ```
 
 #### 4.2 Interworking Proxy Entity (IPE) Pipeline
