@@ -70,7 +70,8 @@ simulate-telemetry:
 		--client-cert deploy/mosquitto/certs/client_esp32.crt \
 		--client-key deploy/mosquitto/certs/client_esp32.key \
 		--route native \
-		--mode normal
+		--mode normal \
+		$(ARGS)
 
 simulate-telemetry-native: simulate-telemetry
 
@@ -83,7 +84,8 @@ simulate-telemetry-legacy:
 		--client-cert deploy/mosquitto/certs/client_esp32.crt \
 		--client-key deploy/mosquitto/certs/client_esp32.key \
 		--route legacy \
-		--mode normal
+		--mode normal \
+		$(ARGS)
 
 inject-faults:
 	@echo "Injecting adversarial faults into edge pipeline..."
