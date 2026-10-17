@@ -174,3 +174,26 @@ class TestEndToEndPipeline:
         assert pytest.approx(tau_age, 0.01) == 0.3
         assert pytest.approx(delta_t, 0.01) == 0.1
 
+    def test_simulate_telemetry_defaults_to_native_ts0010_route(self):
+        """Verifies simulate_telemetry defaults to native TS-0010 route and constructs valid primitives."""
+        import sys
+        scripts_dir = str(Path(__file__).resolve().parent.parent.parent / "scripts" / "testing")
+        if scripts_dir not in sys.path:
+            sys.path.insert(0, scripts_dir)
+        import simulate_telemetry
+
+        parser = simulate_telemetry.build_argument_parser()
+        assert parser.get_default("route") == "native"
+
+        test_payload = json.dumps({"car_id": "vehicle_01", "timestamp_unix_s": 1715000300})
+        primitive = simulate_telemetry.build_native_primitive("vehicle_01", test_payload, req_id="test_rqi_01")
+        assert primitive["op"] == 1
+        assert primitive["ty"] == 4
+        assert primitive["rvi"] == "3"
+        assert primitive["fr"] == "C_CabinNode_Car01"
+        assert primitive["to"] == "/id-sdv/sdv-cse/AE_CabinNode_Car01/raw-telemetry"
+        assert primitive["rqi"] == "test_rqi_01"
+        assert primitive["pc"]["m2m:cin"]["cnf"] == "application/json:0"
+        assert primitive["pc"]["m2m:cin"]["con"] == test_payload
+
+

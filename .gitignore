@@ -249,10 +249,6 @@ collections/enviroment_csenase_validation&verification_collection.yaml
 collections/split_collections_architecture_guide.md
 split_collections_architecture_guide.md
 
-# Testing Scripts
-testing/
-scripts/testing/
-
 # Scratch & temporary generation files
 scratch/
 

@@ -7,22 +7,23 @@ VENV ?= .venv
 PYTHON ?= $(shell if [ -f $(VENV)/bin/python ]; then echo $(VENV)/bin/python; else echo python3; fi)
 PYTEST ?= $(shell if [ -f $(VENV)/bin/pytest ]; then echo $(VENV)/bin/pytest; else echo pytest; fi)
 
-.PHONY: help setup-prerequisites setup-pki deploy-gateway stop-gateway init-onem2m test test-unit test-integration run-web simulate-telemetry inject-faults clean
+.PHONY: help setup-prerequisites setup-pki deploy-gateway stop-gateway init-onem2m test test-unit test-integration run-web simulate-telemetry simulate-telemetry-native simulate-telemetry-legacy inject-faults clean
 
 help:
 	@echo "Available build and orchestration targets:"
-	@echo "  setup-prerequisites Install Docker/Podman and system dependencies on Ubuntu Server"
-	@echo "  setup-pki           Generate X.509 Root CA, broker, and client certificates"
-	@echo "  deploy-gateway      Launch the onboard vehicular MEC container mesh"
-	@echo "  stop-gateway        Halt all MEC container services"
-	@echo "  init-onem2m         Initialise the /sdv-cse semantic resource tree"
-	@echo "  run-web             Launch the public-facing Flask web application locally"
-	@echo "  test                Execute all unit and integration tests"
-	@echo "  test-unit           Execute unit tests only"
-	@echo "  test-integration    Execute integration tests only"
-	@echo "  simulate-telemetry  Stream synthetic sensor frames to the gateway broker"
-	@echo "  inject-faults       Run the adversarial fault-injection test suite"
-	@echo "  clean               Remove temporary test caches and logs"
+	@echo "  setup-prerequisites       Install Docker/Podman and system dependencies on Ubuntu Server"
+	@echo "  setup-pki                 Generate X.509 Root CA, broker, and client certificates"
+	@echo "  deploy-gateway            Launch the onboard vehicular MEC container mesh"
+	@echo "  stop-gateway              Halt all MEC container services"
+	@echo "  init-onem2m               Initialise the /sdv-cse semantic resource tree"
+	@echo "  run-web                   Launch the public-facing Flask web application locally"
+	@echo "  test                      Execute all unit and integration tests"
+	@echo "  test-unit                 Execute unit tests only"
+	@echo "  test-integration          Execute integration tests only"
+	@echo "  simulate-telemetry        Stream synthetic sensor frames via native oneM2M TS-0010 route"
+	@echo "  simulate-telemetry-legacy Stream synthetic sensor frames via legacy Node-RED route"
+	@echo "  inject-faults             Run the adversarial fault-injection test suite"
+	@echo "  clean                     Remove temporary test caches and logs"
 
 setup-prerequisites:
 	@echo "Verifying and installing system prerequisites on Ubuntu Server..."
@@ -61,17 +62,7 @@ test-integration:
 	@$(PYTEST) -v tests/integration/
 
 simulate-telemetry:
-	@echo "Streaming synthetic vehicular telemetry..."
-	@$(PYTHON) scripts/testing/simulate_telemetry.py \
-		--host localhost \
-		--port 8883 \
-		--ca-cert deploy/mosquitto/certs/ca.crt \
-		--client-cert deploy/mosquitto/certs/client_esp32.crt \
-		--client-key deploy/mosquitto/certs/client_esp32.key \
-		--mode normal
-
-simulate-telemetry-native:
-	@echo "Streaming synthetic vehicular telemetry via Native In-CSE Route..."
+	@echo "Streaming synthetic vehicular telemetry via native oneM2M TS-0010 route..."
 	@$(PYTHON) scripts/testing/simulate_telemetry.py \
 		--host localhost \
 		--port 8883 \
@@ -79,6 +70,19 @@ simulate-telemetry-native:
 		--client-cert deploy/mosquitto/certs/client_esp32.crt \
 		--client-key deploy/mosquitto/certs/client_esp32.key \
 		--route native \
+		--mode normal
+
+simulate-telemetry-native: simulate-telemetry
+
+simulate-telemetry-legacy:
+	@echo "Streaming synthetic vehicular telemetry via legacy Node-RED route..."
+	@$(PYTHON) scripts/testing/simulate_telemetry.py \
+		--host localhost \
+		--port 8883 \
+		--ca-cert deploy/mosquitto/certs/ca.crt \
+		--client-cert deploy/mosquitto/certs/client_esp32.crt \
+		--client-key deploy/mosquitto/certs/client_esp32.key \
+		--route legacy \
 		--mode normal
 
 inject-faults:
