@@ -7,7 +7,7 @@ VENV ?= .venv
 PYTHON ?= $(shell if [ -f $(VENV)/bin/python ]; then echo $(VENV)/bin/python; elif [ -f $(VENV)/bin/python3 ]; then echo $(VENV)/bin/python3; else echo python3; fi)
 PYTEST ?= $(shell if [ -f $(VENV)/bin/pytest ]; then echo $(VENV)/bin/pytest; elif [ -f $(VENV)/bin/py.test ]; then echo $(VENV)/bin/py.test; else echo pytest; fi)
 
-.PHONY: help setup-prerequisites setup-venv setup-pki deploy-gateway stop-gateway init-onem2m test test-unit test-integration run-web simulate-telemetry simulate-telemetry-native simulate-telemetry-legacy inject-faults clean
+.PHONY: help setup-prerequisites setup-venv setup-pki deploy-gateway deploy-lean stop-gateway init-onem2m init-base-cse validate-base-cse test test-unit test-integration run-web simulate-telemetry simulate-telemetry-native simulate-telemetry-legacy inject-faults clean
 
 help:
 	@echo "Available build and orchestration targets:"
@@ -15,8 +15,11 @@ help:
 	@echo "  setup-venv                Initialise Python virtual environment and simulation dependencies"
 	@echo "  setup-pki                 Generate X.509 Root CA, broker, and client certificates"
 	@echo "  deploy-gateway            Launch the onboard vehicular MEC container mesh"
+	@echo "  deploy-lean               Deploy lean container mesh with vanilla Base CSE (zero AEs) & validate"
 	@echo "  stop-gateway              Halt all MEC container services"
-	@echo "  init-onem2m               Initialise the /sdv-cse semantic resource tree"
+	@echo "  init-onem2m               Initialise the /sdv-cse semantic resource tree (with AE_CabinNode_Car01)"
+	@echo "  init-base-cse             Initialise vanilla oneM2M Base CSE (zero AEs, baseline governance)"
+	@echo "  validate-base-cse         Execute automated Base CSE & environment verification suite"
 	@echo "  run-web                   Launch the public-facing Flask web application locally"
 	@echo "  test                      Execute all unit and integration tests"
 	@echo "  test-unit                 Execute unit tests only"
@@ -45,6 +48,10 @@ deploy-gateway:
 	@echo "Starting vehicular MEC gateway container mesh..."
 	@bash deploy/deploy_gateway.sh
 
+deploy-lean:
+	@echo "Deploying vehicular MEC gateway container mesh in lean mode (vanilla Base CSE)..."
+	@bash deploy/deploy_gateway.sh --lean
+
 stop-gateway:
 	@echo "Stopping vehicular MEC gateway container mesh..."
 	@cd deploy && docker compose down
@@ -52,6 +59,14 @@ stop-gateway:
 init-onem2m:
 	@echo "Provisioning oneM2M /sdv-cse resource hierarchy..."
 	@bash scripts/onem2m/init_tree.sh
+
+init-base-cse:
+	@echo "Initialising vanilla oneM2M Base CSE (zero Application Entities)..."
+	@bash scripts/onem2m/init_base_cse.sh
+
+validate-base-cse:
+	@echo "Executing Base CSE automated validation & verification suite..."
+	@$$(if [ -f $(VENV)/bin/python ]; then echo $(VENV)/bin/python; elif [ -f $(VENV)/bin/python3 ]; then echo $(VENV)/bin/python3; else echo $(PYTHON); fi) scripts/testing/validate_base_cse.py
 
 run-web:
 	@echo "Starting public-facing Web portal..."

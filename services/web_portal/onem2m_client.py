@@ -689,6 +689,8 @@ class OneM2MClient:
                 "valid": False,
                 "ae_rn": ae_rn,
                 "compliance_score_pct": 0,
+                "checks_passed": 0,
+                "total_checks": 1,
                 "error": f"AE {ae_rn} not found or unreadable (HTTP {tree_status})",
                 "checks": [{"name": "AE Presence", "passed": False, "details": f"HTTP {tree_status}"}]
             }
@@ -1206,16 +1208,6 @@ class OneM2MClient:
                         })
         except Exception as exc:
             logger.debug("Failed discovering vehicles from oneM2M CSE: %s", exc)
-
-        # Ensure nominal vehicle_01 is always present as baseline
-        if not any(v["id"] == "vehicle_01" for v in vehicles):
-            vehicles.insert(0, {
-                "id": "vehicle_01",
-                "ae_rn": "AE_CabinNode_Car01",
-                "name": "VEHICLE 01",
-                "originator": "C_CabinNode_Car01",
-                "status": "ACTIVE"
-            })
 
         return sorted(vehicles, key=lambda x: x["id"])
 

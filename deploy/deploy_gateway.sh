@@ -9,6 +9,19 @@ set -euo pipefail
 DEPLOY_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="${DEPLOY_DIR}/.."
 
+# Parse deployment mode options (--lean / --base-only)
+LEAN_MODE=false
+for arg in "$@"; do
+    case "$arg" in
+        --lean|--base-only|-l)
+            LEAN_MODE=true
+            ;;
+    esac
+done
+if [ "${DEPLOY_LEAN:-false}" = "true" ] || [ "${DEPLOY_MODE:-}" = "base" ]; then
+    LEAN_MODE=true
+fi
+
 echo "[STEP 1/4] Verifying cryptographic certificates..."
 if [ ! -f "${DEPLOY_DIR}/mosquitto/certs/server.crt" ]; then
     echo "[INFO] Certificates not found. Executing PKI generation script..."
@@ -86,7 +99,15 @@ echo "[INFO] Verifying native In-CSE MQTT protocol binding..."
 if (echo > /dev/tcp/localhost/1883) >/dev/null 2>&1 || nc -z localhost 1883 >/dev/null 2>&1; then
     echo "[OK] Mosquitto internal mesh port 1883 active for native oneM2M TS-0010 MQTT binding."
 fi
-"${ROOT_DIR}/scripts/onem2m/init_tree.sh" || echo "[INFO] oneM2M initialisation completed or already provisioned."
-
-echo "[SUCCESS] Automotive MEC Gateway microservice mesh is operational."
-echo "[INFO] Consolidated Native In-CSE Route active: MQTT binding on Port 1883 & mTLS on Port 8883."
+if [ "${LEAN_MODE}" = "true" ]; then
+    echo "[INFO] Lean Deployment Mode active: Initialising vanilla Base CSE (strictly 0 Application Entities)..."
+    bash "${ROOT_DIR}/scripts/onem2m/init_base_cse.sh"
+    echo -e "\n[INFO] Executing Base CSE automated validation & verification..."
+    python3 "${ROOT_DIR}/scripts/testing/validate_base_cse.py"
+    echo "[SUCCESS] Automotive MEC Gateway lean Base CSE deployment and verification complete!"
+    echo "[INFO] Vanilla Base CSE /sdv-cse ready for dynamic, on-demand vehicular onboarding."
+else
+    "${ROOT_DIR}/scripts/onem2m/init_tree.sh" || echo "[INFO] oneM2M initialisation completed or already provisioned."
+    echo "[SUCCESS] Automotive MEC Gateway microservice mesh is operational."
+    echo "[INFO] Consolidated Native In-CSE Route active: MQTT binding on Port 1883 & mTLS on Port 8883."
+fi
