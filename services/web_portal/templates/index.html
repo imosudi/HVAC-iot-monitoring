@@ -11,6 +11,8 @@
             <span class="text-fhtw-blue fw-bold">CABIN MONITORING</span>
             <span>/</span>
             <span>OVERVIEW &amp; ACTUATION CONSOLE</span>
+            <span>/</span>
+            <span class="badge bg-fhtw-blue font-monospace" id="breadcrumbVehicleBadge">{{ active_car_id|upper }}</span>
         </div>
         <h1 class="font-heading fw-bold fs-4 text-fhtw-blue m-0 text-uppercase">
             Edge Transducer Telemetry &amp; Downlink HVAC Control
@@ -19,9 +21,26 @@
             Real-time transducer telemetry, oneM2M container containment, and closed-loop ventilation control.
         </p>
     </div>
-    <div class="d-flex align-items-center gap-2">
-        <span class="font-monospace small text-secondary">DATA HEALTH:</span>
-        {{ ui.health_chip(telemetry.health_state if telemetry else "FRESH") }}
+    <div class="d-flex flex-wrap align-items-center gap-3">
+        <!-- Multi-Vehicle Fleet Node Quick Switcher -->
+        <div class="d-flex align-items-center gap-2">
+            <span class="font-monospace small text-secondary fw-semibold">FLEET NODE:</span>
+            <div class="btn-group btn-group-sm" role="group" id="vehiclePillsGroup">
+                {% for v in vehicles %}
+                <button type="button" 
+                        class="btn {% if v.id == active_car_id %}btn-primary active{% else %}btn-outline-primary{% endif %} font-monospace px-2 py-0" 
+                        onclick="selectActiveVehicle('{{ v.id }}')">
+                    {{ v.name }}
+                </button>
+                {% else %}
+                <button type="button" class="btn btn-primary font-monospace px-2 py-0 active" onclick="selectActiveVehicle('vehicle_01')">VEHICLE 01</button>
+                {% endfor %}
+            </div>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <span class="font-monospace small text-secondary">DATA HEALTH:</span>
+            {{ ui.health_chip(telemetry.health_state if telemetry else "FRESH") }}
+        </div>
     </div>
 </div>
 
@@ -95,7 +114,10 @@
                 <span class="font-heading fw-bold text-fhtw-blue fs-6">
                     <i class="bi bi-sliders2 text-fhtw-blue me-2"></i>DOWNLINK ACTUATION CONTROLLER
                 </span>
-                <span class="font-monospace small text-secondary">[REST &rarr; oneM2M &rarr; Native MQTT]</span>
+                <div class="d-flex align-items-center gap-2">
+                    <span class="badge bg-light text-fhtw-blue border border-grid-subtle font-monospace" id="actuationTargetBadge">TARGET: {{ active_car_id }}</span>
+                    <span class="font-monospace small text-secondary d-none d-md-inline">[REST &rarr; oneM2M &rarr; MQTT]</span>
+                </div>
             </div>
             <div class="card-body p-3">
                 <form id="actuationForm" onsubmit="event.preventDefault(); dispatchActuation();">
@@ -207,9 +229,12 @@
 <!-- Telemetry Stream Event Log -->
 <div class="card shadow-sm border-grid-subtle">
     <div class="card-header bg-white border-bottom border-grid-subtle py-2 px-3 d-flex align-items-center justify-content-between">
-        <span class="font-heading fw-bold text-fhtw-blue fs-6">
-            <i class="bi bi-terminal text-fhtw-blue me-2"></i>TELEMETRY STREAM &amp; INGRESS LOG
-        </span>
+        <div class="d-flex align-items-center gap-2">
+            <span class="font-heading fw-bold text-fhtw-blue fs-6">
+                <i class="bi bi-terminal text-fhtw-blue me-2"></i>TELEMETRY STREAM &amp; INGRESS LOG
+            </span>
+            <span class="badge bg-light border border-grid-subtle text-secondary font-monospace" id="logFilterBadge">FILTER: {{ active_car_id }}</span>
+        </div>
         <button class="btn btn-outline-secondary btn-sm font-monospace py-0 px-2" onclick="clearStreamLog()">
             CLEAR
         </button>

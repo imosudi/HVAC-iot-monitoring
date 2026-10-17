@@ -1,13 +1,18 @@
 /**
  * ==============================================================================
  * Software-Defined Vehicle (SDV) Cyber-Physical Cabin Environmental Control
- * Frontend Interactivity and Real-Time Telemetry Client
+ * Frontend Interactivity and Real-Time Multi-Vehicle Telemetry Client
  * ==============================================================================
  */
 
+let currentVehicle = localStorage.getItem('sdv_active_vehicle') || 'vehicle_01';
+let fleetVehicles = [];
+
 document.addEventListener('DOMContentLoaded', () => {
     initHudClock();
+    loadFleetVehicles();
     initTelemetryStream();
+    selectActiveVehicle(currentVehicle);
 });
 
 /**
@@ -70,26 +75,148 @@ function initHudClock() {
 }
 
 /**
+ * Discovers and renders the registered vehicles roster across the SDV fleet.
+ */
+async function loadFleetVehicles() {
+    try {
+        const response = await fetch('/api/vehicles');
+        if (!response.ok) return;
+        const data = await response.json();
+        if (data.vehicles && data.vehicles.length > 0) {
+            fleetVehicles = data.vehicles;
+            renderFleetDropdown(fleetVehicles);
+            renderVehiclePills(fleetVehicles);
+        }
+    } catch (err) {
+        console.debug('Fleet vehicles discovery poll failed:', err);
+    }
+}
+
+/**
+ * Selects the active vehicular node across the UI consoles.
+ */
+function selectActiveVehicle(carId) {
+    if (!carId) return;
+    currentVehicle = carId;
+    localStorage.setItem('sdv_active_vehicle', carId);
+
+    // 1. Update global HUD badge in navigation bar
+    const globalBadge = document.getElementById('globalActiveVehicleBadge');
+    if (globalBadge) {
+        globalBadge.textContent = carId.toUpperCase();
+    }
+
+    // 2. Update breadcrumb badge on overview console
+    const breadcrumbBadge = document.getElementById('breadcrumbVehicleBadge');
+    if (breadcrumbBadge) {
+        breadcrumbBadge.textContent = carId.toUpperCase();
+    }
+
+    // 3. Update Downlink Actuation Controller target badge
+    const actuationBadge = document.getElementById('actuationTargetBadge');
+    if (actuationBadge) {
+        actuationBadge.textContent = `TARGET: ${carId}`;
+    }
+
+    // 4. Update stream filter badge
+    const filterBadge = document.getElementById('logFilterBadge');
+    if (filterBadge) {
+        filterBadge.textContent = `FILTER: ${carId}`;
+    }
+
+    // 5. Update pipeline CSE container path
+    const pipelinePath = document.getElementById('pipelineCsePath');
+    if (pipelinePath) {
+        const digits = carId.replace(/\D/g, '');
+        const suffix = digits ? `Car${digits.padStart(2, '0')}` : carId.replace('vehicle_', 'Car');
+        pipelinePath.textContent = `/sdv-cse/AE_CabinNode_${suffix}/cnt_raw_telemetry`;
+    }
+
+    // 6. Refresh active highlights in dropdown and pills
+    renderFleetDropdown(fleetVehicles);
+    renderVehiclePills(fleetVehicles);
+
+    // 7. Trigger immediate telemetry fetch for newly selected vehicle
+    if (typeof fetchActiveVehicleTelemetry === 'function') {
+        fetchActiveVehicleTelemetry();
+    }
+}
+
+/**
+ * Renders the vehicle items inside the global navigation dropdown.
+ */
+function renderFleetDropdown(vehicles) {
+    const listEl = document.getElementById('fleetVehicleMenuItems');
+    if (!listEl) return;
+
+    const roster = (vehicles && vehicles.length > 0) ? vehicles : [
+        { id: 'vehicle_01', name: 'VEHICLE 01', ae_rn: 'AE_CabinNode_Car01' }
+    ];
+
+    listEl.innerHTML = roster.map(v => {
+        const isActive = v.id === currentVehicle;
+        return `
+            <li>
+                <a class="dropdown-item ${isActive ? 'active' : ''} d-flex align-items-center justify-content-between" 
+                   href="javascript:void(0)" 
+                   onclick="selectActiveVehicle('${v.id}')">
+                    <span>
+                        <i class="bi ${isActive ? 'bi-check2 text-success' : 'bi-truck text-secondary'} me-2"></i>
+                        <strong>${v.id}</strong> <span class="text-secondary small">(${v.ae_rn})</span>
+                    </span>
+                    ${isActive ? '<span class="badge bg-success-subtle text-success border border-success-subtle ms-2 font-monospace">ACTIVE</span>' : ''}
+                </a>
+            </li>
+        `;
+    }).join('');
+}
+
+/**
+ * Renders vehicle pill buttons on the overview console.
+ */
+function renderVehiclePills(vehicles) {
+    const pillsGroup = document.getElementById('vehiclePillsGroup');
+    if (!pillsGroup) return;
+
+    const roster = (vehicles && vehicles.length > 0) ? vehicles : [
+        { id: 'vehicle_01', name: 'VEHICLE 01' }
+    ];
+
+    pillsGroup.innerHTML = roster.map(v => {
+        const isActive = v.id === currentVehicle;
+        return `
+            <button type="button" 
+                    class="btn ${isActive ? 'btn-primary active' : 'btn-outline-primary'} font-monospace px-2 py-0" 
+                    onclick="selectActiveVehicle('${v.id}')">
+                ${v.name || v.id.toUpperCase()}
+            </button>
+        `;
+    }).join('');
+}
+
+let fetchActiveVehicleTelemetry = null;
+
+/**
  * Polls the backend API for real-time cabin telemetry metrics and updates the console.
  */
 function initTelemetryStream() {
     const streamConsole = document.getElementById('streamConsole');
     if (!streamConsole) return;
 
-    async function fetchTelemetry() {
+    fetchActiveVehicleTelemetry = async function() {
         try {
-            const response = await fetch('/api/telemetry/latest');
+            const response = await fetch(`/api/telemetry/latest?car_id=${encodeURIComponent(currentVehicle)}`);
             if (!response.ok) return;
             const data = await response.json();
             updateTelemetryDisplay(data);
         } catch (err) {
             console.debug('Telemetry stream poll skipped:', err);
         }
-    }
+    };
 
     // Initial poll followed by 2-second interval
-    fetchTelemetry();
-    setInterval(fetchTelemetry, 2000);
+    fetchActiveVehicleTelemetry();
+    setInterval(fetchActiveVehicleTelemetry, 2000);
 }
 
 /**
@@ -184,10 +311,11 @@ function appendStreamLog(data) {
     const tDht = data.dht22 ? (data.dht22.temperature_c || 'N/A') : 'N/A';
     const pwm = data.actuator_state ? data.actuator_state.pwm_duty_pct : 25;
     const rpm = data.actuator_state ? data.actuator_state.tachometer_rpm : 980;
+    const carId = data.car_id || currentVehicle || 'vehicle_01';
 
     const logLine = document.createElement('div');
     logLine.className = 'text-muted py-0.5 border-bottom border-grid-subtle';
-    logLine.innerHTML = `[${timeStr}] <span class="text-info">INGRESS</span> car_id=${data.car_id || 'vehicle_01'} CO2=${co2}ppm T_scd30=${tScd}°C T_dht22=${tDht}°C PWM=${pwm}% RPM=${rpm} &rarr; <span class="${stateClass} fw-bold">state=${state}</span>`;
+    logLine.innerHTML = `[${timeStr}] <span class="text-info">INGRESS</span> car_id=<strong>${carId}</strong> CO2=${co2}ppm T_scd30=${tScd}°C T_dht22=${tDht}°C PWM=${pwm}% RPM=${rpm} &rarr; <span class="${stateClass} fw-bold">state=${state}</span>`;
 
     streamConsole.insertBefore(logLine, streamConsole.firstChild);
 
@@ -198,7 +326,7 @@ function appendStreamLog(data) {
 }
 
 /**
- * Dispatches an actuator command directive to the backend via POST.
+ * Dispatches an actuator command directive to the backend via POST targeting the active vehicle.
  */
 async function dispatchActuation() {
     const pwmSlider = document.getElementById('pwmSlider');
@@ -210,13 +338,14 @@ async function dispatchActuation() {
 
     try {
         if (statusFeedback) {
-            statusFeedback.innerHTML = '<span class="text-info font-monospace small"><i class="bi bi-arrow-repeat spin me-1"></i>Dispatching directive to oneM2M CSE...</span>';
+            statusFeedback.innerHTML = `<span class="text-info font-monospace small"><i class="bi bi-arrow-repeat spin me-1"></i>Dispatching directive for ${currentVehicle} to oneM2M CSE...</span>`;
         }
 
         const response = await fetch('/api/actuator/dispatch', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
+                car_id: currentVehicle,
                 target_pwm: pwm,
                 mode: mode,
                 source_entity: 'WebPortal_Console'
@@ -226,7 +355,7 @@ async function dispatchActuation() {
         const result = await response.json();
         if (response.ok) {
             if (statusFeedback) {
-                statusFeedback.innerHTML = `<span class="text-success font-monospace small"><i class="bi bi-check-circle me-1"></i>Directive dispatched [HTTP ${result.status_code || 201}]: PWM=${pwm}%, Mode=${mode}</span>`;
+                statusFeedback.innerHTML = `<span class="text-success font-monospace small"><i class="bi bi-check-circle me-1"></i>Directive dispatched to ${result.car_id || currentVehicle} [HTTP ${result.status_code || 201}]: PWM=${pwm}%, Mode=${mode}</span>`;
             }
         } else {
             if (statusFeedback) {
@@ -241,10 +370,10 @@ async function dispatchActuation() {
 }
 
 /**
- * Triggers emergency shutdown of cabin ventilation.
+ * Triggers emergency shutdown of cabin ventilation on the active vehicle.
  */
 async function triggerEStop() {
-    if (!confirm('CONFIRM IMMEDIATE EMERGENCY SHUTDOWN OF CABIN VENTILATION ACTUATORS?')) {
+    if (!confirm(`CONFIRM IMMEDIATE EMERGENCY SHUTDOWN OF CABIN VENTILATION ACTUATORS FOR ${currentVehicle.toUpperCase()}?`)) {
         return;
     }
 
@@ -264,6 +393,7 @@ async function triggerEStop() {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
+                car_id: currentVehicle,
                 target_pwm: 0,
                 mode: 'MANUAL',
                 source_entity: 'WebPortal_EStop'
@@ -271,7 +401,7 @@ async function triggerEStop() {
         });
         const result = await response.json();
         if (statusFeedback) {
-            statusFeedback.innerHTML = '<span class="badge bg-danger rounded-0 font-monospace p-2 w-100"><i class="bi bi-slash-circle me-1"></i>E-STOP ENGAGED: ACTUATOR PWM FORCED TO 0%</span>';
+            statusFeedback.innerHTML = `<span class="badge bg-danger rounded-0 font-monospace p-2 w-100"><i class="bi bi-slash-circle me-1"></i>E-STOP ENGAGED FOR ${currentVehicle.toUpperCase()}: ACTUATOR PWM FORCED TO 0%</span>`;
         }
     } catch (err) {
         console.error('E-Stop dispatch error:', err);

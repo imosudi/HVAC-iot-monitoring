@@ -9,9 +9,12 @@ Note: In accordance with architectural constraints, this application uses direct
 module-level Flask instantiation rather than an application factory pattern.
 """
 
+from __future__ import annotations
+
 import json
 import logging
 import time
+from typing import Any, Dict, List, Optional
 import urllib.error
 import urllib.request
 from flask import Flask, jsonify, render_template, request
@@ -39,12 +42,15 @@ app = Flask(__name__, template_folder="templates", static_folder="static")
 app.config["SECRET_KEY"] = config.secret_key
 
 
-def query_latest_influxdb_telemetry():
-    """Queries InfluxDB for the most recent cabin telemetry record."""
+def query_latest_influxdb_telemetry(car_id: Optional[str] = "vehicle_01"):
+    """Queries InfluxDB for the most recent cabin telemetry record for a specified vehicle."""
+    target_car = car_id if car_id and car_id.strip() else "vehicle_01"
+    car_filter = f'|> filter(fn: (r) => r.car_id == "{target_car}")' if target_car.lower() != "all" else ""
     flux_query = f"""
     from(bucket: "{config.influxdb_bucket}")
       |> range(start: -15m)
       |> filter(fn: (r) => r._measurement == "cabin_environment")
+      {car_filter}
       |> last()
     """
     url = f"{config.influxdb_url}/api/v2/query?org={config.influxdb_org}"
@@ -73,7 +79,7 @@ def query_latest_influxdb_telemetry():
 
             if metrics:
                 return {
-                    "car_id": "vehicle_01",
+                    "car_id": target_car,
                     "zone": "cabin_front",
                     "timestamp_unix_s": int(time.time()),
                     "scd30": {
@@ -95,17 +101,18 @@ def query_latest_influxdb_telemetry():
     except Exception as exc:
         logger.debug("InfluxDB query fallback invoked: %s", exc)
 
-    # Deterministic fallback model based on epoch iteration
+    # Deterministic fallback model based on epoch iteration and target vehicle
     now_epoch = int(time.time())
-    iteration = (now_epoch // 2) % 20
-    co2 = 480.0 + (iteration * 2.5)
-    t_scd = 21.8 + (iteration % 10) * 0.1
-    t_dht = 21.9 + (iteration % 8) * 0.1
+    car_offset = sum(ord(c) for c in target_car) % 17
+    iteration = ((now_epoch // 2) + car_offset) % 20
+    co2 = 480.0 + (iteration * 2.5) + (car_offset * 1.2)
+    t_scd = 21.8 + ((iteration + car_offset) % 10) * 0.1
+    t_dht = 21.9 + ((iteration + car_offset) % 8) * 0.1
     rh = 45.2 + (iteration % 5) * 0.3
-    rpm = 980 + (iteration % 30)
+    rpm = 980 + ((iteration + car_offset * 5) % 30)
 
     return {
-        "car_id": "vehicle_01",
+        "car_id": target_car,
         "zone": "cabin_front",
         "timestamp_unix_s": now_epoch,
         "scd30": {
@@ -129,8 +136,19 @@ def query_latest_influxdb_telemetry():
 @app.route("/", methods=["GET"])
 def index():
     """Renders the primary Overview and Closed-Loop Actuation console."""
-    telemetry = query_latest_influxdb_telemetry()
-    return render_template("index.html", active_page="overview", telemetry=telemetry), 200
+    car_id = request.args.get("car_id", "vehicle_01")
+    telemetry = query_latest_influxdb_telemetry(car_id=car_id)
+    try:
+        vehicles = onem2m_client.get_known_vehicles()
+    except Exception:
+        vehicles = [{"id": "vehicle_01", "name": "VEHICLE 01", "ae_rn": "AE_CabinNode_Car01"}]
+    return render_template(
+        "index.html",
+        active_page="overview",
+        telemetry=telemetry,
+        vehicles=vehicles,
+        active_car_id=car_id
+    ), 200
 
 
 @app.route("/entities", methods=["GET"])
@@ -164,16 +182,30 @@ def health():
     }), 200
 
 
+@app.route("/api/vehicles", methods=["GET"])
+def api_vehicles():
+    """Returns the roster of registered vehicular Application Entities across the SDV fleet."""
+    try:
+        vehicles = onem2m_client.get_known_vehicles()
+    except Exception as exc:
+        logger.debug("Failed retrieving vehicles from oneM2M: %s", exc)
+        vehicles = [
+            {"id": "vehicle_01", "ae_rn": "AE_CabinNode_Car01", "name": "VEHICLE 01", "originator": "C_CabinNode_Car01"}
+        ]
+    return jsonify({"vehicles": vehicles, "count": len(vehicles)}), 200
+
+
 @app.route("/api/telemetry/latest", methods=["GET"])
 def api_telemetry_latest():
-    """Returns the latest evaluated cabin telemetry frame for dashboard polling."""
-    return jsonify(query_latest_influxdb_telemetry()), 200
+    """Returns the latest evaluated cabin telemetry frame for dashboard polling, optionally filtered by car_id."""
+    car_id = request.args.get("car_id", "vehicle_01")
+    return jsonify(query_latest_influxdb_telemetry(car_id=car_id)), 200
 
 
 @app.route("/api/actuator/dispatch", methods=["POST"])
 def api_actuator_dispatch():
     """
-    Dispatches an actuation directive ContentInstance to the oneM2M CSE.
+    Dispatches an actuation directive ContentInstance to the oneM2M CSE targeting a specific vehicle.
 
     Triggers the downstream oneM2M subscription (sub_downlink_dispatcher), which
     publishes the command directly to the vehicular MQTT broker via native TS-0010 binding.
@@ -182,6 +214,8 @@ def api_actuator_dispatch():
     target_pwm = data.get("target_pwm", 25)
     mode = data.get("mode", "AUTOMATIC")
     source = data.get("source_entity", "WebPortal_User")
+    car_id = data.get("car_id", "vehicle_01")
+    ae_rn = data.get("ae_rn")
 
     try:
         target_pwm = int(target_pwm)
@@ -192,6 +226,7 @@ def api_actuator_dispatch():
         return jsonify({"error": "target_pwm out of range [0, 100]"}), 400
 
     cmd_payload = {
+        "car_id": car_id,
         "target_pwm": target_pwm,
         "target_fan_pwm": target_pwm,
         "mode": mode,
@@ -206,8 +241,18 @@ def api_actuator_dispatch():
         }
     }
 
+    # Resolve target Application Entity name and Originator dynamically
+    if not ae_rn:
+        digits = "".join(filter(str.isdigit, car_id))
+        if digits:
+            ae_rn = f"AE_CabinNode_Car{digits.zfill(2)}"
+        else:
+            ae_rn = f"AE_CabinNode_{car_id.replace('vehicle_', 'Car')}"
+
+    originator = f"C_{ae_rn.replace('AE_', '')}"
+
     headers = {
-        "X-M2M-Origin": "C_CabinNode_Car01",
+        "X-M2M-Origin": originator,
         "X-M2M-RI": f"web_cmd_{int(time.time() * 1000)}",
         "X-M2M-RVI": "3",
         "Content-Type": "application/json;ty=4",
@@ -216,8 +261,8 @@ def api_actuator_dispatch():
 
     # Attempt dispatch to consolidated 'commands' container, falling back to legacy 'cnt_actuator_commands'
     candidates = [
-        f"{config.onem2m_cse_url}/AE_CabinNode_Car01/commands",
-        f"{config.onem2m_cse_url}/AE_CabinNode_Car01/cnt_actuator_commands"
+        f"{config.onem2m_cse_url}/{ae_rn}/commands",
+        f"{config.onem2m_cse_url}/{ae_rn}/cnt_actuator_commands"
     ]
     last_err = None
     for onem2m_target_url in candidates:
@@ -233,6 +278,8 @@ def api_actuator_dispatch():
                 return jsonify({
                     "status": "DISPATCHED",
                     "status_code": status_code,
+                    "car_id": car_id,
+                    "target_ae": ae_rn,
                     "command": cmd_payload,
                     "target_resource": onem2m_target_url
                 }), 200
@@ -244,6 +291,8 @@ def api_actuator_dispatch():
             return jsonify({
                 "status": "DISPATCHED_OFFLINE_SIMULATION",
                 "status_code": http_err.code,
+                "car_id": car_id,
+                "target_ae": ae_rn,
                 "command": cmd_payload,
                 "notice": f"oneM2M returned HTTP {http_err.code}; simulated fallback applied."
             }), 200
@@ -255,6 +304,8 @@ def api_actuator_dispatch():
         logger.warning("oneM2M dispatch failure: %s", last_err)
     return jsonify({
         "status": "DISPATCHED_OFFLINE_SIMULATION",
+        "car_id": car_id,
+        "target_ae": ae_rn,
         "command": cmd_payload,
         "notice": "oneM2M unreachable or returned error; simulated fallback applied."
     }), 200

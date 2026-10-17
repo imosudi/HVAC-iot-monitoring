@@ -68,7 +68,8 @@ class TestWebPortalApplication:
         assert data["service"] == "web_portal"
 
     def test_api_telemetry_latest_returns_valid_payload(self, client):
-        """Verifies that the telemetry API endpoint serves a schema-compliant frame."""
+        """Verifies that the telemetry API endpoint serves a schema-compliant frame with multi-vehicle support."""
+        # Default nominal vehicle
         response = client.get("/api/telemetry/latest")
         assert response.status_code == 200
         data = response.get_json()
@@ -78,9 +79,25 @@ class TestWebPortalApplication:
         assert "actuator_state" in data
         assert "health_state" in data
 
+        # Explicit vehicle selection across fleet
+        v2_resp = client.get("/api/telemetry/latest?car_id=vehicle_02")
+        assert v2_resp.status_code == 200
+        v2_data = v2_resp.get_json()
+        assert v2_data["car_id"] == "vehicle_02"
+        assert "scd30" in v2_data
+
+    def test_api_vehicles_endpoint(self, client):
+        """Verifies that the fleet vehicles discovery endpoint returns registered vehicles."""
+        response = client.get("/api/vehicles")
+        assert response.status_code == 200
+        data = response.get_json()
+        assert "vehicles" in data
+        assert data["count"] >= 1
+        assert any(v["id"] == "vehicle_01" for v in data["vehicles"])
+
     def test_api_actuator_dispatch_validates_input(self, client):
-        """Verifies validation logic on the downlink actuation endpoint."""
-        # Valid dispatch
+        """Verifies validation logic on the downlink actuation endpoint with dynamic vehicle targeting."""
+        # Valid dispatch for default vehicle
         response = client.post("/api/actuator/dispatch", json={
             "target_pwm": 50,
             "mode": "AUTOMATIC",
@@ -89,6 +106,19 @@ class TestWebPortalApplication:
         assert response.status_code == 200
         result = response.get_json()
         assert "status" in result
+        assert result["car_id"] == "vehicle_01"
+
+        # Valid dispatch targeting vehicle_02 in fleet
+        v2_resp = client.post("/api/actuator/dispatch", json={
+            "car_id": "vehicle_02",
+            "target_pwm": 75,
+            "mode": "PURGE_75",
+            "source_entity": "TestHarness"
+        })
+        assert v2_resp.status_code == 200
+        v2_res = v2_resp.get_json()
+        assert v2_res["car_id"] == "vehicle_02"
+        assert v2_res["target_ae"] == "AE_CabinNode_Car02"
 
         # Invalid target_pwm out of bounds
         invalid_resp = client.post("/api/actuator/dispatch", json={
