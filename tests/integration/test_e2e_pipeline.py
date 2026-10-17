@@ -362,6 +362,36 @@ class TestEndToEndPipeline:
         assert emerg_resp.status_code == 200
         assert emerg_resp.get_json()["status"] == "EMERGENCY_ACKNOWLEDGED"
 
+    def test_fault_injection_vectors_native_conformance(self):
+        """Verifies that all 6 adversarial fault injection vectors evaluate to their expected health regimes."""
+        import sys
+        scripts_testing_dir = Path(__file__).resolve().parent.parent.parent / "scripts" / "testing"
+        if str(scripts_testing_dir) not in sys.path:
+            sys.path.insert(0, str(scripts_testing_dir))
+
+        from inject_faults import FAULT_SUITES
+
+        assert len(FAULT_SUITES) == 6
+        classifier = HealthClassifier()
+
+        eval_time = time.time()
+        for vector in FAULT_SUITES:
+            assert "id" in vector
+            assert "expected_state" in vector
+            if "payload" in vector:
+                payload = dict(vector["payload"])
+                sample_time = payload.get("timestamp_unix_s")
+                if sample_time is None:
+                    sample_time = int(eval_time)
+                elif sample_time < 0:
+                    sample_time = int(eval_time + sample_time)
+                payload["timestamp_unix_s"] = sample_time
+                state, _, _ = classifier.evaluate_frame(payload, eval_time_unix_s=eval_time)
+                assert state.value == vector["expected_state"], (
+                    f"Vector {vector['id']} evaluated to {state.value}, expected {vector['expected_state']}"
+                )
+
+
 
 
 

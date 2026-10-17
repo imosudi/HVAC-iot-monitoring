@@ -126,7 +126,8 @@ inject-faults:
 		--port 8883 \
 		--ca-cert deploy/mosquitto/certs/ca.crt \
 		--client-cert deploy/mosquitto/certs/client_esp32.crt \
-		--client-key deploy/mosquitto/certs/client_esp32.key
+		--client-key deploy/mosquitto/certs/client_esp32.key \
+		$(ARGS)
 
 clean:
 	@find . -type d -name "__pycache__" -exec rm -rf {} +

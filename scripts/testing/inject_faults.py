@@ -31,7 +31,7 @@ FAULT_SUITES = [
         "payload": {
             "car_id": "vehicle_01",
             "zone": "cabin_front",
-            "timestamp_unix_s": 1700000000,  # Far in past (> 2.5 s latency threshold)
+            "timestamp_unix_s": -5,  # Backdated by 5s into STALE latency regime (2.5s < tau <= 10.0s)
             "scd30": {"co2_ppm": 450.0, "temperature_c": 22.0, "humidity_pct": 50.0},
             "dht22": {"temperature_c": 22.1, "humidity_pct": 50.2},
             "actuator_state": {"pwm_duty_pct": 20, "tachometer_rpm": 800, "carrier_freq_hz": 25000},
@@ -83,6 +83,19 @@ FAULT_SUITES = [
         "raw_string": '{"car_id": "vehicle_01", "co2": "INVALID_TYPE", "temperature": "NaN"}',
         "expected_state": "SCHEMA_REJECTION",
     },
+    {
+        "id": "FI-06",
+        "name": "Blower Motor Stall / Slip Fault (Actuator Fault State Trigger)",
+        "payload": {
+            "car_id": "vehicle_01",
+            "zone": "cabin_front",
+            "timestamp_unix_s": None,
+            "scd30": {"co2_ppm": 480.0, "temperature_c": 22.0, "humidity_pct": 50.0},
+            "dht22": {"temperature_c": 22.1, "humidity_pct": 50.1},
+            "actuator_state": {"pwm_duty_pct": 50, "tachometer_rpm": 45, "carrier_freq_hz": 25000},
+        },
+        "expected_state": "FAULT",
+    },
 ]
 
 
@@ -93,10 +106,14 @@ def run_injection_tests(
     ca_cert: str = "",
     client_cert: str = "",
     client_key: str = "",
+    route: str = "native",
 ):
     """Publish test vectors sequentially to the target broker."""
     client = mqtt.Client(client_id=f"fault_injector_{int(time.time())}")
-    topic = f"sdv/{vehicle_id}/telemetry"
+    if route == "native":
+        topic = "/oneM2M/req/C_CabinNode_Car01/id-sdv/json"
+    else:
+        topic = f"sdv/{vehicle_id}/telemetry"
 
     if port == 8883 or ca_cert:
         if not ca_cert:
@@ -111,7 +128,7 @@ def run_injection_tests(
         )
         client.tls_insecure_set(True)
 
-    logger.info("Connecting to broker at %s:%d for fault injection suite...", host, port)
+    logger.info("Connecting to broker at %s:%d via '%s' route...", host, port, route)
     try:
         client.connect(host, port, keepalive=60)
         client.loop_start()
@@ -131,13 +148,35 @@ def run_injection_tests(
         if "raw_string" in test:
             payload_str = test["raw_string"]
         else:
-            payload = test["payload"]
-            if payload.get("timestamp_unix_s") is None:
+            payload = dict(test["payload"])
+            ts = payload.get("timestamp_unix_s")
+            if ts is None:
                 payload["timestamp_unix_s"] = int(time.time())
+            elif ts < 0:
+                payload["timestamp_unix_s"] = int(time.time() + ts)
             payload["car_id"] = vehicle_id
             payload_str = json.dumps(payload)
 
-        res = client.publish(topic, payload_str, qos=1)
+        if route == "native":
+            primitive = {
+                "op": 1,
+                "to": "/id-sdv/sdv-cse/AE_CabinNode_Car01/raw-telemetry",
+                "fr": "C_CabinNode_Car01",
+                "rqi": f"req_fi_{int(time.time() * 1000)}",
+                "ty": 4,
+                "rvi": "3",
+                "pc": {
+                    "m2m:cin": {
+                        "cnf": "application/json:0",
+                        "con": payload_str,
+                    }
+                },
+            }
+            send_payload = json.dumps(primitive)
+        else:
+            send_payload = payload_str
+
+        res = client.publish(topic, send_payload, qos=1)
         res.wait_for_publish(timeout=2.0)
         logger.info("Injected frame for %s. Awaiting pipeline ingestion...", test_id)
         time.sleep(1.5)
@@ -152,6 +191,12 @@ def main():
     parser.add_argument("--host", default="localhost", help="MQTT broker host")
     parser.add_argument("--port", type=int, default=8883, help="MQTT broker port (8883 for TLS)")
     parser.add_argument("--vehicle-id", default="vehicle_01", help="Vehicle ID target")
+    parser.add_argument(
+        "--route",
+        choices=["native", "legacy"],
+        default="native",
+        help="Routing path: 'native' (direct oneM2M TS-0010 MQTT binding) or 'legacy' (flat JSON)",
+    )
     parser.add_argument("--ca-cert", default="", help="Path to Root CA certificate")
     parser.add_argument("--client-cert", default="", help="Path to client certificate")
     parser.add_argument("--client-key", default="", help="Path to client private key")
@@ -164,6 +209,7 @@ def main():
         args.ca_cert,
         args.client_cert,
         args.client_key,
+        route=args.route,
     )
 
 
