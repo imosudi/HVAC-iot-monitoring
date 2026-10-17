@@ -58,24 +58,24 @@ run-web:
 	@$$(if [ -f $(VENV)/bin/python ]; then echo $(VENV)/bin/python; elif [ -f $(VENV)/bin/python3 ]; then echo $(VENV)/bin/python3; else echo $(PYTHON); fi) services/web_portal/app.py
 
 test:
-	@if [ ! -f $(VENV)/bin/pytest ] && [ ! -f $(VENV)/bin/py.test ] && ! pytest --version >/dev/null 2>&1; then \
-		echo "Pytest not found in active environment. Initialising $(VENV)..."; \
+	@if [ ! -f $(VENV)/bin/pytest ] || ! $$(if [ -f $(VENV)/bin/python ]; then echo $(VENV)/bin/python; elif [ -f $(VENV)/bin/python3 ]; then echo $(VENV)/bin/python3; else echo $(PYTHON); fi) -c "import jsonschema, flask" >/dev/null 2>&1; then \
+		echo "Test dependencies missing in active environment. Reconciling $(VENV)..."; \
 		$(MAKE) setup-venv; \
 	fi
 	@echo "Executing complete test suite (Tier 1 & Tier 2)..."
 	@$$(if [ -f $(VENV)/bin/pytest ]; then echo $(VENV)/bin/pytest; elif [ -f $(VENV)/bin/py.test ]; then echo $(VENV)/bin/py.test; else echo $(PYTEST); fi) -v
 
 test-unit:
-	@if [ ! -f $(VENV)/bin/pytest ] && [ ! -f $(VENV)/bin/py.test ] && ! pytest --version >/dev/null 2>&1; then \
-		echo "Pytest not found in active environment. Initialising $(VENV)..."; \
+	@if [ ! -f $(VENV)/bin/pytest ] || ! $$(if [ -f $(VENV)/bin/python ]; then echo $(VENV)/bin/python; elif [ -f $(VENV)/bin/python3 ]; then echo $(VENV)/bin/python3; else echo $(PYTHON); fi) -c "import jsonschema, flask" >/dev/null 2>&1; then \
+		echo "Test dependencies missing in active environment. Reconciling $(VENV)..."; \
 		$(MAKE) setup-venv; \
 	fi
 	@echo "Executing unit tests (Tier 1)..."
 	@$$(if [ -f $(VENV)/bin/pytest ]; then echo $(VENV)/bin/pytest; elif [ -f $(VENV)/bin/py.test ]; then echo $(VENV)/bin/py.test; else echo $(PYTEST); fi) -v tests/unit/
 
 test-integration:
-	@if [ ! -f $(VENV)/bin/pytest ] && [ ! -f $(VENV)/bin/py.test ] && ! pytest --version >/dev/null 2>&1; then \
-		echo "Pytest not found in active environment. Initialising $(VENV)..."; \
+	@if [ ! -f $(VENV)/bin/pytest ] || ! $$(if [ -f $(VENV)/bin/python ]; then echo $(VENV)/bin/python; elif [ -f $(VENV)/bin/python3 ]; then echo $(VENV)/bin/python3; else echo $(PYTHON); fi) -c "import jsonschema, flask" >/dev/null 2>&1; then \
+		echo "Test dependencies missing in active environment. Reconciling $(VENV)..."; \
 		$(MAKE) setup-venv; \
 	fi
 	@echo "Executing integration tests (Tier 2)..."
