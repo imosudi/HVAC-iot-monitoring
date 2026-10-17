@@ -1,0 +1,1604 @@
+{% extends "base.html" %}
+
+{% block title %}Application Entities &amp; oneM2M API Client &bull; FH Technikum Wien{% endblock %}
+
+{% block extra_head %}
+<style>
+    /* High-Precision Instrument Brutalism & API Console Styling */
+    .font-code {
+        font-family: var(--bs-font-monospace);
+    }
+    .console-terminal {
+        background-color: #0f172a;
+        color: #e2e8f0;
+        font-family: var(--bs-font-monospace);
+        font-size: 0.82rem;
+        border-radius: 4px;
+        padding: 1rem;
+        max-height: 380px;
+        overflow-y: auto;
+        border: 1px solid #1e293b;
+    }
+    .console-line {
+        line-height: 1.5;
+        display: flex;
+        gap: 0.5rem;
+    }
+    .console-ts {
+        color: #64748b;
+        flex-shrink: 0;
+    }
+    .console-step {
+        color: #38bdf8;
+        font-weight: 600;
+        flex-shrink: 0;
+    }
+    .console-success { color: #4ade80; }
+    .console-warning { color: #facc15; }
+    .console-error { color: #f87171; }
+    .console-info { color: #94a3b8; }
+
+    .nav-tabs-fhtw .nav-link {
+        font-family: var(--bs-font-monospace);
+        font-weight: 600;
+        color: var(--fhtw-grey-100);
+        border: 1px solid transparent;
+        border-bottom: 2px solid transparent;
+        padding: 0.6rem 1.2rem;
+        font-size: 0.85rem;
+        text-transform: uppercase;
+    }
+    .nav-tabs-fhtw .nav-link:hover {
+        color: var(--fhtw-blue-100);
+        border-color: transparent transparent var(--fhtw-blue-40) transparent;
+    }
+    .nav-tabs-fhtw .nav-link.active {
+        color: var(--fhtw-blue-100);
+        background-color: transparent;
+        border-color: transparent transparent var(--fhtw-blue-100) transparent;
+        border-bottom-width: 3px;
+    }
+
+    .json-inspector {
+        background-color: #f8fafc;
+        border: 1px solid var(--bs-border-color);
+        border-radius: 4px;
+        padding: 0.85rem;
+        font-family: var(--bs-font-monospace);
+        font-size: 0.82rem;
+        max-height: 480px;
+        overflow: auto;
+        white-space: pre-wrap;
+        word-break: break-all;
+    }
+    .entity-card {
+        transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .entity-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 0.5rem 1rem rgba(0, 43, 73, 0.08) !important;
+    }
+    .entity-card.card-selected {
+        border-color: var(--fhtw-blue-100) !important;
+        background-color: rgba(0, 100, 156, 0.02);
+    }
+    .pill-badge {
+        font-size: 0.75rem;
+        font-weight: 500;
+        letter-spacing: 0.02em;
+    }
+    .batch-toolbar {
+        background-color: #eef2f6;
+        border: 1px solid var(--bs-border-color);
+        border-radius: 4px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Subsystem Breadcrumb Strip -->
+<div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3 border-bottom border-grid-subtle pb-2">
+    <div>
+        <div class="d-flex align-items-center gap-2 font-monospace small text-secondary mb-1">
+            <span class="text-fhtw-blue fw-bold">oneM2M MIDDLEWARE</span>
+            <span>/</span>
+            <span class="text-fhtw-green fw-bold">ETSI TS 118 101 RELEASE 4</span>
+            <span>/</span>
+            <span>APPLICATION ENTITY DEPLOYMENT &amp; API CLIENT</span>
+        </div>
+        <h1 class="font-heading fw-bold fs-4 text-fhtw-blue m-0 text-uppercase">
+            oneM2M Entity Provisioner &amp; API Client Workbench
+        </h1>
+        <p class="font-monospace small text-secondary m-0">
+            Single-vehicle deployment &amp; validation, validate &amp; decommission lifecycle workflows, and batch multi-entity retirement.
+        </p>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+        {% if cse.connected %}
+        <span class="badge bg-fhtw-green text-white font-monospace px-2 py-1">
+            <i class="bi bi-hdd-network me-1"></i>CSE CONNECTED: {{ cse.cse_rn }} ({{ cse.latency_ms }}ms)
+        </span>
+        {% else %}
+        <span class="badge bg-danger text-white font-monospace px-2 py-1">
+            <i class="bi bi-exclamation-triangle me-1"></i>CSE OFFLINE / UNREACHABLE
+        </span>
+        {% endif %}
+        <button class="btn btn-sm btn-outline-primary font-monospace" onclick="refreshEntityData()">
+            <i class="bi bi-arrow-clockwise me-1"></i>REFRESH
+        </button>
+    </div>
+</div>
+
+<!-- CSE Metric Summary Strip -->
+<div class="row g-2 g-xl-3 mb-4">
+    <div class="col-6 col-md-3">
+        <div class="card h-100 shadow-sm border-grid-subtle">
+            <div class="card-body p-3">
+                <div class="font-monospace small text-secondary text-uppercase fw-semibold">
+                    <i class="bi bi-hdd-stack me-1 text-fhtw-blue"></i>REGISTERED AEs
+                </div>
+                <div class="d-flex align-items-baseline gap-2 mt-1">
+                    <span class="font-heading fw-bold text-fhtw-blue display-6" id="stat-ae-count">{{ entities|length }}</span>
+                    <span class="font-monospace text-secondary fs-6">NODES</span>
+                </div>
+                <div class="font-monospace small text-secondary mt-1">
+                    Target: <code class="text-fhtw-blue">/{{ cse.cse_rn }}</code>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card h-100 shadow-sm border-grid-subtle">
+            <div class="card-body p-3">
+                <div class="font-monospace small text-secondary text-uppercase fw-semibold">
+                    <i class="bi bi-box-seam me-1 text-fhtw-blue"></i>MANAGED CONTAINERS
+                </div>
+                <div class="d-flex align-items-baseline gap-2 mt-1">
+                    {% set total_cnt = namespace(val=0) %}
+                    {% for e in entities %}{% set total_cnt.val = total_cnt.val + e.container_count %}{% endfor %}
+                    <span class="font-heading fw-bold text-fhtw-blue display-6" id="stat-cnt-count">{{ total_cnt.val }}</span>
+                    <span class="font-monospace text-secondary fs-6">&lt;m2m:cnt&gt;</span>
+                </div>
+                <div class="font-monospace small text-secondary mt-1">
+                    Storage TTL: <code class="text-fhtw-green">mia: 86400s (24h)</code>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card h-100 shadow-sm border-grid-subtle">
+            <div class="card-body p-3">
+                <div class="font-monospace small text-secondary text-uppercase fw-semibold">
+                    <i class="bi bi-broadcast me-1 text-fhtw-blue"></i>SUBSCRIPTIONS WIRED
+                </div>
+                <div class="d-flex align-items-baseline gap-2 mt-1">
+                    {% set total_sub = namespace(val=0) %}
+                    {% for e in entities %}{% set total_sub.val = total_sub.val + e.subscription_count %}{% endfor %}
+                    <span class="font-heading fw-bold text-fhtw-blue display-6" id="stat-sub-count">{{ total_sub.val }}</span>
+                    <span class="font-monospace text-secondary fs-6">DISPATCHERS</span>
+                </div>
+                <div class="font-monospace small text-secondary mt-1">
+                    Downlink: <code class="text-fhtw-blue">TS-0010 MQTT</code>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card h-100 shadow-sm border-grid-subtle">
+            <div class="card-body p-3">
+                <div class="font-monospace small text-secondary text-uppercase fw-semibold">
+                    <i class="bi bi-people me-1 text-fhtw-blue"></i>FLEET FAN-OUT GROUP
+                </div>
+                <div class="d-flex align-items-baseline gap-2 mt-1">
+                    <span class="font-heading fw-bold text-fhtw-green display-6">grp_fleet</span>
+                </div>
+                <div class="font-monospace small text-secondary mt-1">
+                    Aggregation: <code class="text-fhtw-blue">/fopt/la active</code>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tabbed Multi-Function Workbench Canvas -->
+<div class="card shadow-sm border-grid-subtle mb-4">
+    <div class="card-header bg-white border-bottom border-grid-subtle p-0">
+        <ul class="nav nav-tabs nav-tabs-fhtw px-3 pt-2" id="aeWorkbenchTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="registry-tab" data-bs-toggle="tab" data-bs-target="#tab-registry" type="button" role="tab">
+                    <i class="bi bi-grid-3x3-gap me-1"></i>1. Entity Registry &amp; Fleet Nodes ({{ entities|length }})
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="deploy-tab" data-bs-toggle="tab" data-bs-target="#tab-deploy" type="button" role="tab">
+                    <i class="bi bi-plus-circle me-1"></i>2. Deploy Additional Application Entity
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="console-tab" data-bs-toggle="tab" data-bs-target="#tab-console" type="button" role="tab">
+                    <i class="bi bi-terminal me-1"></i>3. oneM2M REST API Client Workbench
+                </button>
+            </li>
+        </ul>
+    </div>
+    <div class="card-body p-3 p-lg-4">
+        <div class="tab-content" id="aeWorkbenchTabContent">
+
+            <!-- =============================================================== -->
+            <!-- TAB 1: FLEET ENTITY REGISTRY -->
+            <!-- =============================================================== -->
+            <div class="tab-pane fade show active" id="tab-registry" role="tabpanel">
+                <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+                    <div>
+                        <h2 class="font-heading fw-bold fs-5 text-fhtw-blue m-0">Live Application Entities Registered under /{{ cse.cse_rn }}</h2>
+                        <span class="font-monospace small text-secondary">Verified against ETSI TS 118 101 &lt;m2m:cb&gt; semantic resource hierarchy</span>
+                    </div>
+                    <div>
+                        <button class="btn btn-primary btn-sm font-monospace fw-bold" onclick="switchToDeployTab()">
+                            <i class="bi bi-plus-lg me-1"></i>ONBOARD NEW ENTITY
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Batch Actions Toolbar for Multi-Vehicle Operations -->
+                <div class="batch-toolbar p-2 px-3 mb-3 d-flex flex-wrap align-items-center justify-content-between gap-2 shadow-sm">
+                    <div class="d-flex align-items-center gap-3 font-monospace small">
+                        <div class="form-check m-0">
+                            <input class="form-check-input" type="checkbox" id="selectAllCheckbox" onchange="toggleSelectAllEntities(this.checked)">
+                            <label class="form-check-label fw-bold text-secondary" for="selectAllCheckbox">
+                                SELECT ALL
+                            </label>
+                        </div>
+                        <span class="text-secondary">|</span>
+                        <span class="badge bg-fhtw-blue font-monospace" id="selectedCountBadge">0 VEHICLES SELECTED</span>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <button class="btn btn-outline-success btn-sm font-monospace" id="btnValidateSelected" disabled onclick="validateSelectedEntities()">
+                            <i class="bi bi-shield-check me-1"></i>VALIDATE SELECTED
+                        </button>
+                        <button class="btn btn-danger btn-sm font-monospace fw-bold" id="btnBatchDecommission" disabled onclick="openBatchDecommissionModal()">
+                            <i class="bi bi-trash3 me-1"></i>DECOMMISSION SELECTED (<span id="batchCountLabel">0</span>)
+                        </button>
+                    </div>
+                </div>
+
+                <div id="entities-container" class="row g-3">
+                    {% for entity in entities %}
+                    <div class="col-12 col-xl-6" id="entity-card-{{ entity.rn }}">
+                        <div class="card h-100 shadow-sm border-grid-subtle entity-card" id="card-inner-{{ entity.rn }}">
+                            <div class="card-header bg-white border-bottom border-grid-subtle py-2 px-3 d-flex flex-wrap align-items-center justify-content-between gap-2">
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="form-check m-0">
+                                        <input class="form-check-input entity-checkbox" type="checkbox" value="{{ entity.rn }}"
+                                            id="chk-{{ entity.rn }}" onchange="updateBatchSelectionState()">
+                                    </div>
+                                    <div class="bg-fhtw-blue text-white font-monospace fw-bold px-2 py-0 rounded-1 small">
+                                        AE
+                                    </div>
+                                    <span class="font-monospace fw-bold text-fhtw-blue fs-6">{{ entity.rn }}</span>
+                                </div>
+                                <div class="d-flex align-items-center gap-1">
+                                    {% if entity.in_fleet_group %}
+                                    <span class="badge bg-fhtw-green text-white font-monospace pill-badge">
+                                        <i class="bi bi-check-all me-1"></i>GROUP SYNCED
+                                    </span>
+                                    {% else %}
+                                    <span class="badge bg-warning text-dark font-monospace pill-badge">
+                                        <i class="bi bi-exclamation-circle me-1"></i>UNSYNCED
+                                    </span>
+                                    {% endif %}
+                                    <span class="badge bg-light text-secondary border font-monospace pill-badge">
+                                        {{ entity.container_count }} CONTAINERS
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="card-body p-3">
+                                <div class="row g-2 font-monospace small mb-3">
+                                    <div class="col-6">
+                                        <span class="text-secondary d-block">App-ID:</span>
+                                        <code class="text-fhtw-blue">{{ entity.api }}</code>
+                                    </div>
+                                    <div class="col-6">
+                                        <span class="text-secondary d-block">Originator Credential:</span>
+                                        <code class="text-fhtw-blue">{{ entity.originator }}</code>
+                                    </div>
+                                    <div class="col-12">
+                                        <span class="text-secondary d-block">Semantic Labels:</span>
+                                        <div class="d-flex flex-wrap gap-1 mt-1">
+                                            {% for lbl in entity.labels %}
+                                            <span class="badge bg-light text-dark border font-monospace">{{ lbl }}</span>
+                                            {% else %}
+                                            <span class="text-muted font-monospace small">none</span>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Container Inventory Badges -->
+                                <div class="mb-3">
+                                    <div class="font-monospace small text-secondary fw-semibold mb-1 text-uppercase">
+                                        Provisioned Sensor Containers ({{ entity.container_count }}):
+                                    </div>
+                                    <div class="d-flex flex-wrap gap-1">
+                                        {% for cnt in entity.containers %}
+                                        <span class="badge bg-body-tertiary text-dark border font-monospace" title="Instances: {{ cnt.cni }} | Storage: {{ cnt.cbs }}B | TTL: {{ cnt.mia }}s">
+                                            <i class="bi bi-box me-1 text-fhtw-blue"></i>{{ cnt.rn }}
+                                            {% if cnt.cni > 0 %}<span class="text-success ms-1">({{ cnt.cni }})</span>{% endif %}
+                                        </span>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+
+                                <!-- Subscriptions Inventory -->
+                                <div class="mb-3">
+                                    <div class="font-monospace small text-secondary fw-semibold mb-1 text-uppercase">
+                                        Active Event Subscriptions ({{ entity.subscription_count }}):
+                                    </div>
+                                    <div class="d-flex flex-wrap gap-1">
+                                        {% for sub in entity.subscriptions %}
+                                        <span class="badge bg-light text-dark border font-monospace">
+                                            <i class="bi bi-bell me-1 text-fhtw-green"></i>{{ sub.rn }}
+                                        </span>
+                                        {% else %}
+                                        <span class="text-muted font-monospace small">No active subscriptions detected</span>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+
+                                <!-- Multi-Action Button Bar: Validate, Tree, Test Ingest, Validate & Decommission -->
+                                <div class="border-top border-grid-subtle pt-2 d-flex flex-wrap align-items-center justify-content-between gap-2">
+                                    <div class="btn-group btn-group-sm">
+                                        <button class="btn btn-outline-success font-monospace" onclick="openSingleVehicleValidationModal('{{ entity.rn }}')">
+                                            <i class="bi bi-shield-check me-1"></i>VALIDATE
+                                        </button>
+                                        <button class="btn btn-outline-primary font-monospace" onclick="inspectEntityTree('{{ entity.rn }}')">
+                                            <i class="bi bi-code-slash me-1"></i>TREE (rcn=4)
+                                        </button>
+                                        <button class="btn btn-outline-secondary font-monospace" onclick="openTestTelemetryModal('{{ entity.rn }}')">
+                                            <i class="bi bi-send me-1"></i>TEST INGEST
+                                        </button>
+                                        <button class="btn btn-outline-secondary font-monospace" onclick="populateClientForEntity('{{ entity.rn }}')">
+                                            <i class="bi bi-terminal me-1"></i>CLIENT
+                                        </button>
+                                    </div>
+                                    <button class="btn btn-outline-danger btn-sm font-monospace" onclick="confirmSingleValidateAndDecommission('{{ entity.rn }}')">
+                                        <i class="bi bi-trash3 me-1"></i>VALIDATE &amp; DECOMMISSION
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="col-12">
+                        <div class="alert alert-info font-monospace text-center py-4">
+                            <i class="bi bi-info-circle fs-3 d-block mb-2"></i>
+                            <strong>No Application Entities currently provisioned.</strong><br>
+                            Click <strong>"Deploy Additional Application Entity"</strong> above to onboard your first vehicle node!
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- =============================================================== -->
+            <!-- TAB 2: DEPLOY ADDITIONAL APPLICATION ENTITY -->
+            <!-- =============================================================== -->
+            <div class="tab-pane fade" id="tab-deploy" role="tabpanel">
+                <div class="row g-4">
+                    <!-- Form Column -->
+                    <div class="col-12 col-lg-7">
+                        <div class="border-bottom border-grid-subtle pb-2 mb-3">
+                            <h2 class="font-heading fw-bold fs-5 text-fhtw-blue m-0">Single Vehicle Deployment &amp; Automated Validation Wizard</h2>
+                            <span class="font-monospace small text-secondary">
+                                Conforms to Collection 2 (Single Vehicle Deploy &amp; Validation) and SOP-SDV-ONEM2M-001
+                            </span>
+                        </div>
+
+                        <!-- Quick Template Selection Buttons -->
+                        <div class="mb-3">
+                            <label class="font-monospace small text-secondary fw-semibold text-uppercase d-block mb-1">
+                                Quick Vehicle Preset:
+                            </label>
+                            <div class="btn-group btn-group-sm w-100" role="group">
+                                <button type="button" class="btn btn-outline-secondary font-monospace" onclick="loadVehiclePreset(2)">
+                                    <i class="bi bi-car-front me-1"></i>Vehicle 02 (Car02)
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary font-monospace" onclick="loadVehiclePreset(3)">
+                                    <i class="bi bi-car-front me-1"></i>Vehicle 03 (Car03)
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary font-monospace" onclick="loadVehiclePreset(4)">
+                                    <i class="bi bi-car-front me-1"></i>Vehicle 04 (Car04)
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary font-monospace" onclick="resetFormToCustom()">
+                                    <i class="bi bi-sliders me-1"></i>Custom Node
+                                </button>
+                            </div>
+                        </div>
+
+                        <form id="deployEntityForm" onsubmit="handleDeploySubmit(event)">
+                            <!-- Section 1: Entity Identification -->
+                            <div class="card shadow-sm border-grid-subtle mb-3">
+                                <div class="card-header bg-light py-2 px-3 font-monospace small fw-bold text-uppercase text-secondary">
+                                    <i class="bi bi-1-circle me-1 text-fhtw-blue"></i>Entity Identification &amp; Credentials
+                                </div>
+                                <div class="card-body p-3">
+                                    <div class="row g-3">
+                                        <div class="col-12 col-md-6">
+                                            <label class="form-label font-monospace small text-secondary fw-semibold m-0" for="deploy_ae_rn">
+                                                Application Entity Resource Name (rn) *
+                                            </label>
+                                            <input type="text" class="form-control form-control-sm font-monospace" id="deploy_ae_rn" required
+                                                placeholder="e.g. AE_CabinNode_Car02" value="AE_CabinNode_Car02" oninput="syncIdentityFromRn()">
+                                            <div class="form-text font-monospace small">Target resource path: <code>/{{ cse.cse_rn }}/&lt;rn&gt;</code></div>
+                                        </div>
+                                        <div class="col-12 col-md-6">
+                                            <label class="form-label font-monospace small text-secondary fw-semibold m-0" for="deploy_identity">
+                                                Vehicle Identity / VIN / UUID *
+                                            </label>
+                                            <input type="text" class="form-control form-control-sm font-monospace" id="deploy_identity" required
+                                                placeholder="e.g. VIN-WAUZZZ-SDV-2026-0002" value="VIN-WAUZZZ-SDV-2026-0002">
+                                            <div class="form-text font-monospace small">Stored in oneM2M semantic label: <code>identity:&lt;id&gt;</code></div>
+                                        </div>
+                                        <div class="col-12 col-md-6">
+                                            <label class="form-label font-monospace small text-secondary fw-semibold m-0" for="deploy_api">
+                                                Application ID (api) *
+                                            </label>
+                                            <input type="text" class="form-control form-control-sm font-monospace" id="deploy_api" required
+                                                value="N.org.fhtw.sdv.cabin">
+                                        </div>
+                                        <div class="col-12 col-md-6">
+                                            <label class="form-label font-monospace small text-secondary fw-semibold m-0" for="deploy_originator">
+                                                Assigned Originator Credential *
+                                            </label>
+                                            <input type="text" class="form-control form-control-sm font-monospace" id="deploy_originator" required
+                                                value="C_CabinNode_Car02">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Section 2: Sensor Container Manifest -->
+                            <div class="card shadow-sm border-grid-subtle mb-3">
+                                <div class="card-header bg-light py-2 px-3 font-monospace small fw-bold text-uppercase text-secondary">
+                                    <i class="bi bi-2-circle me-1 text-fhtw-blue"></i>Sensor Container Manifest &amp; Storage Limits
+                                </div>
+                                <div class="card-body p-3">
+                                    <div class="alert alert-secondary p-2 mb-2 font-monospace small">
+                                        <i class="bi bi-check-circle me-1 text-success"></i>
+                                        <strong>Standard 8-Container Manifest:</strong> <code>temperature-cabin</code>, <code>humidity-cabin</code>, <code>co2-cabin</code>, <code>co-cabin</code>, <code>air-quality-cabin</code>, <code>air-quality-exterior</code>, <code>raw-telemetry</code>, <code>commands</code>.
+                                    </div>
+                                    <div class="form-check form-switch mb-2">
+                                        <input class="form-check-input" type="checkbox" id="deploy_include_legacy">
+                                        <label class="form-check-label font-monospace small" for="deploy_include_legacy">
+                                            Include Legacy Compatibility Aliases (<code>cnt_raw_telemetry</code>, <code>cnt_co2</code>, <code>cnt_temperature</code>, <code>cnt_humidity</code>, <code>cnt_data_health</code>, <code>cnt_actuator_commands</code>)
+                                        </label>
+                                    </div>
+                                    <div class="row g-2">
+                                        <div class="col-12 col-md-6">
+                                            <label class="form-label font-monospace small text-secondary m-0" for="deploy_mia">
+                                                Storage TTL / Max Instance Age (mia in seconds):
+                                            </label>
+                                            <input type="number" class="form-control form-control-sm font-monospace" id="deploy_mia" value="86400">
+                                            <div class="form-text font-monospace small">86400s = 24-hour automatic edge memory garbage collection</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Section 3: Subscriptions & Downlink Dispatching -->
+                            <div class="card shadow-sm border-grid-subtle mb-3">
+                                <div class="card-header bg-light py-2 px-3 font-monospace small fw-bold text-uppercase text-secondary">
+                                    <i class="bi bi-3-circle me-1 text-fhtw-blue"></i>Protocol Subscriptions &amp; Actuation Dispatcher
+                                </div>
+                                <div class="card-body p-3 font-monospace small">
+                                    <div class="mb-2">
+                                        <label class="form-label text-secondary fw-semibold m-0" for="deploy_mqtt_downlink">
+                                            Downlink Closed-Loop Actuator URI (TS-0010 MQTT binding):
+                                        </label>
+                                        <input type="text" class="form-control form-control-sm font-monospace" id="deploy_mqtt_downlink"
+                                            value="mqtt://mosquitto:1883/sdv/vehicle_02/control/cmd">
+                                    </div>
+                                    <div class="form-check form-switch mt-2">
+                                        <input class="form-check-input" type="checkbox" id="deploy_sync_group" checked>
+                                        <label class="form-check-label" for="deploy_sync_group">
+                                            Automatically append <code>raw-telemetry</code> to Fleet Group (<code>grp_fleet_telemetry.mid</code>)
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Section 4: Automated Post-Deployment Validation (Collection 2 Automated Routine) -->
+                            <div class="card shadow-sm border-grid-subtle mb-3">
+                                <div class="card-header bg-light py-2 px-3 font-monospace small fw-bold text-uppercase text-secondary">
+                                    <i class="bi bi-4-circle me-1 text-fhtw-green"></i>Post-Deployment Validation Routine (Collection 2)
+                                </div>
+                                <div class="card-body p-3 font-monospace small">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="deploy_auto_validate" checked>
+                                        <label class="form-check-label fw-bold text-fhtw-blue" for="deploy_auto_validate">
+                                            Execute Single Vehicle Validation Routine upon creation
+                                        </label>
+                                    </div>
+                                    <div class="text-secondary mt-1">
+                                        Automatically injects a synchronised multi-sensor telemetry frame (<code>cnf: application/json:0</code>), audits tree compliance against the 8-container manifest (<code>rcn=4</code>), and verifies active <code>/la</code> telemetry state.
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Submit Button -->
+                            <div class="d-grid gap-2">
+                                <button type="submit" class="btn btn-primary btn-lg font-monospace fw-bold py-2 shadow-sm" id="btn-deploy-execute">
+                                    <i class="bi bi-cloud-arrow-up me-2"></i>DEPLOY &amp; VALIDATE APPLICATION ENTITY
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Live Execution Log Column -->
+                    <div class="col-12 col-lg-5">
+                        <div class="border-bottom border-grid-subtle pb-2 mb-3 d-flex align-items-center justify-content-between">
+                            <div>
+                                <h2 class="font-heading fw-bold fs-5 text-fhtw-blue m-0">Deployment Audit Console</h2>
+                                <span class="font-monospace small text-secondary">Real-time stepped HTTP execution trace</span>
+                            </div>
+                            <span class="badge bg-light text-secondary border font-monospace" id="deploy-step-counter">IDLE</span>
+                        </div>
+
+                        <!-- Progress Bar -->
+                        <div class="progress mb-2" style="height: 6px;">
+                            <div class="progress-bar bg-fhtw-green progress-bar-striped progress-bar-animated" id="deploy-progress-bar"
+                                role="progressbar" style="width: 0%;"></div>
+                        </div>
+
+                        <!-- Terminal Output Window -->
+                        <div class="console-terminal" id="deployConsoleOutput">
+                            <div class="console-line">
+                                <span class="console-ts">[00:00:00]</span>
+                                <span class="console-info">Awaiting deployment dispatch trigger. Ready to provision.</span>
+                            </div>
+                        </div>
+
+                        <!-- Post-Deployment Verification Box -->
+                        <div class="card shadow-sm border-grid-subtle mt-3 d-none" id="deploySuccessCard">
+                            <div class="card-body p-3">
+                                <div class="d-flex align-items-center gap-2 mb-2">
+                                    <i class="bi bi-check-circle-fill text-fhtw-green fs-4"></i>
+                                    <div>
+                                        <div class="font-monospace fw-bold text-fhtw-blue fs-6" id="successAeTitle">AE Deployed &amp; Validated</div>
+                                        <span class="font-monospace small text-secondary" id="successAeSubtext">Verified 100% compliant with ETSI TS 118 101</span>
+                                    </div>
+                                </div>
+                                <div class="btn-group btn-group-sm w-100">
+                                    <button class="btn btn-outline-success font-monospace" onclick="openSingleVehicleValidationModal(lastNewlyDeployedAe)">
+                                        <i class="bi bi-shield-check me-1"></i>Validation Report
+                                    </button>
+                                    <button class="btn btn-outline-primary font-monospace" onclick="inspectNewlyDeployedTree()">
+                                        <i class="bi bi-code-slash me-1"></i>Audit Tree
+                                    </button>
+                                    <button class="btn btn-outline-secondary font-monospace" onclick="switchToRegistryTab()">
+                                        <i class="bi bi-arrow-left me-1"></i>Registry
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- =============================================================== -->
+            <!-- TAB 3: oneM2M REST API CLIENT WORKBENCH -->
+            <!-- =============================================================== -->
+            <div class="tab-pane fade" id="tab-console" role="tabpanel">
+                <div class="border-bottom border-grid-subtle pb-2 mb-3 d-flex flex-wrap align-items-center justify-content-between gap-2">
+                    <div>
+                        <h2 class="font-heading fw-bold fs-5 text-fhtw-blue m-0">Interactive oneM2M REST API Client Workbench</h2>
+                        <span class="font-monospace small text-secondary">Direct protocol execution and payload inspection for ETSI TS 118 101 Release 4</span>
+                    </div>
+                    <!-- Quick Request Templates -->
+                    <div class="d-flex align-items-center gap-2">
+                        <label class="font-monospace small text-secondary m-0" for="quickTemplateSelect">Quick Template:</label>
+                        <select class="form-select form-select-sm font-monospace" id="quickTemplateSelect" onchange="applyRequestTemplate(this.value)" style="width: auto;">
+                            <option value="">-- Choose Template --</option>
+                            <option value="disc_ae">Discover All AEs (GET fu=1&amp;ty=2)</option>
+                            <option value="audit_root">Audit Root Hierarchy (GET rcn=4)</option>
+                            <option value="fanout_la">Group Fan-out Latest Telemetry (GET /fopt/la)</option>
+                            <option value="post_ae">Create Application Entity (&lt;m2m:ae&gt; ty=2)</option>
+                            <option value="post_cnt">Create Container (&lt;m2m:cnt&gt; ty=3)</option>
+                            <option value="post_cin">Ingest Telemetry Frame (&lt;m2m:cin&gt; ty=4)</option>
+                            <option value="post_sub">Create Subscription (&lt;m2m:sub&gt; ty=23)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="row g-3">
+                    <!-- Request Builder Column -->
+                    <div class="col-12 col-lg-6">
+                        <div class="card shadow-sm border-grid-subtle h-100">
+                            <div class="card-header bg-white border-bottom border-grid-subtle py-2 px-3 font-monospace small fw-bold text-uppercase text-secondary d-flex align-items-center justify-content-between">
+                                <span><i class="bi bi-box-arrow-up-right me-1 text-fhtw-blue"></i>Request Configuration</span>
+                                <span class="badge bg-light text-secondary border font-monospace">ETSI TS-0009 HTTP</span>
+                            </div>
+                            <div class="card-body p-3">
+                                <!-- Method and Path Bar -->
+                                <div class="input-group mb-2">
+                                    <select class="form-select font-monospace fw-bold text-fhtw-blue" id="client_method" style="max-width: 110px;">
+                                        <option value="GET" selected>GET</option>
+                                        <option value="POST">POST</option>
+                                        <option value="PUT">PUT</option>
+                                        <option value="DELETE">DELETE</option>
+                                    </select>
+                                    <input type="text" class="form-control font-monospace" id="client_path"
+                                        placeholder="e.g. sdv-cse?fu=1&ty=2 or /AE_CabinNode_Car01/raw-telemetry" value="sdv-cse?fu=1&ty=2">
+                                </div>
+
+                                <!-- Quick Path Pill Buttons -->
+                                <div class="mb-3 d-flex flex-wrap gap-1">
+                                    <span class="badge bg-light text-dark border font-monospace" role="button" onclick="setClientPath('sdv-cse')">/sdv-cse</span>
+                                    <span class="badge bg-light text-dark border font-monospace" role="button" onclick="setClientPath('sdv-cse?fu=1&ty=2')">?fu=1&amp;ty=2</span>
+                                    <span class="badge bg-light text-dark border font-monospace" role="button" onclick="setClientPath('sdv-cse?rcn=4')">?rcn=4</span>
+                                    <span class="badge bg-light text-dark border font-monospace" role="button" onclick="setClientPath('sdv-cse/grp_fleet_telemetry')">grp_fleet_telemetry</span>
+                                    <span class="badge bg-light text-dark border font-monospace" role="button" onclick="setClientPath('sdv-cse/grp_fleet_telemetry/fopt/la')">/fopt/la</span>
+                                    <span class="badge bg-light text-dark border font-monospace" role="button" onclick="setClientPath('sdv-cse/AE_CabinNode_Car01/raw-telemetry/la')">Car01 /la</span>
+                                </div>
+
+                                <!-- Protocol Headers -->
+                                <div class="row g-2 mb-3 font-monospace small">
+                                    <div class="col-6">
+                                        <label class="form-label text-secondary m-0" for="client_origin">X-M2M-Origin:</label>
+                                        <input type="text" class="form-control form-control-sm font-monospace" id="client_origin" value="{{ admin_origin }}">
+                                    </div>
+                                    <div class="col-6">
+                                        <label class="form-label text-secondary m-0" for="client_ty">Resource Type (ty):</label>
+                                        <select class="form-select form-select-sm font-monospace" id="client_ty">
+                                            <option value="" selected>None / Autodetect</option>
+                                            <option value="1">1 (AccessControlPolicy)</option>
+                                            <option value="2">2 (ApplicationEntity)</option>
+                                            <option value="3">3 (Container)</option>
+                                            <option value="4">4 (ContentInstance)</option>
+                                            <option value="9">9 (Group)</option>
+                                            <option value="23">23 (Subscription)</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-6">
+                                        <label class="form-label text-secondary m-0" for="client_ri">X-M2M-RI (Request ID):</label>
+                                        <div class="input-group input-group-sm">
+                                            <input type="text" class="form-control font-monospace" id="client_ri" value="req_bench_001">
+                                            <button class="btn btn-outline-secondary" type="button" onclick="refreshRequestId()">
+                                                <i class="bi bi-shuffle"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <label class="form-label text-secondary m-0" for="client_rvi">X-M2M-RVI:</label>
+                                        <input type="text" class="form-control form-control-sm font-monospace" id="client_rvi" value="{{ default_rvi }}">
+                                    </div>
+                                </div>
+
+                                <!-- Request Body Editor -->
+                                <div class="mb-3">
+                                    <div class="d-flex align-items-center justify-content-between mb-1">
+                                        <label class="form-label font-monospace small text-secondary fw-semibold m-0" for="client_body">
+                                            JSON Request Payload:
+                                        </label>
+                                        <button class="btn btn-link btn-sm font-monospace text-decoration-none p-0" type="button" onclick="formatClientJson()">
+                                            <i class="bi bi-text-indent-left me-1"></i>Format JSON
+                                        </button>
+                                    </div>
+                                    <textarea class="form-control font-monospace" id="client_body" rows="9"
+                                        placeholder="Enter JSON payload for POST/PUT requests..."></textarea>
+                                </div>
+
+                                <button type="button" class="btn btn-primary w-100 font-monospace fw-bold" id="btn-send-request" onclick="sendClientRequest()">
+                                    <i class="bi bi-play-circle me-1"></i>EXECUTE oneM2M REQUEST
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Response Inspector Column -->
+                    <div class="col-12 col-lg-6">
+                        <div class="card shadow-sm border-grid-subtle h-100">
+                            <div class="card-header bg-white border-bottom border-grid-subtle py-2 px-3 font-monospace small fw-bold text-uppercase text-secondary d-flex align-items-center justify-content-between">
+                                <span><i class="bi bi-box-arrow-in-down-left me-1 text-fhtw-green"></i>Response Inspector</span>
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="badge bg-secondary font-monospace" id="client_resp_status">HTTP ---</span>
+                                    <span class="badge bg-secondary font-monospace" id="client_resp_rsc">RSC ---</span>
+                                    <span class="badge bg-light text-secondary border font-monospace" id="client_resp_latency">0.0 ms</span>
+                                </div>
+                            </div>
+                            <div class="card-body p-3">
+                                <div class="d-flex align-items-center justify-content-between mb-2">
+                                    <span class="font-monospace small text-secondary" id="client_resp_target_url">Target: <code>none</code></span>
+                                    <button class="btn btn-outline-secondary btn-sm font-monospace py-0 px-2" onclick="copyResponseJson()">
+                                        <i class="bi bi-clipboard me-1"></i>Copy JSON
+                                    </button>
+                                </div>
+                                <pre class="json-inspector m-0" id="client_resp_body">// Response payload will be displayed here upon execution.</pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<!-- ======================================================================= -->
+<!-- MODAL: SINGLE VEHICLE VALIDATION REPORT -->
+<!-- ======================================================================= -->
+<div class="modal fade" id="vehicleValidationModal" tabindex="-1" aria-labelledby="vehicleValidationModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header bg-fhtw-navy text-white py-2 px-3">
+                <h5 class="modal-title font-monospace fs-6" id="vehicleValidationModalLabel">
+                    <i class="bi bi-patch-check me-2 text-fhtw-green"></i>Vehicle Manifest &amp; Operational Validation: <span id="valModalAeName">AE</span>
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-3 bg-light">
+                <!-- Scorecard Summary -->
+                <div class="card shadow-sm border-grid-subtle mb-3">
+                    <div class="card-body p-3 d-flex flex-wrap align-items-center justify-content-between gap-3">
+                        <div>
+                            <span class="font-monospace small text-secondary text-uppercase d-block">Overall Manifest Compliance:</span>
+                            <span class="font-heading fw-bold display-6" id="valModalScore">--%</span>
+                        </div>
+                        <div class="d-flex flex-wrap gap-2">
+                            <span class="badge bg-light text-secondary border font-monospace p-2" id="valModalContainersCount">
+                                <i class="bi bi-box me-1"></i>Containers: --/8
+                            </span>
+                            <span class="badge bg-light text-secondary border font-monospace p-2" id="valModalSubsCount">
+                                <i class="bi bi-bell me-1"></i>Subscriptions: --/3
+                            </span>
+                            <span class="badge bg-light text-secondary border font-monospace p-2" id="valModalGroupBadge">
+                                <i class="bi bi-people me-1"></i>Group Sync: --
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Latest Telemetry Snapshot Frame -->
+                <div class="card shadow-sm border-grid-subtle mb-3">
+                    <div class="card-header bg-white py-2 px-3 font-monospace small fw-bold text-uppercase text-secondary">
+                        <i class="bi bi-activity me-1 text-fhtw-blue"></i>Active Latest Telemetry Frame (/la)
+                    </div>
+                    <div class="card-body p-3">
+                        <div id="valModalTelemetryContent" class="font-monospace small text-secondary">Loading latest frame...</div>
+                    </div>
+                </div>
+
+                <!-- Step-by-Step Checks Audit Table -->
+                <div class="card shadow-sm border-grid-subtle">
+                    <div class="card-header bg-white py-2 px-3 font-monospace small fw-bold text-uppercase text-secondary">
+                        <i class="bi bi-card-checklist me-1 text-fhtw-blue"></i>Compliance Checks Breakdown
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-sm table-striped font-monospace small m-0">
+                                <thead>
+                                    <tr>
+                                        <th>Check Target</th>
+                                        <th>Status</th>
+                                        <th>Audit Details</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="valModalChecksTbody">
+                                    <tr><td colspan="3" class="text-center py-2">Running validation checks...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer py-1 px-3">
+                <button type="button" class="btn btn-secondary btn-sm font-monospace" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ======================================================================= -->
+<!-- MODAL: SINGLE VEHICLE VALIDATE & DECOMMISSION -->
+<!-- ======================================================================= -->
+<div class="modal fade" id="singleValidateDecomModal" tabindex="-1" aria-labelledby="singleValidateDecomModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white py-2 px-3">
+                <h5 class="modal-title font-monospace fs-6" id="singleValidateDecomModalLabel">
+                    <i class="bi bi-shield-x me-2"></i>Single Vehicle Validate &amp; Decommission: <span id="vDecomModalAeName">AE</span>
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-3 font-monospace small">
+                <div class="alert alert-warning p-2 mb-3">
+                    <strong>Standard Lifecycle Procedure (Collection 3):</strong> Pre-retirement state archival, subscription teardown, cascading vehicle removal, 404 absence assertion, and fleet group membership pruning.
+                </div>
+                <div class="console-terminal mb-3" style="max-height: 200px;" id="singleVDecomConsole">
+                    <div class="console-line">
+                        <span class="console-ts">[READY]</span>
+                        <span class="console-info">Click "CONFIRM RETIREMENT &amp; PURGE" below to begin validate-and-decommission routine.</span>
+                    </div>
+                </div>
+                <div id="vDecomArchiveBox" class="card shadow-sm border-grid-subtle d-none">
+                    <div class="card-body p-2 font-monospace small text-secondary">
+                        <span class="text-success fw-bold"><i class="bi bi-check-circle me-1"></i>Pre-Retirement State Successfully Archived!</span>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer py-1 px-3">
+                <button type="button" class="btn btn-secondary btn-sm font-monospace" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger btn-sm font-monospace fw-bold" id="btnExecuteSingleVDecom" onclick="executeSingleValidateAndDecommission()">
+                    <i class="bi bi-trash3 me-1"></i>CONFIRM RETIREMENT &amp; PURGE
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ======================================================================= -->
+<!-- MODAL: BATCH DECOMMISSION (MULTIPLE VEHICLES) -->
+<!-- ======================================================================= -->
+<div class="modal fade" id="batchDecommissionModal" tabindex="-1" aria-labelledby="batchDecommissionModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white py-2 px-3">
+                <h5 class="modal-title font-monospace fs-6" id="batchDecommissionModalLabel">
+                    <i class="bi bi-trash3-fill me-2"></i>Batch Decommission Selected Vehicles (<span id="batchModalCount">0</span>)
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-3 font-monospace small">
+                <p class="text-danger fw-bold mb-2">
+                    <i class="bi bi-exclamation-triangle-fill me-1"></i>CAUTION: You are about to decommission multiple vehicle entities simultaneously!
+                </p>
+                <div class="mb-3">
+                    <span class="text-secondary d-block fw-semibold mb-1">Target Vehicles to be Purged:</span>
+                    <div class="d-flex flex-wrap gap-2" id="batchTargetEntitiesList"></div>
+                </div>
+                <div class="console-terminal mb-3" style="max-height: 220px;" id="batchConsoleOutput">
+                    <div class="console-line">
+                        <span class="console-ts">[BATCH]</span>
+                        <span class="console-info">Awaiting batch confirmation. Will execute cascading purge and group reconciliation in one pass.</span>
+                    </div>
+                </div>
+                <div class="progress mb-2 d-none" id="batchProgressBarBox" style="height: 6px;">
+                    <div class="progress-bar bg-danger progress-bar-striped progress-bar-animated" id="batchProgressBar" style="width: 0%;"></div>
+                </div>
+            </div>
+            <div class="modal-footer py-1 px-3">
+                <button type="button" class="btn btn-secondary btn-sm font-monospace" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger btn-sm font-monospace fw-bold" id="btnConfirmBatchDecom" onclick="executeBatchDecommission()">
+                    <i class="bi bi-trash3-fill me-1"></i>PURGE ALL SELECTED VEHICLES
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ======================================================================= -->
+<!-- MODAL: INSPECT SEMANTIC RESOURCE TREE (rcn=4) -->
+<!-- ======================================================================= -->
+<div class="modal fade" id="treeModal" tabindex="-1" aria-labelledby="treeModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header bg-fhtw-navy text-white py-2 px-3">
+                <h5 class="modal-title font-monospace fs-6" id="treeModalLabel">
+                    <i class="bi bi-diagram-3 me-2 text-fhtw-green"></i>Semantic Resource Tree (rcn=4): <span id="treeModalAeName">AE</span>
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-3 bg-light">
+                <div class="d-flex align-items-center justify-content-between mb-2 font-monospace small">
+                    <span class="text-secondary">ETSI TS 118 101 Release 4 Hierarchical Tree Audit</span>
+                    <button class="btn btn-outline-primary btn-sm font-monospace" onclick="copyModalTreeJson()">
+                        <i class="bi bi-clipboard me-1"></i>COPY JSON TREE
+                    </button>
+                </div>
+                <pre class="json-inspector m-0 bg-white" id="modalTreeContent">// Loading resource tree...</pre>
+            </div>
+            <div class="modal-footer py-1 px-3">
+                <button type="button" class="btn btn-secondary btn-sm font-monospace" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ======================================================================= -->
+<!-- MODAL: TEST TELEMETRY INGESTION -->
+<!-- ======================================================================= -->
+<div class="modal fade" id="telemetryModal" tabindex="-1" aria-labelledby="telemetryModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-fhtw-blue text-white py-2 px-3">
+                <h5 class="modal-title font-monospace fs-6" id="telemetryModalLabel">
+                    <i class="bi bi-send me-2"></i>Test Telemetry Ingestion: <span id="telemetryModalAeName">AE</span>
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-3 font-monospace small">
+                <p class="text-secondary mb-3">
+                    Dispatches a valid multi-hazard telemetry ContentInstance (<code>&lt;m2m:cin&gt;</code>) to <code>raw-telemetry</code>, triggering connected Bridge AE event pipelines.
+                </p>
+                <div class="row g-2">
+                    <div class="col-6">
+                        <label class="form-label text-secondary m-0">SCD30 CO2 (ppm):</label>
+                        <input type="number" class="form-control form-control-sm font-monospace" id="test_co2" value="520.0" step="5">
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label text-secondary m-0">SCD30 Temp (°C):</label>
+                        <input type="number" class="form-control form-control-sm font-monospace" id="test_temp_scd" value="22.4" step="0.1">
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label text-secondary m-0">DHT22 Temp (°C):</label>
+                        <input type="number" class="form-control form-control-sm font-monospace" id="test_temp_dht" value="22.2" step="0.1">
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label text-secondary m-0">Fan PWM (%):</label>
+                        <input type="number" class="form-control form-control-sm font-monospace" id="test_pwm" value="30" min="0" max="100">
+                    </div>
+                </div>
+                <div class="mt-3 p-2 bg-light border rounded small d-none" id="telemetryModalResult"></div>
+            </div>
+            <div class="modal-footer py-1 px-3">
+                <button type="button" class="btn btn-secondary btn-sm font-monospace" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary btn-sm font-monospace fw-bold" onclick="executeTestTelemetryDispatch()">
+                    <i class="bi bi-play-circle me-1"></i>DISPATCH &lt;m2m:cin&gt;
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let activeTelemetryAe = '';
+    let lastNewlyDeployedAe = '';
+    let targetSingleVDecomAe = '';
+
+    // =========================================================================
+    // BATCH SELECTION & MULTI-VEHICLE RETIREMENT
+    // =========================================================================
+    function getSelectedEntityRns() {
+        const checkboxes = document.querySelectorAll('.entity-checkbox:checked');
+        return Array.from(checkboxes).map(cb => cb.value);
+    }
+
+    function updateBatchSelectionState() {
+        const selected = getSelectedEntityRns();
+        const count = selected.length;
+        const total = document.querySelectorAll('.entity-checkbox').length;
+
+        document.getElementById('selectedCountBadge').textContent = `${count} VEHICLES SELECTED`;
+        document.getElementById('batchCountLabel').textContent = `${count}`;
+        document.getElementById('btnBatchDecommission').disabled = count === 0;
+        document.getElementById('btnValidateSelected').disabled = count === 0;
+
+        const selectAllCb = document.getElementById('selectAllCheckbox');
+        if (selectAllCb) {
+            selectAllCb.checked = count === total && total > 0;
+            selectAllCb.indeterminate = count > 0 && count < total;
+        }
+
+        // Highlight selected cards visually
+        document.querySelectorAll('.entity-checkbox').forEach(cb => {
+            const cardEl = document.getElementById(`card-inner-${cb.value}`);
+            if (cardEl) {
+                if (cb.checked) cardEl.classList.add('card-selected');
+                else cardEl.classList.remove('card-selected');
+            }
+        });
+    }
+
+    function toggleSelectAllEntities(checked) {
+        document.querySelectorAll('.entity-checkbox').forEach(cb => {
+            cb.checked = checked;
+        });
+        updateBatchSelectionState();
+    }
+
+    function openBatchDecommissionModal() {
+        const selected = getSelectedEntityRns();
+        if (selected.length === 0) return;
+
+        document.getElementById('batchModalCount').textContent = selected.length;
+        const listDiv = document.getElementById('batchTargetEntitiesList');
+        listDiv.innerHTML = '';
+        selected.forEach(rn => {
+            const badge = document.createElement('span');
+            badge.className = 'badge bg-danger-subtle text-danger border border-danger font-monospace fs-6 px-2 py-1';
+            badge.innerHTML = `<i class="bi bi-car-front me-1"></i>${rn}`;
+            listDiv.appendChild(badge);
+        });
+
+        document.getElementById('batchConsoleOutput').innerHTML = `
+            <div class="console-line">
+                <span class="console-ts">[READY]</span>
+                <span class="console-info">Ready to decommission ${selected.length} vehicle node(s) in a single consolidated pass.</span>
+            </div>
+        `;
+        document.getElementById('batchProgressBarBox').classList.add('d-none');
+        document.getElementById('btnConfirmBatchDecom').disabled = false;
+
+        const modal = new bootstrap.Modal(document.getElementById('batchDecommissionModal'));
+        modal.show();
+    }
+
+    async function executeBatchDecommission() {
+        const selected = getSelectedEntityRns();
+        if (selected.length === 0) return;
+
+        const btn = document.getElementById('btnConfirmBatchDecom');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>PURGING IN BATCH...';
+
+        const pBox = document.getElementById('batchProgressBarBox');
+        const pBar = document.getElementById('batchProgressBar');
+        pBox.classList.remove('d-none');
+        pBar.style.width = '30%';
+
+        const consoleEl = document.getElementById('batchConsoleOutput');
+        consoleEl.innerHTML += `
+            <div class="console-line">
+                <span class="console-ts">[START]</span>
+                <span class="console-info">Dispatching batch decommissioning directive to /api/onem2m/batch-decommission...</span>
+            </div>
+        `;
+
+        try {
+            const resp = await fetch('/api/onem2m/batch-decommission', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ae_rns: selected })
+            });
+            const data = await resp.json();
+            pBar.style.width = '100%';
+
+            if (data.audit_log) {
+                data.audit_log.forEach(item => {
+                    const statusClass = item.status === 'DELETED' || item.status === 'RECONCILED' ? 'console-success' : 'console-warning';
+                    consoleEl.innerHTML += `
+                        <div class="console-line">
+                            <span class="console-ts">[STEP ${item.step}]</span>
+                            <span class="${statusClass}">[${item.status}]</span>
+                            <span>${item.details} (${item.latency_ms}ms)</span>
+                        </div>
+                    `;
+                });
+            }
+
+            consoleEl.innerHTML += `
+                <div class="console-line">
+                    <span class="console-ts">[COMPLETED]</span>
+                    <span class="console-success">Batch operation finished. Successfully purged: ${data.successful_count}/${data.total_requested} vehicles.</span>
+                </div>
+            `;
+            consoleEl.scrollTop = consoleEl.scrollHeight;
+
+            setTimeout(() => location.reload(), 1500);
+        } catch (err) {
+            consoleEl.innerHTML += `
+                <div class="console-line">
+                    <span class="console-ts">[ERROR]</span>
+                    <span class="console-error">Batch request failed: ${err.message}</span>
+                </div>
+            `;
+            btn.disabled = false;
+        }
+    }
+
+    // =========================================================================
+    // SINGLE VEHICLE VALIDATION & RETIREMENT WORKFLOWS
+    // =========================================================================
+    async function openSingleVehicleValidationModal(aeRn) {
+        document.getElementById('valModalAeName').textContent = aeRn;
+        document.getElementById('valModalScore').textContent = '--%';
+        document.getElementById('valModalScore').className = 'font-heading fw-bold display-6 text-secondary';
+        document.getElementById('valModalContainersCount').innerHTML = '<i class="bi bi-box me-1"></i>Containers: --/8';
+        document.getElementById('valModalSubsCount').innerHTML = '<i class="bi bi-bell me-1"></i>Subscriptions: --/3';
+        document.getElementById('valModalGroupBadge').innerHTML = '<i class="bi bi-people me-1"></i>Group Sync: --';
+        document.getElementById('valModalTelemetryContent').innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Running validation checks...';
+        document.getElementById('valModalChecksTbody').innerHTML = '<tr><td colspan="3" class="text-center py-2">Executing ETSI TS 118 101 audit...</td></tr>';
+
+        const modal = new bootstrap.Modal(document.getElementById('vehicleValidationModal'));
+        modal.show();
+
+        try {
+            const resp = await fetch(`/api/onem2m/entities/${aeRn}/validate`);
+            const data = await resp.json();
+
+            const score = data.compliance_score_pct || 0;
+            const scoreEl = document.getElementById('valModalScore');
+            scoreEl.textContent = `${score}%`;
+            scoreEl.className = score >= 85 ? 'font-heading fw-bold display-6 text-fhtw-green' : 'font-heading fw-bold display-6 text-danger';
+
+            document.getElementById('valModalContainersCount').innerHTML = `<i class="bi bi-box me-1"></i>Containers: ${8 - data.missing_containers.length}/8`;
+            document.getElementById('valModalSubsCount').innerHTML = `<i class="bi bi-bell me-1"></i>Subscriptions: ${3 - data.missing_subscriptions.length}/3`;
+            document.getElementById('valModalGroupBadge').innerHTML = data.in_fleet_group ?
+                '<i class="bi bi-people me-1 text-success"></i>Group: SYNCHRONIZED' : '<i class="bi bi-people me-1 text-warning"></i>Group: UNSYNCED';
+
+            if (data.latest_telemetry) {
+                const t = data.latest_telemetry;
+                document.getElementById('valModalTelemetryContent').innerHTML = `
+                    <div class="row g-2">
+                        <div class="col-4"><strong>CO2:</strong> ${t.scd30 ? t.scd30.co2_ppm : '--'} ppm</div>
+                        <div class="col-4"><strong>SCD30 Temp:</strong> ${t.scd30 ? t.scd30.temperature_c : '--'} °C</div>
+                        <div class="col-4"><strong>Fan Duty:</strong> ${t.actuator_state ? t.actuator_state.pwm_duty_pct : '--'}%</div>
+                        <div class="col-12 mt-1 text-muted">Snapshot Timestamp: <code>${t.timestamp_unix_s || '--'}</code></div>
+                    </div>
+                `;
+            } else {
+                document.getElementById('valModalTelemetryContent').innerHTML = '<span class="text-warning"><i class="bi bi-exclamation-triangle me-1"></i>No telemetry instances yet ingested into raw-telemetry.</span>';
+            }
+
+            const tbody = document.getElementById('valModalChecksTbody');
+            tbody.innerHTML = '';
+            if (data.checks) {
+                data.checks.forEach(c => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td><strong>${c.name}</strong></td>
+                        <td>${c.passed ? '<span class="badge bg-fhtw-green font-monospace">PASS</span>' : '<span class="badge bg-danger font-monospace">FAIL</span>'}</td>
+                        <td class="text-secondary">${c.details}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            }
+        } catch (err) {
+            document.getElementById('valModalTelemetryContent').innerHTML = `<span class="text-danger">Validation request failed: ${err.message}</span>`;
+        }
+    }
+
+    async function validateSelectedEntities() {
+        const selected = getSelectedEntityRns();
+        if (selected.length === 0) return;
+        // Open validation for the first selected vehicle
+        openSingleVehicleValidationModal(selected[0]);
+    }
+
+    function confirmSingleValidateAndDecommission(aeRn) {
+        targetSingleVDecomAe = aeRn;
+        document.getElementById('vDecomModalAeName').textContent = aeRn;
+        document.getElementById('vDecomArchiveBox').classList.add('d-none');
+        document.getElementById('btnExecuteSingleVDecom').disabled = false;
+        document.getElementById('singleVDecomConsole').innerHTML = `
+            <div class="console-line">
+                <span class="console-ts">[READY]</span>
+                <span class="console-info">Ready to archive pre-retirement state, tear down subscriptions, and purge /sdv-cse/${aeRn}.</span>
+            </div>
+        `;
+        const modal = new bootstrap.Modal(document.getElementById('singleValidateDecomModal'));
+        modal.show();
+    }
+
+    async function executeSingleValidateAndDecommission() {
+        const btn = document.getElementById('btnExecuteSingleVDecom');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>EXECUTING RETIREMENT...';
+
+        const consoleEl = document.getElementById('singleVDecomConsole');
+        consoleEl.innerHTML += `
+            <div class="console-line">
+                <span class="console-ts">[START]</span>
+                <span class="console-info">Initiating Collection 3 Single Vehicle Validate &amp; Decommission routine...</span>
+            </div>
+        `;
+
+        try {
+            const resp = await fetch(`/api/onem2m/entities/${targetSingleVDecomAe}/validate-and-decommission`, {
+                method: 'POST'
+            });
+            const data = await resp.json();
+
+            if (data.audit_log) {
+                data.audit_log.forEach(item => {
+                    const statusClass = item.status === 'ARCHIVED' || item.status === 'DELETED' || item.status === 'CONFIRMED' || item.status === 'RECONCILED' ? 'console-success' : 'console-warning';
+                    consoleEl.innerHTML += `
+                        <div class="console-line">
+                            <span class="console-ts">[STEP ${item.step}]</span>
+                            <span class="${statusClass}">[${item.status}]</span>
+                            <span>${item.action}: ${item.details} (${item.latency_ms}ms)</span>
+                        </div>
+                    `;
+                });
+            }
+
+            if (resp.status === 200 || data.success) {
+                document.getElementById('vDecomArchiveBox').classList.remove('d-none');
+                consoleEl.innerHTML += `
+                    <div class="console-line">
+                        <span class="console-ts">[CONFIRMED]</span>
+                        <span class="console-success">Vehicle ${targetSingleVDecomAe} successfully validated, archived, and permanently decommissioned!</span>
+                    </div>
+                `;
+                consoleEl.scrollTop = consoleEl.scrollHeight;
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                consoleEl.innerHTML += `
+                    <div class="console-line">
+                        <span class="console-ts">[FAILED]</span>
+                        <span class="console-error">Decommissioning failed: HTTP ${resp.status}</span>
+                    </div>
+                `;
+                btn.disabled = false;
+            }
+        } catch (err) {
+            consoleEl.innerHTML += `
+                <div class="console-line">
+                    <span class="console-ts">[ERROR]</span>
+                    <span class="console-error">Execution error: ${err.message}</span>
+                </div>
+            `;
+            btn.disabled = false;
+        }
+    }
+
+    // =========================================================================
+    // GUIDED DEPLOYMENT SUBMISSION WITH AUTOMATED VALIDATION
+    // =========================================================================
+    function logToDeployConsole(step, status, message, isError = false) {
+        const consoleEl = document.getElementById('deployConsoleOutput');
+        const now = new Date().toTimeString().split(' ')[0];
+        const line = document.createElement('div');
+        line.className = 'console-line';
+        
+        let statusClass = 'console-info';
+        if (status === 'CREATED' || status === 'SYNCHRONIZED' || status === 'UP_TO_DATE' || status === 'PASS') statusClass = 'console-success';
+        else if (status === 'IDEMPOTENT' || status === 'RECONCILED' || status === 'WARNING') statusClass = 'console-warning';
+        else if (isError || status === 'FAILED' || status === 'ERROR') statusClass = 'console-error';
+
+        line.innerHTML = `
+            <span class="console-ts">[${now}]</span>
+            <span class="console-step">${step}</span>
+            <span class="${statusClass}">[${status}]</span>
+            <span>${message}</span>
+        `;
+        consoleEl.appendChild(line);
+        consoleEl.scrollTop = consoleEl.scrollHeight;
+    }
+
+    function clearDeployConsole() {
+        document.getElementById('deployConsoleOutput').innerHTML = '';
+        document.getElementById('deploy-progress-bar').style.width = '0%';
+        document.getElementById('deploySuccessCard').classList.add('d-none');
+    }
+
+    function syncIdentityFromRn() {
+        const rn = document.getElementById('deploy_ae_rn').value.trim();
+        const cleanId = rn.replace(/^AE_CabinNode_/, '').replace(/^AE_/, '');
+        document.getElementById('deploy_originator').value = `C_${rn}`;
+        document.getElementById('deploy_identity').value = `VIN-WAUZZZ-SDV-2026-00${cleanId.replace(/\D/g, '') || '42'}`;
+        document.getElementById('deploy_mqtt_downlink').value = `mqtt://mosquitto:1883/sdv/${rn.toLowerCase()}/control/cmd`;
+    }
+
+    function loadVehiclePreset(num) {
+        const padded = num < 10 ? `0${num}` : `${num}`;
+        document.getElementById('deploy_ae_rn').value = `AE_CabinNode_Car${padded}`;
+        document.getElementById('deploy_identity').value = `VIN-WAUZZZ-SDV-2026-00${padded}`;
+        document.getElementById('deploy_api').value = 'N.org.fhtw.sdv.cabin';
+        document.getElementById('deploy_originator').value = `C_CabinNode_Car${padded}`;
+        document.getElementById('deploy_mqtt_downlink').value = `mqtt://mosquitto:1883/sdv/vehicle_${padded}/control/cmd`;
+    }
+
+    function resetFormToCustom() {
+        document.getElementById('deploy_ae_rn').value = 'AE_CustomSensorNode_01';
+        syncIdentityFromRn();
+    }
+
+    function switchToDeployTab() {
+        const tabEl = document.querySelector('#deploy-tab');
+        const tab = new bootstrap.Tab(tabEl);
+        tab.show();
+    }
+
+    function switchToRegistryTab() {
+        const tabEl = document.querySelector('#registry-tab');
+        const tab = new bootstrap.Tab(tabEl);
+        tab.show();
+    }
+
+    async function handleDeploySubmit(event) {
+        event.preventDefault();
+        const btn = document.getElementById('btn-deploy-execute');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>PROVISIONING ENTITY...';
+
+        clearDeployConsole();
+        const autoValidate = document.getElementById('deploy_auto_validate').checked;
+        logToDeployConsole('INIT', 'START', `Initiating oneM2M Entity Provisioning Pipeline (Auto-Validation: ${autoValidate})...`);
+
+        const payload = {
+            ae_rn: document.getElementById('deploy_ae_rn').value.trim(),
+            vehicle_identity: document.getElementById('deploy_identity').value.trim(),
+            api_id: document.getElementById('deploy_api').value.trim(),
+            originator: document.getElementById('deploy_originator').value.trim(),
+            include_legacy_containers: document.getElementById('deploy_include_legacy').checked,
+            target_mia: parseInt(document.getElementById('deploy_mia').value) || 86400,
+            sync_fleet_group: document.getElementById('deploy_sync_group').checked,
+            downlink_mqtt_uri: document.getElementById('deploy_mqtt_downlink').value.trim()
+        };
+
+        lastNewlyDeployedAe = payload.ae_rn;
+        const targetEndpoint = autoValidate ? '/api/onem2m/deploy-and-validate' : '/api/onem2m/deploy';
+
+        try {
+            const resp = await fetch(targetEndpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            const data = await resp.json();
+            const totalSteps = (data.audit_log && data.audit_log.length) || 1;
+
+            if (data.audit_log) {
+                data.audit_log.forEach((item, idx) => {
+                    const pct = Math.round(((idx + 1) / totalSteps) * 100);
+                    document.getElementById('deploy-progress-bar').style.width = `${pct}%`;
+                    document.getElementById('deploy-step-counter').textContent = `STEP ${idx + 1}/${totalSteps}`;
+                    logToDeployConsole(`STEP ${item.step}`, item.status, `${item.action} on ${item.resource} (HTTP ${item.http_status}, ${item.latency_ms}ms) - ${item.details}`);
+                });
+            }
+
+            if (data.validation_report) {
+                const vr = data.validation_report;
+                logToDeployConsole('VALIDATION', vr.valid ? 'PASS' : 'WARNING', `Validation Report: ${vr.compliance_score_pct}% Compliant (${vr.checks_passed}/${vr.checks_total} checks passed).`);
+            }
+
+            if (resp.status === 201 || data.success) {
+                document.getElementById('deploy-progress-bar').style.width = '100%';
+                document.getElementById('deploy-step-counter').textContent = 'COMPLETED';
+                logToDeployConsole('DONE', 'SYNCHRONIZED', `Successfully deployed and validated ${payload.ae_rn} into live oneM2M hierarchy!`);
+                document.getElementById('successAeTitle').textContent = `${payload.ae_rn} Deployed & Validated`;
+                document.getElementById('deploySuccessCard').classList.remove('d-none');
+            } else {
+                logToDeployConsole('ERROR', 'FAILED', `Deployment failed: ${data.error || 'Check CSE configuration.'}`, true);
+            }
+        } catch (err) {
+            logToDeployConsole('ERROR', 'EXCEPTION', `Network or serialization error: ${err.message}`, true);
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-cloud-arrow-up me-2"></i>DEPLOY &amp; VALIDATE APPLICATION ENTITY';
+        }
+    }
+
+    async function inspectNewlyDeployedTree() {
+        if (lastNewlyDeployedAe) inspectEntityTree(lastNewlyDeployedAe);
+    }
+
+    async function inspectEntityTree(aeRn) {
+        document.getElementById('treeModalAeName').textContent = aeRn;
+        document.getElementById('modalTreeContent').textContent = `// Fetching complete resource tree for /${aeRn} with rcn=4...`;
+        const modal = new bootstrap.Modal(document.getElementById('treeModal'));
+        modal.show();
+
+        try {
+            const resp = await fetch(`/api/onem2m/entities/${aeRn}/tree`);
+            const data = await resp.json();
+            document.getElementById('modalTreeContent').textContent = JSON.stringify(data.tree, null, 2);
+        } catch (err) {
+            document.getElementById('modalTreeContent').textContent = `// Error retrieving resource tree: ${err.message}`;
+        }
+    }
+
+    function copyModalTreeJson() {
+        const text = document.getElementById('modalTreeContent').textContent;
+        navigator.clipboard.writeText(text).then(() => alert('Resource tree JSON copied to clipboard.'));
+    }
+
+    function openTestTelemetryModal(aeRn) {
+        activeTelemetryAe = aeRn;
+        document.getElementById('telemetryModalAeName').textContent = aeRn;
+        document.getElementById('telemetryModalResult').classList.add('d-none');
+        const modal = new bootstrap.Modal(document.getElementById('telemetryModal'));
+        modal.show();
+    }
+
+    async function executeTestTelemetryDispatch() {
+        const resultDiv = document.getElementById('telemetryModalResult');
+        resultDiv.className = 'mt-3 p-2 bg-light border rounded small font-monospace';
+        resultDiv.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Dispatching telemetry...';
+        resultDiv.classList.remove('d-none');
+
+        const payload = {
+            co2_ppm: parseFloat(document.getElementById('test_co2').value),
+            temp_scd30_c: parseFloat(document.getElementById('test_temp_scd').value),
+            temp_dht22_c: parseFloat(document.getElementById('test_temp_dht').value),
+            pwm_duty_pct: parseInt(document.getElementById('test_pwm').value)
+        };
+
+        try {
+            const resp = await fetch(`/api/onem2m/entities/${activeTelemetryAe}/test-telemetry`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await resp.json();
+            if (resp.status === 201 || data.success) {
+                resultDiv.className = 'mt-3 p-2 bg-success-subtle text-success border border-success rounded small font-monospace';
+                resultDiv.innerHTML = `<i class="bi bi-check-circle me-1"></i><strong>HTTP ${data.http_status} (RSC ${data.rsc}):</strong> Ingested into <code>${data.target_url}</code> (${data.latency_ms}ms)`;
+            } else {
+                resultDiv.className = 'mt-3 p-2 bg-danger-subtle text-danger border border-danger rounded small font-monospace';
+                resultDiv.innerHTML = `<i class="bi bi-x-circle me-1"></i>Error: HTTP ${data.http_status} - ${JSON.stringify(data.response)}`;
+            }
+        } catch (err) {
+            resultDiv.className = 'mt-3 p-2 bg-danger-subtle text-danger border border-danger rounded small font-monospace';
+            resultDiv.innerHTML = `Network error: ${err.message}`;
+        }
+    }
+
+    // =========================================================================
+    // oneM2M REST API CLIENT CONSOLE LOGIC
+    // =========================================================================
+    function setClientPath(path) {
+        document.getElementById('client_path').value = path;
+    }
+
+    function refreshRequestId() {
+        document.getElementById('client_ri').value = `req_${Date.now()}`;
+    }
+
+    function populateClientForEntity(aeRn) {
+        document.getElementById('client_method').value = 'GET';
+        document.getElementById('client_path').value = `sdv-cse/${aeRn}?rcn=4`;
+        document.getElementById('client_ty').value = '';
+        document.getElementById('client_body').value = '';
+        const consoleTabEl = document.querySelector('#console-tab');
+        const tab = new bootstrap.Tab(consoleTabEl);
+        tab.show();
+    }
+
+    function applyRequestTemplate(tmpl) {
+        const methodEl = document.getElementById('client_method');
+        const pathEl = document.getElementById('client_path');
+        const tyEl = document.getElementById('client_ty');
+        const bodyEl = document.getElementById('client_body');
+
+        if (tmpl === 'disc_ae') {
+            methodEl.value = 'GET';
+            pathEl.value = 'sdv-cse?fu=1&ty=2';
+            tyEl.value = '';
+            bodyEl.value = '';
+        } else if (tmpl === 'audit_root') {
+            methodEl.value = 'GET';
+            pathEl.value = 'sdv-cse?rcn=4';
+            tyEl.value = '';
+            bodyEl.value = '';
+        } else if (tmpl === 'fanout_la') {
+            methodEl.value = 'GET';
+            pathEl.value = 'sdv-cse/grp_fleet_telemetry/fopt/la';
+            tyEl.value = '';
+            bodyEl.value = '';
+        } else if (tmpl === 'post_ae') {
+            methodEl.value = 'POST';
+            pathEl.value = 'sdv-cse';
+            tyEl.value = '2';
+            bodyEl.value = JSON.stringify({
+                "m2m:ae": {
+                    "rn": "AE_CabinNode_Car03",
+                    "api": "N.org.fhtw.sdv.cabin",
+                    "rr": true,
+                    "srv": ["2a", "3"],
+                    "acpi": ["sdv-cse/acp_fleet_manager"],
+                    "lbl": ["vehicle", "sdv-fleet", "identity:VIN-WAUZZZ-SDV-2026-0003"]
+                }
+            }, null, 2);
+        } else if (tmpl === 'post_cnt') {
+            methodEl.value = 'POST';
+            pathEl.value = 'sdv-cse/AE_CabinNode_Car01';
+            tyEl.value = '3';
+            bodyEl.value = JSON.stringify({
+                "m2m:cnt": {
+                    "rn": "custom-telemetry",
+                    "mni": 1000,
+                    "mbs": 1048576,
+                    "mia": 86400,
+                    "acpi": ["sdv-cse/acp_fleet_manager"],
+                    "lbl": ["sensor", "custom", "AE_CabinNode_Car01"]
+                }
+            }, null, 2);
+        } else if (tmpl === 'post_cin') {
+            methodEl.value = 'POST';
+            pathEl.value = 'sdv-cse/AE_CabinNode_Car01/raw-telemetry';
+            tyEl.value = '4';
+            bodyEl.value = JSON.stringify({
+                "m2m:cin": {
+                    "cnf": "application/json:0",
+                    "con": JSON.stringify({
+                        "car_id": "vehicle_01",
+                        "zone": "cabin_front",
+                        "timestamp_unix_s": Math.floor(Date.now() / 1000),
+                        "scd30": {"co2_ppm": 505.0, "temperature_c": 22.0, "humidity_pct": 45.0},
+                        "dht22": {"temperature_c": 22.1, "humidity_pct": 44.8},
+                        "actuator_state": {"pwm_duty_pct": 30, "tachometer_rpm": 1050, "carrier_freq_hz": 25000}
+                    })
+                }
+            }, null, 2);
+        } else if (tmpl === 'post_sub') {
+            methodEl.value = 'POST';
+            pathEl.value = 'sdv-cse/AE_CabinNode_Car01/commands';
+            tyEl.value = '23';
+            bodyEl.value = JSON.stringify({
+                "m2m:sub": {
+                    "rn": "sub_downlink_dispatcher",
+                    "nu": ["mqtt://mosquitto:1883/sdv/vehicle_01/control/cmd"],
+                    "nct": 1,
+                    "enc": {"net": [3]}
+                }
+            }, null, 2);
+        }
+    }
+
+    function formatClientJson() {
+        const bodyEl = document.getElementById('client_body');
+        try {
+            const parsed = JSON.parse(bodyEl.value);
+            bodyEl.value = JSON.stringify(parsed, null, 2);
+        } catch (e) {
+            alert('Invalid JSON: ' + e.message);
+        }
+    }
+
+    async function sendClientRequest() {
+        const btn = document.getElementById('btn-send-request');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>EXECUTING...';
+
+        const method = document.getElementById('client_method').value;
+        const path = document.getElementById('client_path').value.trim();
+        const originator = document.getElementById('client_origin').value.trim();
+        const ty = document.getElementById('client_ty').value;
+        const ri = document.getElementById('client_ri').value.trim();
+        const rvi = document.getElementById('client_rvi').value.trim();
+        const body = document.getElementById('client_body').value.trim();
+
+        try {
+            const resp = await fetch('/api/onem2m/request', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    method: method,
+                    path: path,
+                    originator: originator,
+                    resource_type: ty ? parseInt(ty) : null,
+                    request_id: ri,
+                    rvi: rvi,
+                    body: body || null
+                })
+            });
+
+            const data = await resp.json();
+            const statusEl = document.getElementById('client_resp_status');
+            const rscEl = document.getElementById('client_resp_rsc');
+            const latencyEl = document.getElementById('client_resp_latency');
+            const targetEl = document.getElementById('client_resp_target_url');
+            const bodyOutput = document.getElementById('client_resp_body');
+
+            statusEl.textContent = `HTTP ${data.status}`;
+            statusEl.className = data.status >= 200 && data.status < 300 ? 'badge bg-fhtw-green text-white font-monospace' : 'badge bg-danger text-white font-monospace';
+
+            rscEl.textContent = data.rsc_description || (data.rsc ? `RSC ${data.rsc}` : 'RSC ---');
+            rscEl.className = data.rsc === '2000' || data.rsc === '2001' ? 'badge bg-fhtw-blue text-white font-monospace' : 'badge bg-secondary font-monospace';
+
+            latencyEl.textContent = `${data.latency_ms} ms`;
+            targetEl.innerHTML = `Target: <code>${data.target_url}</code>`;
+            bodyOutput.textContent = JSON.stringify(data.response_body, null, 2);
+
+            refreshRequestId();
+        } catch (err) {
+            document.getElementById('client_resp_body').textContent = `// Error executing request: ${err.message}`;
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-play-circle me-1"></i>EXECUTE oneM2M REQUEST';
+        }
+    }
+
+    function copyResponseJson() {
+        const text = document.getElementById('client_resp_body').textContent;
+        navigator.clipboard.writeText(text).then(() => alert('Response JSON copied to clipboard.'));
+    }
+
+    function refreshEntityData() {
+        location.reload();
+    }
+</script>
+{% endblock %}

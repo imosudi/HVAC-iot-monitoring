@@ -237,7 +237,7 @@ SDV_Expandable_Fleet_ACME_CSE_SOP.md
 ACME_CSE_Collection_Optimisation_Specification.md
 generate_pdf_report.py
 
-# Generated Insomnia Sub-Collections (subsets of acme_fleet_insomnia_collection.yaml)
+# Insomnia Sub-Collections (subsets of acme_fleet_insomnia_collection.yaml)
 collections/environment_base_cse_collection.yaml
 collections/environment_base_cse_collections.yaml
 collections/single_vehicle_deploy_validation_collection.yaml

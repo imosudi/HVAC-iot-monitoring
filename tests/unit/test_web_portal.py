@@ -96,3 +96,89 @@ class TestWebPortalApplication:
             "target_pwm": 150
         })
         assert invalid_resp.status_code == 400
+
+    def test_entities_route_renders_successfully(self, client):
+        """Verifies that the /entities Application Entity management view renders successfully."""
+        response = client.get("/entities")
+        assert response.status_code == 200
+        content = response.data.decode("utf-8")
+        assert "oneM2M Entity Provisioner" in content
+        assert "Single Vehicle Deployment" in content
+        assert "Interactive oneM2M REST API Client Workbench" in content
+        assert "APPLICATION ENTITIES &amp; API CLIENT" in content
+
+    def test_api_onem2m_status_endpoint(self, client):
+        """Verifies the oneM2M CSE status probe endpoint."""
+        response = client.get("/api/onem2m/status")
+        assert response.status_code == 200
+        data = response.get_json()
+        assert "base_url" in data
+        assert "connected" in data
+
+    def test_api_onem2m_entities_endpoint(self, client):
+        """Verifies that the entities list endpoint returns registered AEs."""
+        response = client.get("/api/onem2m/entities")
+        assert response.status_code == 200
+        data = response.get_json()
+        assert data["status"] == "SUCCESS"
+        assert isinstance(data["entities"], list)
+
+    def test_api_onem2m_deploy_validates_input(self, client):
+        """Verifies validation on the AE deployment endpoint."""
+        # Missing ae_rn
+        response = client.post("/api/onem2m/deploy", json={})
+        assert response.status_code == 400
+        data = response.get_json()
+        assert "error" in data
+
+    def test_api_onem2m_request_proxy_endpoint(self, client):
+        """Verifies the generic oneM2M REST API client proxy endpoint."""
+        # Missing path
+        bad_response = client.post("/api/onem2m/request", json={})
+        assert bad_response.status_code == 400
+
+        # Valid GET request proxy
+        response = client.post("/api/onem2m/request", json={
+            "method": "GET",
+            "path": "sdv-cse"
+        })
+        assert response.status_code == 200
+        data = response.get_json()
+        assert "status" in data
+        assert "latency_ms" in data
+        assert "target_url" in data
+
+    def test_api_onem2m_validate_endpoint(self, client):
+        """Verifies the single vehicle validation endpoint against an existing or non-existent entity."""
+        # Non-existent vehicle
+        resp_404 = client.get("/api/onem2m/entities/NonExistent_Vehicle_999/validate")
+        assert resp_404.status_code == 200
+        data_404 = resp_404.get_json()
+        assert data_404["valid"] is False
+        assert "checks" in data_404
+
+        # Existing vehicle AE_CabinNode_Car01
+        resp = client.get("/api/onem2m/entities/AE_CabinNode_Car01/validate")
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert "compliance_score_pct" in data
+        assert "checks" in data
+        assert "checks_passed" in data
+
+    def test_api_onem2m_deploy_and_validate_validates_input(self, client):
+        """Verifies input validation on the deploy-and-validate endpoint."""
+        response = client.post("/api/onem2m/deploy-and-validate", json={})
+        assert response.status_code == 400
+        data = response.get_json()
+        assert "error" in data
+
+    def test_api_onem2m_batch_decommission_validates_input(self, client):
+        """Verifies validation on batch decommissioning with empty or missing list."""
+        # Empty payload
+        resp_empty = client.post("/api/onem2m/batch-decommission", json={})
+        assert resp_empty.status_code == 400
+
+        # Empty list
+        resp_empty_list = client.post("/api/onem2m/batch-decommission", json={"ae_rns": []})
+        assert resp_empty_list.status_code == 400
+
