@@ -97,7 +97,7 @@
                 <span class="font-heading fw-bold text-fhtw-blue fs-6">
                     <i class="bi bi-sliders2 text-fhtw-blue me-2"></i>DOWNLINK ACTUATION CONTROLLER
                 </span>
-                <span class="font-monospace small text-secondary">[REST &rarr; oneM2M &rarr; Node-RED &rarr; MQTT]</span>
+                <span class="font-monospace small text-secondary">[REST &rarr; oneM2M &rarr; Native MQTT]</span>
             </div>
             <div class="card-body p-3">
                 <form id="actuationForm" onsubmit="event.preventDefault(); dispatchActuation();">
@@ -174,10 +174,10 @@
                     </div>
                     <div class="list-group-item bg-transparent border-grid-subtle px-0 py-2 d-flex justify-content-between align-items-center">
                         <div>
-                            <span class="text-fhtw-blue fw-semibold">02_INGRESS_IPE:</span>
-                            <span class="text-secondary ms-2">Node-RED validates &amp; wraps &lt;cin&gt;</span>
+                            <span class="text-fhtw-blue fw-semibold">02_NATIVE_INGRESS:</span>
+                            <span class="text-secondary ms-2">oneM2M TS-0010 MQTT binding</span>
                         </div>
-                        <span class="badge bg-fhtw-blue text-white">HTTP 201</span>
+                        <span class="badge bg-fhtw-blue text-white">RSC 2001</span>
                     </div>
                     <div class="list-group-item bg-transparent border-grid-subtle px-0 py-2 d-flex justify-content-between align-items-center">
                         <div>

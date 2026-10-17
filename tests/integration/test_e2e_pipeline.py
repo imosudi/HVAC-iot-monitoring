@@ -251,5 +251,19 @@ class TestEndToEndPipeline:
         assert "mqtt://mosquitto:1883/sdv/vehicle_01/control/cmd" in content
         assert "http://nodered_ipe:1880/downlink" not in content
 
+    def test_nodered_ipe_service_decommissioned_from_mesh(self):
+        """Verifies that Node-RED IPE service and volume are purged from docker-compose.yml."""
+        compose_path = Path(__file__).resolve().parent.parent.parent / "deploy" / "docker-compose.yml"
+        with open(compose_path, "r", encoding="utf-8") as f:
+            content = f.read()
+
+        assert "nodered_ipe" not in content
+        assert "nodered_data" not in content
+        assert "1880:1880" not in content
+        assert "sdv_nodered_ipe" not in content
+        for required_service in ["mosquitto:", "onem2m_cse:", "bridge_ae:", "influxdb:", "grafana:", "web_portal:"]:
+            assert required_service in content
+
+
 
 

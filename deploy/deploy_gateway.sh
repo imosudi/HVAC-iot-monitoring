@@ -58,7 +58,7 @@ else
 fi
 
 ${COMPOSE_CMD} build
-${COMPOSE_CMD} up -d
+${COMPOSE_CMD} up -d --remove-orphans
 
 echo "[STEP 4/4] Initialising oneM2M semantic resource hierarchy..."
 echo "[INFO] Awaiting ACME CSEBase HTTP readiness on port 8080 (/sdv-cse)..."

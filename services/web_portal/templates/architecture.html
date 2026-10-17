@@ -89,7 +89,7 @@
                         <li><strong class="text-dark">Entity:</strong> ACME IN-CSE</li>
                         <li><strong class="text-dark">Base:</strong> /sdv-cse</li>
                         <li><strong class="text-dark">AE:</strong> AE_CabinNode_Car01</li>
-                        <li><strong class="text-dark">Bridge IPE:</strong> Node-RED Ingress</li>
+                        <li><strong class="text-dark">Ingress Route:</strong> Native TS-0010 MQTT (Port 1883/8883)</li>
                         <li><strong class="text-dark">Primitive:</strong> m2m:cin (JSON:0)</li>
                     </ul>
                 </div>
@@ -129,7 +129,7 @@
                         <li><strong class="text-dark">Decision:</strong> Grafana / Edge Engine</li>
                         <li><strong class="text-dark">Purge Mode:</strong> 75% at CO2 &ge; 800ppm</li>
                         <li><strong class="text-dark">Target Cnt:</strong> cnt_actuator_commands</li>
-                        <li><strong class="text-dark">Webhook:</strong> Node-RED /downlink</li>
+                        <li><strong class="text-dark">Notification URI:</strong> Native TS-0010 MQTT (nu: mqtt://...)</li>
                         <li><strong class="text-dark">Egress:</strong> MQTT QoS 1 Directive</li>
                     </ul>
                 </div>
@@ -173,7 +173,7 @@
                 <span class="font-heading fw-bold text-fhtw-blue fs-6">
                     <i class="bi bi-boxes text-fhtw-blue me-2"></i>CONTAINER MICROSERVICE MESH
                 </span>
-                <span class="badge bg-fhtw-green text-white font-monospace">7 SERVICES UP</span>
+                <span class="badge bg-fhtw-green text-white font-monospace">6 SERVICES ACTIVE</span>
             </div>
             <div class="card-body p-3 font-monospace small">
                 <table class="table table-hover table-sm border-grid-subtle mb-0 align-middle">
@@ -198,11 +198,11 @@
                             <td>8080</td>
                             <td>Semantic Resource Tree</td>
                         </tr>
-                        <tr>
-                            <td class="text-fhtw-blue fw-semibold">Node-RED</td>
-                            <td>sdv_nodered_ipe</td>
-                            <td>1880</td>
-                            <td>Ingress/Egress IPE</td>
+                        <tr class="table-light text-muted opacity-75">
+                            <td class="text-secondary fw-semibold"><del>Node-RED</del> <span class="badge bg-secondary ms-1">Decommissioned</span></td>
+                            <td><del>sdv_nodered_ipe</del></td>
+                            <td><del>1880</del></td>
+                            <td><span class="badge bg-light text-secondary border">Retired (Consolidated TS-0010)</span></td>
                         </tr>
                         <tr>
                             <td class="text-fhtw-blue fw-semibold">Bridge AE</td>

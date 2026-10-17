@@ -9,7 +9,6 @@ volumes:
   mosquitto_data:
   influxdb_data:
   grafana_data:
-  nodered_data:
 
 services:
   # ----------------------------------------------------------------------------
@@ -48,25 +47,6 @@ services:
       - ./onem2m/acme.ini:/data/acme.ini:ro
     depends_on:
       - mosquitto
-    networks:
-      - mec_mesh
-
-  # ----------------------------------------------------------------------------
-  # Ingress Interworking Tier: Node-RED Ingress IPE
-  # ----------------------------------------------------------------------------
-  nodered_ipe:
-    image: nodered/node-red:latest
-    container_name: sdv_nodered_ipe
-    restart: unless-stopped
-    ports:
-      - "1880:1880"
-    volumes:
-      - ./nodered/flows.json:/data/flows.json:ro
-      - ./mosquitto/certs:/data/certs:ro
-      - nodered_data:/data
-    depends_on:
-      - mosquitto
-      - onem2m_cse
     networks:
       - mec_mesh
 
