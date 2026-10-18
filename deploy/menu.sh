@@ -341,25 +341,12 @@ action_systemd_management() {
 # ------------------------------------------------------------------------------
 action_diagnostics() {
     echo -e "\n${CYAN}===> Pre-Flight Hardware & Network Diagnostics Check${RESET}"
-    echo -e "${GRAY}Probes host hardware, Edge AI devices, TCP endpoints, and SSH key authentication.${RESET}\n"
+    echo -e "${GRAY}Probes host hardware, sensor buses, peripheral interfaces, TCP endpoints, and SSH key authentication.${RESET}\n"
 
-    # 1. Edge AI / Hardware Diagnostics
-    echo -e "${BOLD}[1/4] Edge AI Hardware & Peripheral Bus Discovery:${RESET}"
-    if command -v lspci >/dev/null 2>&1; then
-        local hailo_pci
-        hailo_pci=$(lspci | grep -i hailo || true)
-        if [ -n "${hailo_pci}" ]; then
-            echo -e "  [OK] Hailo PCIe Edge AI Processor detected: ${GREEN}${hailo_pci}${RESET}"
-        else
-            echo -e "  [INFO] No Hailo PCIe processor found on local bus (Standard x86/ARM host)."
-        fi
-    fi
+    # 1. Peripheral & Transducer Bus Diagnostics
+    echo -e "${BOLD}[1/4] Hardware Peripheral & Transducer Bus Discovery:${RESET}"
 
-    if [ -e "/dev/hailo0" ]; then
-        echo -e "  [OK] Hailo NPU character device active: ${GREEN}/dev/hailo0${RESET}"
-    fi
-
-    # V4L2 Video Devices
+    # V4L2 Video Devices (Cabin camera / monitoring)
     local v4l2_devs
     v4l2_devs=$(ls -1 /dev/video* 2>/dev/null || true)
     if [ -n "${v4l2_devs}" ]; then
@@ -368,13 +355,27 @@ action_diagnostics() {
         echo -e "  [INFO] No V4L2 video devices attached locally."
     fi
 
-    # Serial / UART Transducer Bus
+    # Serial / UART Transducer Bus (Micro-ECU / ESP32 sensor telemetry)
     local serial_devs
-    serial_devs=$(ls -1 /dev/ttyUSB* /dev/ttyACM* 2>/dev/null || true)
+    serial_devs=$(ls -1 /dev/ttyUSB* /dev/ttyACM* /dev/ttyAMA* 2>/dev/null || true)
     if [ -n "${serial_devs}" ]; then
         echo -e "  [OK] Serial Transducer / Micro-ECU interfaces found: $(echo "${serial_devs}" | tr '\n' ' ')"
     else
         echo -e "  [INFO] Zero USB/UART serial interfaces detected locally (simulation/native mode)."
+    fi
+
+    # I2C Environmental Sensor Bus (SCD40 CO2, SHT40 Temperature/Humidity, etc.)
+    local i2c_devs
+    i2c_devs=$(ls -1 /dev/i2c-* 2>/dev/null || true)
+    if [ -n "${i2c_devs}" ]; then
+        echo -e "  [OK] I2C Sensor Bus interfaces active: $(echo "${i2c_devs}" | tr '\n' ' ')"
+    fi
+
+    # Automotive CAN Bus / SocketCAN Interfaces
+    local can_devs
+    can_devs=$(ip link show type can 2>/dev/null | grep -oE 'can[0-9]+' || true)
+    if [ -n "${can_devs}" ]; then
+        echo -e "  [OK] Automotive SocketCAN interfaces active: $(echo "${can_devs}" | tr '\n' ' ')"
     fi
 
     # 2. Local Cryptographic Assets
@@ -559,7 +560,7 @@ main() {
         echo -e "  ${CYAN}[3]${RESET} Standalone Vehicle Application Entity (Raspberry Pi 5 AE Onboarding to Base CSE)"
         echo -e "  ${CYAN}[4]${RESET} Complete Localhost Development Stack (Local Base CSE + InfluxDB + Grafana + Web Portal)"
         echo -e "  ${CYAN}[5]${RESET} systemd Host Service Management (Install, Status, Logs, Restart)"
-        echo -e "  ${CYAN}[6]${RESET} Pre-flight Hardware Diagnostics Check (Hailo PCIe, V4L2, sysfs, TCP, SSH)"
+        echo -e "  ${CYAN}[6]${RESET} Pre-flight Hardware Diagnostics Check (V4L2, Serial/UART, sysfs, TCP, SSH)"
         echo -e "  ${CYAN}[7]${RESET} Telemetry Ingestion & Simulation Pipeline (mTLS 1.3, Native TS-0010 MQTT, Fan-Out)"
         echo -e "  ${CYAN}[8]${RESET} Display Least-Privilege Service Comparison Matrix"
         echo -e "  ${RED}[0]${RESET} Exit\n"
