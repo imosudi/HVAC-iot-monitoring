@@ -2,14 +2,13 @@
 """
 Publication-Grade PDF Generator for Foundational Documents
 Software-Defined Vehicle (SDV) Cabin Environmental Monitoring & Automotive IoT Middleware
-FH Technikum Wien | Department of Electronic Engineering & Automotive Computing
-Research Cluster: Distributed Cyber-Physical Systems and Automotive IoT (FHTW-AIOT)
+Technical Engineering Reference & Specification Compilation Suite
 
 Transforms Markdown specifications into publication-grade A4 PDF documents using
-Python-Markdown and headless Google Chrome.
+Python-Markdown and headless Google Chrome, free from external institutional sanction
+headers or university logos.
 """
 
-import base64
 import os
 import re
 import subprocess
@@ -19,16 +18,9 @@ import markdown
 BASE_DIR = "/home/mosud/Documents/dev/HVAC-iot-monitoring"
 FOUNDATIONAL_DIR = os.path.join(BASE_DIR, "foundational_document")
 SCRATCH_DIR = "/home/mosud/.gemini/antigravity-ide/brain/7055d389-5e73-4385-aad0-2e13a4535482/scratch"
-LOGO_PATH = os.path.join(BASE_DIR, "docs/assets/fhtw_logo.jpg")
 
 os.makedirs(SCRATCH_DIR, exist_ok=True)
 os.makedirs(FOUNDATIONAL_DIR, exist_ok=True)
-
-# Read logo as base64
-logo_b64 = ""
-if os.path.exists(LOGO_PATH):
-    with open(LOGO_PATH, "rb") as f:
-        logo_b64 = base64.b64encode(f.read()).decode("utf-8")
 
 
 def convert_github_alerts(md_text: str) -> str:
@@ -109,10 +101,51 @@ def clean_latex_math(text: str) -> str:
     return text
 
 
-def build_html_document(title: str, doc_id: str, doc_status: str, html_body: str) -> str:
-    """Wraps body in publication-grade institutional styling with repeating table headers."""
-    logo_img = f'<img src="data:image/jpeg;base64,{logo_b64}" class="logo" alt="FHTW Logo">' if logo_b64 else ''
+def strip_institutional_sanctions(text: str) -> str:
+    """
+    Strips institutional affiliations, department sanctions, addresses, and university logos
+    to ensure documents are presented purely as independent technical engineering specifications.
+    """
+    lines = text.split("\n")
+    filtered_lines = []
 
+    for line in lines:
+        # Filter out university/department branding headers
+        if "FH TECHNIKUM WIEN" in line or "TECHNIKUM WIEN" in line:
+            continue
+        if "DEPARTMENT OF ELECTRONIC ENGINEERING" in line or "Department of Electronic Engineering" in line:
+            continue
+        if "Research Cluster:" in line and ("Automotive IoT" in line or "Distributed Cyber-Physical" in line):
+            continue
+        if re.match(r"^\s*\*\*(?:Academic\s+)?Affiliation:\*\*\s+.*(?:Technikum|University).*", line, re.I):
+            continue
+        if re.match(r"^\s*\*\*Research Cluster:\*\*\s+.*", line, re.I):
+            continue
+        if "technikum-wien.at" in line:
+            continue
+        if "Höchstädtplatz" in line:
+            continue
+        if "Automotive IoT Research Cluster at the University" in line:
+            continue
+        if line.strip().startswith("**Academic Institution:**"):
+            continue
+
+        filtered_lines.append(line)
+
+    sanitized = "\n".join(filtered_lines)
+
+    # Replace document ID prefix FHTW-SDV with SDV
+    sanitized = re.sub(r"\bFHTW-SDV-", "SDV-", sanitized)
+
+    # Replace FHTW AIOT Root CA with SDV Automotive Root CA
+    sanitized = sanitized.replace("FHTW AIOT Root CA", "SDV Automotive Edge Root CA")
+    sanitized = sanitized.replace("FHTW-AIOT", "SDV-AIOT")
+
+    return sanitized
+
+
+def build_html_document(title: str, doc_id: str, doc_status: str, html_body: str) -> str:
+    """Wraps body in clean, publication-grade technical engineering styling."""
     return f"""<!DOCTYPE html>
 <html lang="en-GB">
 <head>
@@ -121,10 +154,10 @@ def build_html_document(title: str, doc_id: str, doc_status: str, html_body: str
 <style>
   @page {{
     size: A4 portrait;
-    margin: 12mm 14mm 12mm 14mm;
+    margin: 14mm 15mm 14mm 15mm;
     @top-right {{
       content: "{doc_id}";
-      font-size: 7pt;
+      font-size: 7.2pt;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       color: #64748b;
     }}
@@ -147,57 +180,41 @@ def build_html_document(title: str, doc_id: str, doc_status: str, html_body: str
     color: #1e293b;
     background-color: #ffffff;
     font-size: 8.5pt;
-    line-height: 1.42;
+    line-height: 1.45;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }}
 
-  /* Top institutional banner */
-  .inst-header {{
+  /* Clean engineering project header (no university/department branding) */
+  .project-header {{
     width: 100%;
-    border-bottom: 2px solid #004080;
-    padding-bottom: 6px;
-    margin-bottom: 10px;
+    border-bottom: 2px solid #0284c7;
+    padding-bottom: 5px;
+    margin-bottom: 11px;
     display: flex;
     justify-content: space-between;
     align-items: center;
   }}
 
-  .inst-left {{
-    flex: 1;
-  }}
-
-  .inst-right {{
-    width: 140px;
-    text-align: right;
-  }}
-
-  .logo {{
-    max-height: 38px;
-    width: auto;
-  }}
-
-  .inst-cluster {{
-    font-size: 7.2pt;
+  .project-title-bar {{
+    font-size: 7.5pt;
     font-weight: 700;
-    color: #0284c7;
+    color: #0369a1;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
-    margin-bottom: 2px;
+    letter-spacing: 0.04em;
   }}
 
-  .inst-dept {{
+  .spec-bar {{
     font-size: 7.2pt;
     color: #475569;
-    line-height: 1.3;
   }}
 
   .doc-hero {{
     background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
     color: #ffffff;
-    padding: 10px 14px;
+    padding: 11px 15px;
     border-radius: 6px;
-    margin-bottom: 12px;
+    margin-bottom: 13px;
     border-left: 4px solid #0284c7;
   }}
 
@@ -206,16 +223,16 @@ def build_html_document(title: str, doc_id: str, doc_status: str, html_body: str
     font-weight: 800;
     color: #ffffff;
     line-height: 1.25;
-    margin-bottom: 3px;
+    margin-bottom: 4px;
   }}
 
   .doc-hero .doc-meta-row {{
     display: flex;
     flex-wrap: wrap;
-    gap: 12px;
+    gap: 14px;
     font-size: 7.2pt;
     color: #94a3b8;
-    margin-top: 5px;
+    margin-top: 6px;
     border-top: 1px solid #334155;
     padding-top: 5px;
   }}
@@ -228,8 +245,8 @@ def build_html_document(title: str, doc_id: str, doc_status: str, html_body: str
   h1 {{
     font-size: 12.5pt;
     font-weight: 800;
-    color: #004080;
-    margin-top: 12px;
+    color: #0f172a;
+    margin-top: 13px;
     margin-bottom: 6px;
     page-break-after: avoid;
   }}
@@ -433,14 +450,9 @@ def build_html_document(title: str, doc_id: str, doc_status: str, html_body: str
 </head>
 <body>
 
-<div class="inst-header">
-  <div class="inst-left">
-    <div class="inst-cluster">FH Technikum Wien &bull; Research Cluster Distributed Cyber-Physical Systems &amp; Automotive IoT</div>
-    <div class="inst-dept">Department of Electronic Engineering &amp; Automotive Computing &bull; Standard Conformance: ETSI TS 118 101 Rel 4</div>
-  </div>
-  <div class="inst-right">
-    {logo_img}
-  </div>
+<div class="project-header">
+  <div class="project-title-bar">Software-Defined Vehicle (SDV) &bull; Edge Middleware Engineering</div>
+  <div class="spec-bar">Standard Conformance: ETSI TS 118 101 Rel 4 / oneM2M Rel 4</div>
 </div>
 
 <div class="doc-hero">
@@ -456,9 +468,9 @@ def build_html_document(title: str, doc_id: str, doc_status: str, html_body: str
 {html_body}
 
 <div class="running-footer">
-  <div>{doc_id} &bull; Canonical Technical Reference</div>
-  <div>Software-Defined Vehicle (SDV) IoT HVAC Monitoring &bull; FH Technikum Wien</div>
-  <div>Classification: Technical Specification &bull; Open Academic Standard</div>
+  <div>{doc_id} &bull; Technical Specification</div>
+  <div>Software-Defined Vehicle (SDV) IoT HVAC &amp; Edge Middleware</div>
+  <div>Open Technical Reference</div>
 </div>
 
 </body>
@@ -483,8 +495,9 @@ def compile_md_to_pdf(input_md_path: str, output_pdf_path: str, doc_id: str, doc
     if title_match:
         md_content = md_content[:title_match.start()] + md_content[title_match.end():]
 
-    # Pre-process alerts and LaTeX math
-    processed_md = clean_latex_math(md_content)
+    # Pre-process: strip institutional sanctions, LaTeX math, and alerts
+    processed_md = strip_institutional_sanctions(md_content)
+    processed_md = clean_latex_math(processed_md)
     processed_md = convert_github_alerts(processed_md)
 
     # Convert markdown to HTML
@@ -529,7 +542,7 @@ def compile_md_to_pdf(input_md_path: str, output_pdf_path: str, doc_id: str, doc
 def main():
     print("=" * 80)
     print("  FOUNDATIONAL DOCUMENTS: PUBLICATION-GRADE PDF COMPILATION SUITE")
-    print("  FH Technikum Wien | Automotive IoT & Software-Defined Vehicles")
+    print("  Software-Defined Vehicle (SDV) Automotive IoT Edge Middleware")
     print("=" * 80)
 
     documents = [
@@ -542,37 +555,37 @@ def main():
         {
             "md": os.path.join(FOUNDATIONAL_DIR, "system_architecture_and_pipeline_specification.md"),
             "pdf": os.path.join(FOUNDATIONAL_DIR, "system_architecture_and_pipeline_specification.pdf"),
-            "doc_id": "FHTW-SDV-ARCH-005",
+            "doc_id": "SDV-ARCH-005",
             "status": "Approved Engineering Specification"
         },
         {
             "md": os.path.join(FOUNDATIONAL_DIR, "security_pki_and_data_health_specification.md"),
             "pdf": os.path.join(FOUNDATIONAL_DIR, "security_pki_and_data_health_specification.pdf"),
-            "doc_id": "FHTW-SDV-SEC-001",
+            "doc_id": "SDV-SEC-001",
             "status": "Approved Engineering Specification"
         },
         {
             "md": os.path.join(FOUNDATIONAL_DIR, "system_validation_and_benchmarking_report.md"),
             "pdf": os.path.join(FOUNDATIONAL_DIR, "system_validation_and_benchmarking_report.pdf"),
-            "doc_id": "FHTW-SDV-TEST-002",
+            "doc_id": "SDV-TEST-002",
             "status": "Approved Engineering Verification Report"
         },
         {
             "md": os.path.join(FOUNDATIONAL_DIR, "target_hardware_transition_deployment_guide.md"),
             "pdf": os.path.join(FOUNDATIONAL_DIR, "target_hardware_transition_deployment_guide.pdf"),
-            "doc_id": "FHTW-SDV-DEPL-003",
+            "doc_id": "SDV-DEPL-003",
             "status": "Production Deployment Guide"
         },
         {
             "md": os.path.join(FOUNDATIONAL_DIR, "mvp_implementation_plan.md"),
             "pdf": os.path.join(FOUNDATIONAL_DIR, "mvp_implementation_plan.pdf"),
-            "doc_id": "FHTW-SDV-PLAN-001",
+            "doc_id": "SDV-PLAN-001",
             "status": "Engineering Architecture Plan"
         },
         {
             "md": os.path.join(FOUNDATIONAL_DIR, "project_directory_and_file_structure.md"),
             "pdf": os.path.join(FOUNDATIONAL_DIR, "project_directory_and_file_structure.pdf"),
-            "doc_id": "FHTW-SDV-STRUCT-001",
+            "doc_id": "SDV-STRUCT-001",
             "status": "Repository Topology Specification"
         }
     ]
@@ -604,7 +617,7 @@ def main():
                     out.write(content)
                     out.write("\n\n<div style='page-break-before: always;'></div>\n\n---\n\n")
 
-    if compile_md_to_pdf(consolidated_md_path, consolidated_pdf_path, "FHTW-SDV-DOSSIER-2026", "Consolidated Technical Dossier"):
+    if compile_md_to_pdf(consolidated_md_path, consolidated_pdf_path, "SDV-DOSSIER-2026", "Consolidated Technical Dossier"):
         success_count += 1
 
     print("\n" + "=" * 80)
