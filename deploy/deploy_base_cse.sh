@@ -83,13 +83,71 @@ if docker compose version >/dev/null 2>&1 || command -v docker-compose >/dev/nul
         --lean \
         --localhost \
         --base-host "${RESOLVED_BASE_HOST}"
-elif [ -d "${HOME}/onem2m/venv" ] && [ -f "${HOME}/onem2m/acme.ini" ]; then
-    echo "[INFO] Container runtime not installed on host, but native ACME oneM2M CSE detected in ~/onem2m."
-    echo "[INFO] Launching native Python ACME IN-CSE daemon..."
-    # shellcheck disable=SC1091
-    source "${HOME}/onem2m/venv/bin/activate"
-    nohup python3 -m acmecse --config "${HOME}/onem2m/acme.ini" > "${HOME}/onem2m/acme.log" 2>&1 &
-    sleep 3
+elif [ -d "${HOME}/onem2m/venv" ] || [ -f "/home/mosud/onem2m/venv/bin/python3" ]; then
+    echo "[INFO] Container runtime not installed on host, but native ACME oneM2M CSE detected."
+    VENV_PYTHON="${HOME}/onem2m/venv/bin/python3"
+    if [ ! -f "${VENV_PYTHON}" ]; then
+        VENV_PYTHON="/home/mosud/onem2m/venv/bin/python3"
+    fi
+
+    # Enable lingering so user services persist across SSH logouts
+    loginctl enable-linger "${USER}" 2>/dev/null || true
+
+    # Configure acme.ini: Ensure HTTP is enabled and adjust MQTT
+    if nc -z 127.0.0.1 1883 >/dev/null 2>&1; then
+        sed -i 's/address = mosquitto/address = 127.0.0.1/' "${DEPLOY_DIR}/onem2m/acme.ini"
+    else
+        sed -i '/\[mqtt\]/,/\[/ s/enable = true/enable = false/' "${DEPLOY_DIR}/onem2m/acme.ini"
+    fi
+    sed -i '/\[http\]/,/\[/ s/enable = false/enable = true/' "${DEPLOY_DIR}/onem2m/acme.ini"
+
+    # Install and configure systemd user service
+    mkdir -p "${HOME}/.config/systemd/user"
+    cat << EOF > "${HOME}/.config/systemd/user/sdv-acme-cse.service"
+[Unit]
+Description=SDV oneM2M ACME Base CSE Service
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=${DEPLOY_DIR}/onem2m
+ExecStart=${VENV_PYTHON} -m acmecse --config acme.ini --headless
+Restart=always
+RestartSec=3
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=default.target
+EOF
+
+    echo "[INFO] Starting native ACME IN-CSE via systemd user service..."
+    systemctl --user daemon-reload
+    systemctl --user enable sdv-acme-cse.service >/dev/null 2>&1 || true
+    systemctl --user restart sdv-acme-cse.service
+
+    # Await CSEBase HTTP readiness
+    echo "[INFO] Awaiting ACME CSEBase readiness on localhost:${RESOLVED_PORT} (/sdv-cse)..."
+    CSE_UP=0
+    for i in $(seq 1 20); do
+        if curl -s -f -m 2 \
+            -H "X-M2M-Origin: CAdmin" \
+            -H "X-M2M-RI: readiness_check" \
+            -H "X-M2M-RVI: 3" \
+            "http://localhost:${RESOLVED_PORT}/sdv-cse" >/dev/null 2>&1; then
+            echo "[OK] oneM2M CSEBase /sdv-cse is responding (HTTP 200)."
+            CSE_UP=1
+            break
+        fi
+        sleep 1
+    done
+
+    if [ "${CSE_UP}" -ne 1 ]; then
+        echo "[ERROR] Timeout waiting for native ACME CSE to initialise. Check systemd logs:" >&2
+        journalctl --user -u sdv-acme-cse.service -n 25 --no-pager >&2 || true
+        exit 1
+    fi
+
     bash "${ROOT_DIR}/scripts/onem2m/init_base_cse.sh" --localhost --port "${RESOLVED_PORT}"
 else
     echo "[ERROR] Neither container runtime (Docker/Podman) nor native ACME CSE (~/onem2m) found on host." >&2
