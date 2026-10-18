@@ -18,6 +18,9 @@ MODULE_CLI="all"
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
+        --menu|-i|--interactive)
+            exec bash "${DEPLOY_DIR}/menu.sh"
+            ;;
         --full|--with-demo-ae|-f)
             LEAN_MODE=false
             shift

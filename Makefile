@@ -7,10 +7,11 @@ VENV ?= .venv
 PYTHON ?= $(shell if [ -f $(VENV)/bin/python ]; then echo $(VENV)/bin/python; elif [ -f $(VENV)/bin/python3 ]; then echo $(VENV)/bin/python3; else echo python3; fi)
 PYTEST ?= $(shell if [ -f $(VENV)/bin/pytest ]; then echo $(VENV)/bin/pytest; elif [ -f $(VENV)/bin/py.test ]; then echo $(VENV)/bin/py.test; else echo pytest; fi)
 
-.PHONY: help setup-prerequisites setup-venv setup-pki deploy-gateway deploy-lean deploy-localhost deploy-remote deploy-base-cse deploy-vehicle-ae stop-gateway init-onem2m init-base-cse validate-base-cse test test-unit test-integration run-web simulate-telemetry simulate-telemetry-native simulate-telemetry-legacy inject-faults clean
+.PHONY: help menu setup-prerequisites setup-venv setup-pki deploy-gateway deploy-lean deploy-localhost deploy-remote deploy-base-cse deploy-vehicle-ae stop-gateway init-onem2m init-base-cse validate-base-cse test test-unit test-integration run-web simulate-telemetry simulate-telemetry-native simulate-telemetry-legacy inject-faults clean
 
 help:
 	@echo "Available build and orchestration targets:"
+	@echo "  menu                      Launch the interactive terminal deployment and diagnostics dashboard"
 	@echo "  setup-prerequisites       Install Docker/Podman and system dependencies on Ubuntu Server"
 	@echo "  setup-venv                Initialise Python virtual environment and simulation dependencies"
 	@echo "  setup-pki                 Generate X.509 Root CA, broker, and client certificates"
@@ -32,6 +33,9 @@ help:
 	@echo "  simulate-telemetry-legacy Stream synthetic sensor frames via legacy Node-RED route"
 	@echo "  inject-faults             Run the adversarial fault-injection test suite"
 	@echo "  clean                     Remove temporary test caches and logs"
+
+menu:
+	@bash deploy/menu.sh
 
 setup-prerequisites:
 	@echo "Verifying and installing system prerequisites on Ubuntu Server..."
