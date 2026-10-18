@@ -437,11 +437,6 @@ action_diagnostics() {
     # Remote Vehicle AE Host
     if nc -z -w 1 "${DEF_VEHICLE_AE_HOST:-${DEF_VEHICLE_HOST}}" 22 >/dev/null 2>&1; then
         echo -e "  [OK] Remote Vehicle AE Host (${DEF_VEHICLE_HOST}:22 SSH) is ${GREEN}REACHABLE${RESET}."
-        if nc -z -w 1 "${DEF_VEHICLE_AE_HOST:-${DEF_VEHICLE_HOST}}" 8000 >/dev/null 2>&1; then
-            echo -e "  [OK] Remote Vehicle AE In-Vehicle Web Portal port 8000 is ${GREEN}ONLINE${RESET} (http://${DEF_VEHICLE_HOST}:8000)."
-        else
-            echo -e "  [INFO] Remote Vehicle AE Web Portal port 8000 is closed."
-        fi
     else
         echo -e "  [INFO] Remote Vehicle AE Host (${DEF_VEHICLE_HOST}:22) is not reachable on current network."
     fi

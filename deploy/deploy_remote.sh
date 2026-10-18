@@ -346,7 +346,6 @@ deploy_remote_vehicle_ae() {
     if [ "${SKIP_SYNC}" = "false" ]; then
         echo "[INFO] Synchronising Vehicle AE scripts and certificates to ${VEHICLE_HOST}:${VEHICLE_DIR}..."
         sync_directory "${VEHICLE_HOST}" "${VEHICLE_USER}" "${VEHICLE_PORT}" "${VEHICLE_KEY}" "${ROOT_DIR}/scripts" "${VEHICLE_DIR}/scripts"
-        sync_directory "${VEHICLE_HOST}" "${VEHICLE_USER}" "${VEHICLE_PORT}" "${VEHICLE_KEY}" "${ROOT_DIR}/services" "${VEHICLE_DIR}/services"
 
         sync_file "${VEHICLE_HOST}" "${VEHICLE_USER}" "${VEHICLE_PORT}" "${VEHICLE_KEY}" "${DEPLOY_DIR}/deploy_vehicle_ae.sh" "${VEHICLE_DIR}/deploy/deploy_vehicle_ae.sh"
 
