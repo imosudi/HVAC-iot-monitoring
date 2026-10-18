@@ -174,7 +174,7 @@ action_distributed_deployment() {
 # ------------------------------------------------------------------------------
 action_base_cse() {
     echo -e "\n${CYAN}===> Standalone Base CSE Infrastructure Deployment${RESET}"
-    echo -e "${GRAY}Deploys singleton central ACME oneM2M IN-CSE with vanilla zero AEs and baseline governance.${RESET}"
+    echo -e "${GRAY}Deploys full Module 1 Base CSE platform (all 6 co-located microservices: CSE, Mosquitto, InfluxDB, Grafana, Bridge AE, Web Portal).${RESET}"
 
     prompt_host_type "Base CSE Infrastructure"
     if [ "${HOST_CHOICE}" = "1" ]; then
@@ -556,7 +556,7 @@ main() {
         echo -e "${CYAN}===> ${WHITE}Interactive Deployment Selection${RESET}\n"
         echo -e "${GRAY}Please choose an execution or deployment option:${RESET}\n"
         echo -e "  ${CYAN}[1]${RESET} Distributed Multi-Host Deployment (Module 1 Base CSE on Server + Module 2 Vehicle AE on Pi 5)"
-        echo -e "  ${CYAN}[2]${RESET} Standalone Base CSE Infrastructure (ACME IN-CSE, Zero AEs, Baseline Governance)"
+        echo -e "  ${CYAN}[2]${RESET} Standalone Base CSE Infrastructure (All 6 Microservices: CSE, MQTT, InfluxDB, Grafana, Bridge, Portal)"
         echo -e "  ${CYAN}[3]${RESET} Standalone Vehicle Application Entity (Raspberry Pi 5 AE Onboarding to Base CSE)"
         echo -e "  ${CYAN}[4]${RESET} Complete Localhost Development Stack (Local Base CSE + InfluxDB + Grafana + Web Portal)"
         echo -e "  ${CYAN}[5]${RESET} systemd Host Service Management (Install, Status, Logs, Restart)"

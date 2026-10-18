@@ -310,9 +310,16 @@ deploy_remote_base_cse() {
         fi
     fi
 
-    # Trigger deployment on remote Base CSE host
+    # Trigger deployment on remote Base CSE host with interactive TTY support
     echo "[INFO] Executing Base CSE deployment on remote host ${BASE_HOST}..."
-    ${ssh_cmd} "cd ${BASE_DIR} && bash deploy/deploy_base_cse.sh --host ${BASE_HOST} --port 8080"
+    local exec_ssh="ssh -p ${BASE_PORT}"
+    if [ -n "${BASE_KEY}" ] && [ -f "${BASE_KEY}" ]; then
+        exec_ssh="${exec_ssh} -i ${BASE_KEY} -o IdentitiesOnly=yes"
+    fi
+    if [ -t 0 ]; then
+        exec_ssh="${exec_ssh} -t"
+    fi
+    ${exec_ssh} "${BASE_USER}@${BASE_HOST}" "cd ${BASE_DIR} && bash deploy/deploy_base_cse.sh --host ${BASE_HOST} --port 8080"
 
     echo "[SUCCESS] Module 1 (Base CSE Host) commissioned on ${BASE_HOST}."
 }
