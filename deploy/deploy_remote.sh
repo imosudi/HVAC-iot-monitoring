@@ -187,9 +187,9 @@ check_remote_host() {
         echo "[WARN] Passwordless SSH authentication failed for ${user}@${host}." >&2
         echo "       To enable passwordless key login, install your public key via:" >&2
         if [ -n "${key}" ]; then
-            echo "       ssh-copy-id -i ${key}.pub -p ${port} ${user}@${host}" >&2
+            echo "       ssh-copy-id -i ${key}.pub -o IdentitiesOnly=yes -p ${port} ${user}@${host}" >&2
         else
-            echo "       ssh-copy-id -p ${port} ${user}@${host}" >&2
+            echo "       ssh-copy-id -o IdentitiesOnly=yes -p ${port} ${user}@${host}" >&2
         fi
         return 2
     fi
