@@ -213,20 +213,27 @@ def main():
     vehicle_id = args.vehicle_id
     vin = args.vin or f"VIN-WAUZZZ-SDV-2026-{vehicle_id.split('-')[-1].zfill(4)}"
 
-    target_host = args.base_host or args.host
-    if args.target == "localhost" and not args.base_host and not os.getenv("ACME_HOST"):
+    # Prioritise explicit command-line host or base-host arguments
+    cli_host_provided = any(arg in sys.argv for arg in ("--base-host", "--base-cse-host", "--host"))
+    if args.base_host:
+        target_host = args.base_host
+    elif args.host and cli_host_provided:
+        target_host = args.host
+    elif args.target == "localhost" and not os.getenv("ACME_HOST"):
         target_host = "localhost"
+    else:
+        target_host = args.base_host or args.host or "localhost"
 
     # Reachability detection with graceful localhost fallback
     def _is_host_reachable(host: str, port: int) -> bool:
         try:
-            with socket.create_connection((host, port), timeout=0.8):
+            with socket.create_connection((host, port), timeout=2.0):
                 return True
         except (socket.timeout, OSError):
             return False
 
     if not _is_host_reachable(target_host, args.port):
-        if target_host not in ("localhost", "127.0.0.1") and _is_host_reachable("localhost", args.port):
+        if not cli_host_provided and target_host not in ("localhost", "127.0.0.1") and _is_host_reachable("localhost", args.port):
             log("NOTICE", f"Host '{target_host}' unreachable. Falling back to localhost.", "33")
             target_host = "localhost"
 

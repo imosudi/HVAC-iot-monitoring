@@ -356,7 +356,7 @@ When orchestrating a distributed deployment from a centralized engineering works
 | `VEHICLE_AE_SSH_KEY` | Remote Host 2 | `~/.ssh/id_ed25519` | Path to the private key used for passwordless public-key authentication. |
 | `VEHICLE_AE_REMOTE_DIR`| Remote Host 2| `~/HVAC-iot-monitoring` | Working directory where Vehicle AE daemon scripts and client certs reside. |
 
-The remote orchestrator (`deploy/deploy_remote.sh`) executes pre-flight reachability probes (`nc -z -w 2`), validates public-key authentication (`ssh -o BatchMode=yes`), synchronises deployment assets (`rsync`), and initiates execution remotely on each respective target host.
+The remote orchestrator (`deploy/deploy_remote.sh`) executes pre-flight reachability probes (`nc -z -w 2`), validates public-key authentication (`ssh -o BatchMode=yes`), synchronises deployment assets (`rsync` with universal POSIX `tar`/`scp` streaming fallback for minimal and embedded SBC operating environments lacking `rsync`), and initiates execution remotely on each respective target host.
 
 ```mermaid
 flowchart TB

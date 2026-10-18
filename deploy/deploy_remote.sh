@@ -162,6 +162,84 @@ build_rsync_ssh_opt() {
 }
 
 # ------------------------------------------------------------------------------
+# Universal Remote Synchronisation (rsync with POSIX tar/scp streaming fallback)
+# ------------------------------------------------------------------------------
+sync_directory() {
+    local host="$1"
+    local user="$2"
+    local port="$3"
+    local key="$4"
+    local src_dir="$5"
+    local dst_dir="$6"
+
+    local ssh_cmd
+    ssh_cmd=$(build_ssh_cmd "${host}" "${user}" "${port}" "${key}")
+
+    local has_remote_rsync=false
+    if ${ssh_cmd} "command -v rsync" >/dev/null 2>&1; then
+        has_remote_rsync=true
+    fi
+
+    if [ "${has_remote_rsync}" = "true" ] && command -v rsync >/dev/null 2>&1; then
+        local rsync_ssh
+        rsync_ssh=$(build_rsync_ssh_opt "${port}" "${key}")
+        rsync -avz -e "${rsync_ssh}" \
+            --exclude '.git' \
+            --exclude '.pytest_cache' \
+            --exclude '__pycache__' \
+            --exclude 'firmware' \
+            "${src_dir}/" "${user}@${host}:${dst_dir}/"
+    else
+        echo "       (Streaming directory '${src_dir}' via POSIX tar over SSH...)"
+        ${ssh_cmd} "mkdir -p '${dst_dir}'"
+        tar -C "${src_dir}" \
+            --exclude='.git' \
+            --exclude='.pytest_cache' \
+            --exclude='__pycache__' \
+            --exclude='firmware' \
+            -czf - . | ${ssh_cmd} "tar -xzf - -C '${dst_dir}'"
+    fi
+}
+
+sync_file() {
+    local host="$1"
+    local user="$2"
+    local port="$3"
+    local key="$4"
+    local src_file="$5"
+    local dst_file="$6"
+
+    local ssh_cmd
+    ssh_cmd=$(build_ssh_cmd "${host}" "${user}" "${port}" "${key}")
+    local dst_parent
+    dst_parent=$(dirname "${dst_file}")
+
+    ${ssh_cmd} "mkdir -p '${dst_parent}'"
+
+    local has_remote_rsync=false
+    if ${ssh_cmd} "command -v rsync" >/dev/null 2>&1; then
+        has_remote_rsync=true
+    fi
+
+    if [ "${has_remote_rsync}" = "true" ] && command -v rsync >/dev/null 2>&1; then
+        local rsync_ssh
+        rsync_ssh=$(build_rsync_ssh_opt "${port}" "${key}")
+        rsync -avz -e "${rsync_ssh}" "${src_file}" "${user}@${host}:${dst_file}"
+    else
+        echo "       (Streaming file '${src_file}' via scp over SSH...)"
+        local scp_cmd="scp -P ${port} -o ConnectTimeout=5 -o BatchMode=yes"
+        if [ -n "${key}" ] && [ -f "${key}" ]; then
+            scp_cmd="${scp_cmd} -i ${key} -o IdentitiesOnly=yes"
+        fi
+        ${scp_cmd} "${src_file}" "${user}@${host}:${dst_file}"
+    fi
+
+    if [ -x "${src_file}" ]; then
+        ${ssh_cmd} "chmod +x '${dst_file}'"
+    fi
+}
+
+# ------------------------------------------------------------------------------
 # Pre-Flight Reachability & Authentication Check
 # ------------------------------------------------------------------------------
 check_remote_host() {
@@ -217,26 +295,17 @@ deploy_remote_base_cse() {
 
     local ssh_cmd
     ssh_cmd=$(build_ssh_cmd "${BASE_HOST}" "${BASE_USER}" "${BASE_PORT}" "${BASE_KEY}")
-    local rsync_ssh
-    rsync_ssh=$(build_rsync_ssh_opt "${BASE_PORT}" "${BASE_KEY}")
 
     # Ensure remote directory exists
     ${ssh_cmd} "mkdir -p ${BASE_DIR}"
 
     if [ "${SKIP_SYNC}" = "false" ]; then
         echo "[INFO] Synchronising deployment configuration and scripts to ${BASE_HOST}:${BASE_DIR}..."
-        rsync -avz -e "${rsync_ssh}" \
-            --exclude '.git' \
-            --exclude '.pytest_cache' \
-            --exclude '__pycache__' \
-            --exclude 'firmware' \
-            "${DEPLOY_DIR}/" "${BASE_USER}@${BASE_HOST}:${BASE_DIR}/deploy/"
-
-        rsync -avz -e "${rsync_ssh}" \
-            "${ROOT_DIR}/scripts/" "${BASE_USER}@${BASE_HOST}:${BASE_DIR}/scripts/"
+        sync_directory "${BASE_HOST}" "${BASE_USER}" "${BASE_PORT}" "${BASE_KEY}" "${DEPLOY_DIR}" "${BASE_DIR}/deploy"
+        sync_directory "${BASE_HOST}" "${BASE_USER}" "${BASE_PORT}" "${BASE_KEY}" "${ROOT_DIR}/scripts" "${BASE_DIR}/scripts"
 
         if [ -f "${ROOT_DIR}/.env" ]; then
-            rsync -avz -e "${rsync_ssh}" "${ROOT_DIR}/.env" "${BASE_USER}@${BASE_HOST}:${BASE_DIR}/.env"
+            sync_file "${BASE_HOST}" "${BASE_USER}" "${BASE_PORT}" "${BASE_KEY}" "${ROOT_DIR}/.env" "${BASE_DIR}/.env"
         fi
     fi
 
@@ -269,37 +338,28 @@ deploy_remote_vehicle_ae() {
 
     local ssh_cmd
     ssh_cmd=$(build_ssh_cmd "${VEHICLE_HOST}" "${VEHICLE_USER}" "${VEHICLE_PORT}" "${VEHICLE_KEY}")
-    local rsync_ssh
-    rsync_ssh=$(build_rsync_ssh_opt "${VEHICLE_PORT}" "${VEHICLE_KEY}")
 
     # Ensure remote directory exists
-    ${ssh_cmd} "mkdir -p ${VEHICLE_DIR}"
+    ${ssh_cmd} "mkdir -p ${VEHICLE_DIR} ${VEHICLE_DIR}/deploy"
 
     if [ "${SKIP_SYNC}" = "false" ]; then
         echo "[INFO] Synchronising Vehicle AE scripts and certificates to ${VEHICLE_HOST}:${VEHICLE_DIR}..."
-        rsync -avz -e "${rsync_ssh}" \
-            --exclude '.git' \
-            --exclude '.pytest_cache' \
-            --exclude '__pycache__' \
-            "${ROOT_DIR}/scripts/" "${VEHICLE_USER}@${VEHICLE_HOST}:${VEHICLE_DIR}/scripts/"
+        sync_directory "${VEHICLE_HOST}" "${VEHICLE_USER}" "${VEHICLE_PORT}" "${VEHICLE_KEY}" "${ROOT_DIR}/scripts" "${VEHICLE_DIR}/scripts"
 
-        rsync -avz -e "${rsync_ssh}" \
-            "${DEPLOY_DIR}/deploy_vehicle_ae.sh" "${VEHICLE_USER}@${VEHICLE_HOST}:${VEHICLE_DIR}/deploy/"
+        sync_file "${VEHICLE_HOST}" "${VEHICLE_USER}" "${VEHICLE_PORT}" "${VEHICLE_KEY}" "${DEPLOY_DIR}/deploy_vehicle_ae.sh" "${VEHICLE_DIR}/deploy/deploy_vehicle_ae.sh"
 
         # Sync PKI certificates (client keys and CA cert)
         if [ -d "${DEPLOY_DIR}/mosquitto/certs" ]; then
-            ${ssh_cmd} "mkdir -p ${VEHICLE_DIR}/deploy/mosquitto/certs"
-            rsync -avz -e "${rsync_ssh}" \
-                "${DEPLOY_DIR}/mosquitto/certs/" "${VEHICLE_USER}@${VEHICLE_HOST}:${VEHICLE_DIR}/deploy/mosquitto/certs/"
+            sync_directory "${VEHICLE_HOST}" "${VEHICLE_USER}" "${VEHICLE_PORT}" "${VEHICLE_KEY}" "${DEPLOY_DIR}/mosquitto/certs" "${VEHICLE_DIR}/deploy/mosquitto/certs"
         fi
 
         if [ -f "${ROOT_DIR}/.env" ]; then
-            rsync -avz -e "${rsync_ssh}" "${ROOT_DIR}/.env" "${VEHICLE_USER}@${VEHICLE_HOST}:${VEHICLE_DIR}/.env"
+            sync_file "${VEHICLE_HOST}" "${VEHICLE_USER}" "${VEHICLE_PORT}" "${VEHICLE_KEY}" "${ROOT_DIR}/.env" "${VEHICLE_DIR}/.env"
         fi
     fi
 
     echo "[INFO] Executing Vehicle AE onboarding on ${VEHICLE_HOST} targeting Base CSE at ${BASE_HOST}:8080..."
-    ${ssh_cmd} "cd ${VEHICLE_DIR} && bash deploy/deploy_vehicle_ae.sh --base-host ${BASE_HOST} --vehicle-id ${VEHICLE_ID_CLI}"
+    ${ssh_cmd} "cd ${VEHICLE_DIR} && bash deploy/deploy_vehicle_ae.sh --base-host ${BASE_HOST} --remote --vehicle-id ${VEHICLE_ID_CLI}"
 
     echo "[SUCCESS] Module 2 (Vehicle AE Host) commissioned on ${VEHICLE_HOST}."
 }

@@ -44,6 +44,9 @@ while [[ $# -gt 0 ]]; do
             ;;
         --base-host|--base-cse-host)
             BASE_HOST="$2"
+            if [ "$2" != "localhost" ] && [ "$2" != "127.0.0.1" ]; then
+                TARGET_MODE="${TARGET_MODE:-remote}"
+            fi
             shift 2
             ;;
         --vehicle-host|--vehicle-ae-host)
@@ -117,8 +120,10 @@ fi
 
 echo -e "\n[STEP 1/2] Onboarding and registering Vehicle AE on Base CSE..."
 ${PYTHON_CMD} "${ROOT_DIR}/scripts/deploy_acme_fleet_single_vehicle_ae.py" \
+    --base-host "${RESOLVED_BASE_HOST}" \
     --host "${RESOLVED_BASE_HOST}" \
     --port "${RESOLVED_PORT}" \
+    --target "${DEPLOY_TARGET}" \
     --vehicle-id "${VEHICLE_ID}" \
     "${EXTRA_ARGS[@]}"
 
@@ -129,17 +134,21 @@ CLIENT_CERT="${DEPLOY_DIR}/mosquitto/certs/client_esp32.crt"
 CLIENT_KEY="${DEPLOY_DIR}/mosquitto/certs/client_esp32.key"
 
 if [ -f "${CA_CERT}" ] && [ -f "${CLIENT_CERT}" ] && [ -f "${CLIENT_KEY}" ]; then
-    echo "[INFO] Testing mTLS 1.3 connection to Mosquitto on ${RESOLVED_BASE_HOST}:${MQTT_PORT}..."
-    ${PYTHON_CMD} "${ROOT_DIR}/scripts/testing/simulate_telemetry.py" \
-        --host "${RESOLVED_BASE_HOST}" \
-        --port "${MQTT_PORT}" \
-        --ca-cert "${CA_CERT}" \
-        --client-cert "${CLIENT_CERT}" \
-        --client-key "${CLIENT_KEY}" \
-        --route native \
-        --mode normal \
-        --count 3 \
-        --interval 1.0 || echo "[WARN] Simulated telemetry sample run completed."
+    if nc -z -w 2 "${RESOLVED_BASE_HOST}" "${MQTT_PORT}" >/dev/null 2>&1; then
+        echo "[INFO] Testing mTLS 1.3 connection to Mosquitto on ${RESOLVED_BASE_HOST}:${MQTT_PORT}..."
+        ${PYTHON_CMD} "${ROOT_DIR}/scripts/testing/simulate_telemetry.py" \
+            --host "${RESOLVED_BASE_HOST}" \
+            --port "${MQTT_PORT}" \
+            --ca-cert "${CA_CERT}" \
+            --client-cert "${CLIENT_CERT}" \
+            --client-key "${CLIENT_KEY}" \
+            --route native \
+            --mode normal \
+            --count 3 \
+            --interval 1.0 || echo "[WARN] Simulated telemetry sample run completed."
+    else
+        echo "[INFO] MQTT broker port ${MQTT_PORT} on ${RESOLVED_BASE_HOST} is offline. Skipping simulated telemetry stream."
+    fi
 else
     echo "[INFO] Certificates not found locally in deploy/mosquitto/certs. Skipping simulated telemetry stream."
 fi
