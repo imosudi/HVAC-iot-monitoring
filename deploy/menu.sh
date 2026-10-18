@@ -55,6 +55,30 @@ DEF_VEHICLE_KEY="${VEHICLE_AE_SSH_KEY:-${HOME}/.ssh/id_ed25519}"
 DEF_VEHICLE_ID="vehicle-001"
 
 # ------------------------------------------------------------------------------
+# Universal Prompt Helper (Safe for stdout, stdin, defaults, and EOF)
+# ------------------------------------------------------------------------------
+prompt_input() {
+    local prompt_msg="$1"
+    local default_val="${2:-}"
+    local var_name="$3"
+
+    echo -ne "${YELLOW}${prompt_msg}${RESET}"
+    local user_input=""
+    if ! read -r user_input; then
+        echo ""
+        user_input=""
+    fi
+    user_input="${user_input:-${default_val}}"
+    eval "${var_name}=\"${user_input}\""
+}
+
+pause_to_continue() {
+    echo ""
+    echo -ne "${YELLOW}Press [Enter] to return to the menu...${RESET}"
+    read -r _ || true
+}
+
+# ------------------------------------------------------------------------------
 # Banner and Header Rendering
 # ------------------------------------------------------------------------------
 print_banner() {
@@ -71,11 +95,6 @@ EOF
     echo ""
 }
 
-pause_to_continue() {
-    echo ""
-    read -rp "$(echo -e "${YELLOW}Press [Enter] to return to the menu...${RESET}")" _ 2>/dev/null || true
-}
-
 # ------------------------------------------------------------------------------
 # Reusable Host Selection and Credential Prompts
 # ------------------------------------------------------------------------------
@@ -87,24 +106,17 @@ prompt_remote_credentials() {
     local default_key="$5"
 
     echo ""
-    read -rp "$(echo -e "${YELLOW}Enter remote host IP address or hostname [default: ${default_host}]: ${RESET}")" RET_HOST 2>/dev/null || RET_HOST=""
-    RET_HOST="${RET_HOST:-${default_host}}"
-
-    read -rp "$(echo -e "${YELLOW}Enter privileged login user (e.g. root, docker-enabled user) [default: ${default_user}]: ${RESET}")" RET_USER 2>/dev/null || RET_USER=""
-    RET_USER="${RET_USER:-${default_user}}"
-
-    read -rp "$(echo -e "${YELLOW}Enter remote SSH port [default: ${default_port}]: ${RESET}")" RET_PORT 2>/dev/null || RET_PORT=""
-    RET_PORT="${RET_PORT:-${default_port}}"
+    prompt_input "Enter remote host IP address or hostname [default: ${default_host}]: " "${default_host}" RET_HOST
+    prompt_input "Enter privileged login user (e.g. root, docker-enabled user) [default: ${default_user}]: " "${default_user}" RET_USER
+    prompt_input "Enter remote SSH port [default: ${default_port}]: " "${default_port}" RET_PORT
 
     echo -e "${GRAY}Select SSH authentication method:${RESET}"
     echo -e "  ${CYAN}[1]${RESET} SSH identity key / agent [default]"
     echo -e "  ${CYAN}[2]${RESET} Password authentication"
-    read -rp "$(echo -e "${YELLOW}Enter choice [1-2] (default: 1): ${RESET}")" AUTH_CHOICE 2>/dev/null || AUTH_CHOICE="1"
-    AUTH_CHOICE="${AUTH_CHOICE:-1}"
+    prompt_input "Enter choice [1-2] (default: 1): " "1" AUTH_CHOICE
 
     if [ "${AUTH_CHOICE}" = "1" ]; then
-        read -rp "$(echo -e "${YELLOW}Enter SSH identity key path [default: ${default_key}]: ${RESET}")" RET_KEY 2>/dev/null || RET_KEY=""
-        RET_KEY="${RET_KEY:-${default_key}}"
+        prompt_input "Enter SSH identity key path [default: ${default_key}]: " "${default_key}" RET_KEY
     else
         RET_KEY=""
     fi
@@ -116,8 +128,7 @@ prompt_host_type() {
     echo -e "${GRAY}Select deployment host for ${feature_name}:${RESET}"
     echo -e "  ${CYAN}[1]${RESET} Local host [default]"
     echo -e "  ${CYAN}[2]${RESET} Remote host"
-    read -rp "$(echo -e "${YELLOW}Enter choice [1-2] (default: 1): ${RESET}")" HOST_CHOICE 2>/dev/null || HOST_CHOICE="1"
-    HOST_CHOICE="${HOST_CHOICE:-1}"
+    prompt_input "Enter choice [1-2] (default: 1): " "1" HOST_CHOICE
 }
 
 # ------------------------------------------------------------------------------
@@ -141,8 +152,8 @@ action_distributed_deployment() {
     local v_port="${RET_PORT}"
     local v_key="${RET_KEY}"
 
-    read -rp "$(echo -e "${YELLOW}Enter Vehicle Identifier for AE registration [default: ${DEF_VEHICLE_ID}]: ${RESET}")" v_id
-    v_id="${v_id:-${DEF_VEHICLE_ID}}"
+    echo ""
+    prompt_input "Enter Vehicle Identifier for AE registration [default: ${DEF_VEHICLE_ID}]: " "${DEF_VEHICLE_ID}" v_id
 
     echo -e "\n${CYAN}[INFO] Launching Distributed Remote Modular Orchestrator...${RESET}"
     bash "${DEPLOY_DIR}/deploy_remote.sh" \
@@ -186,13 +197,10 @@ action_base_cse() {
 # ------------------------------------------------------------------------------
 action_vehicle_ae() {
     echo -e "\n${CYAN}===> Standalone Vehicle Application Entity (AE) Deployment${RESET}"
-    echo -e "${GRAY}Onboards an individual vehicle AE (ETSI TS 118 101 8-container manifest) onto Base CSE.${RESET}"
+    echo -e "${GRAY}Onboards an individual vehicle AE (ETSI TS 118 101 8-container manifest) onto Base CSE.${RESET}\n"
 
-    read -rp "$(echo -e "${YELLOW}Enter target Base CSE host or IP [default: ${DEF_BASE_HOST}]: ${RESET}")" target_base
-    target_base="${target_base:-${DEF_BASE_HOST}}"
-
-    read -rp "$(echo -e "${YELLOW}Enter Vehicle Identifier [default: ${DEF_VEHICLE_ID}]: ${RESET}")" v_id
-    v_id="${v_id:-${DEF_VEHICLE_ID}}"
+    prompt_input "Enter target Base CSE host or IP [default: ${DEF_BASE_HOST}]: " "${DEF_BASE_HOST}" target_base
+    prompt_input "Enter Vehicle Identifier [default: ${DEF_VEHICLE_ID}]: " "${DEF_VEHICLE_ID}" v_id
 
     prompt_host_type "Vehicle AE Runtime"
     if [ "${HOST_CHOICE}" = "1" ]; then
@@ -245,8 +253,7 @@ action_systemd_management() {
     echo -e "\n${GRAY}Select target host for systemd Service Management:${RESET}"
     echo -e "  ${CYAN}[1]${RESET} Local host [default]"
     echo -e "  ${CYAN}[2]${RESET} Remote Base CSE host (${DEF_BASE_HOST})"
-    read -rp "$(echo -e "${YELLOW}Enter choice [1-2] (default: 1): ${RESET}")" s_host_choice
-    s_host_choice="${s_host_choice:-1}"
+    prompt_input "Enter choice [1-2] (default: 1): " "1" s_host_choice
 
     local ssh_prefix=""
     if [ "${s_host_choice}" = "2" ]; then
@@ -268,8 +275,7 @@ action_systemd_management() {
         echo -e "  ${CYAN}[6]${RESET} Enable User Service Lingering (loginctl enable-linger)"
         echo -e "  ${RED}[0]${RESET} Return to Main Menu"
 
-        read -rp "$(echo -e "${YELLOW}Enter action [1-6, 0 to return] (default: 1): ${RESET}")" S_ACTION
-        S_ACTION="${S_ACTION:-1}"
+        prompt_input "Enter action [1-6, 0 to return] (default: 1): " "1" S_ACTION
 
         case "${S_ACTION}" in
             1)
@@ -448,25 +454,20 @@ action_telemetry_simulation() {
     echo -e "\n${CYAN}===> Vehicular Telemetry Simulation & Validation Pipeline${RESET}"
     echo -e "${GRAY}Simulates multi-sensor environmental frames (CO2, Temp, Humidity, CO, IAQ, Fan Tachometer).${RESET}\n"
 
-    read -rp "$(echo -e "${YELLOW}Enter target host IP/hostname [default: ${DEF_BASE_HOST}]: ${RESET}")" sim_host
-    sim_host="${sim_host:-${DEF_BASE_HOST}}"
-
-    read -rp "$(echo -e "${YELLOW}Enter Vehicle Identifier [default: ${DEF_VEHICLE_ID}]: ${RESET}")" sim_vid
-    sim_vid="${sim_vid:-${DEF_VEHICLE_ID}}"
+    prompt_input "Enter target host IP/hostname [default: ${DEF_BASE_HOST}]: " "${DEF_BASE_HOST}" sim_host
+    prompt_input "Enter Vehicle Identifier [default: ${DEF_VEHICLE_ID}]: " "${DEF_VEHICLE_ID}" sim_vid
 
     echo -e "${GRAY}Select operating simulation mode:${RESET}"
     echo -e "  ${CYAN}[1]${RESET} Normal nominal operation (CO2: ~480-530 ppm, CO: ~0.1 ppm) [default]"
     echo -e "  ${CYAN}[2]${RESET} Elevated CO2 alert condition (CO2: 850+ ppm, Fresh air demand)"
     echo -e "  ${CYAN}[3]${RESET} Life-safety CO hazard (CO: 45 ppm, Immediate ventilation purging)"
-    read -rp "$(echo -e "${YELLOW}Enter choice [1-3] (default: 1): ${RESET}")" m_choice
-    m_choice="${m_choice:-1}"
+    prompt_input "Enter choice [1-3] (default: 1): " "1" m_choice
 
     local s_mode="normal"
     [ "${m_choice}" = "2" ] && s_mode="co2_alert"
     [ "${m_choice}" = "3" ] && s_mode="co_hazard"
 
-    read -rp "$(echo -e "${YELLOW}Enter number of sample telemetry frames to transmit [default: 5]: ${RESET}")" s_count
-    s_count="${s_count:-5}"
+    prompt_input "Enter number of sample telemetry frames to transmit [default: 5]: " "5" s_count
 
     # Verify python runtime
     local py_cmd="python3"
@@ -550,11 +551,7 @@ main() {
         echo -e "  ${CYAN}[8]${RESET} Display Least-Privilege Service Comparison Matrix"
         echo -e "  ${RED}[0]${RESET} Exit\n"
 
-        if ! read -rp "$(echo -e "${YELLOW}Enter selection [1-8, 0 to exit] (default: 1): ${RESET}")" SELECTION 2>/dev/null; then
-            echo ""
-            exit 0
-        fi
-        SELECTION="${SELECTION:-1}"
+        prompt_input "Enter selection [1-8, 0 to exit] (default: 1): " "1" SELECTION
 
         case "${SELECTION}" in
             1)
