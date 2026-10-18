@@ -1,7 +1,7 @@
 # System Design Specification: Modular Base CSE and Multi-Instance Vehicle AE Architecture
 
 **Document ID:** SDS-SDV-MODULAR-001  
-**Version:** 2.0.0 (Consolidated Vehicular Edge Gateway Architecture)  
+**Version:** 2.1.0 (Physical Host Allocation & Consolidated Vehicular Edge Gateway Architecture)  
 **Status:** Approved Technical Architecture  
 **Project:** Software-Defined Vehicle (SDV) Automotive IoT Cabin Monitoring & HVAC Regulation  
 **Standard Compliance:** ETSI TS 118 101 Rel 4, oneM2M TS-0001, oneM2M TS-0003, oneM2M TS-0004, oneM2M TS-0010 (MQTT Protocol Binding)  
@@ -13,15 +13,23 @@
 
 ## 1. Executive Summary and Architectural Principles
 
-This specification defines the structural partitioning, interface contracts, identity-binding protocols, and deployment lifecycle for the SDV Cyber-Physical Environmental Monitoring and Closed-Loop HVAC Regulation platform.
+This specification defines the structural partitioning, physical host allocations, interface contracts, identity-binding protocols, and deployment lifecycle for the SDV Cyber-Physical Environmental Monitoring and Closed-Loop HVAC Regulation platform.
 
-The system is decoupled into two strictly demarcated modules:
-1. **Base CSE Infrastructure Module (Singleton Instance):** A centralised Common Services Entity (ACME oneM2M IN-CSE) serving as the authoritative cloud/edge registry, semantic middleware repository, fleet governance policy engine, and aggregated time-series telemetry ingest point. **This module is strictly a single, authoritative instance per operational cluster.**
-2. **Vehicle Application Entity (AE) Module (Horizontally Scalable Multi-Instance):** An autonomous cyber-physical edge computing stack deployed onboard each physical vehicle. Each instance comprises physical transducers (SCD30, DHT22, CO, IAQ/VOC, AQI) interfaced via an ESP32-S3 microcontroller to an onboard vehicular MEC host (Raspberry Pi 5). **This module is deployable across $N$ uniquely identified, concurrent, and independent instances.**
+The architecture enforces a strict demarcation between the central infrastructure platform and distributed vehicular edge compute nodes:
+
+1. **Base CSE Infrastructure Module (Singleton Instance — Server / Virtual Machine):**
+   * **Host Platform:** Deployed on an external connected device—a **central physical server, cloud instance, or virtual machine (VM)**.
+   * **Role:** Serves as the authoritative Common Services Entity (ACME oneM2M IN-CSE), central MQTT message broker (Eclipse Mosquitto terminating perimeter mTLS 1.3), fleet governance policy repository, time-series data lake (InfluxDB 2.x), and fleet-wide operational cockpit (Grafana Enterprise).
+   * **Cardinality:** **Strictly a single, authoritative instance per operational cluster ($C = 1$).**
+
+2. **Vehicle Application Entity (AE) Module (Multi-Instance — In-Vehicle Raspberry Pi 5):**
+   * **Host Platform:** Deployed **directly onboard each physical vehicle on a dedicated Raspberry Pi 5** single-board computer (vehicular MEC host).
+   * **Role:** Interfaced directly with in-cabin physical instrumentation (ESP32-S3 micro-ECU, Sensirion SCD30, DHT22, CO, IAQ/VOC, AQI transducers, 4-channel LED actuator matrix, WS2812B annunciator, and closed-loop tachometer). The Raspberry Pi 5 executes the uniquely identified Application Entity (AE) client daemon, local sensor ingress/pre-processing, mTLS client credentials, and downlink actuation dispatcher.
+   * **Cardinality:** **Deployable across $N$ uniquely identified, concurrent, and independent vehicular instances ($i \in \{1, 2, \dots, N\}$).**
 
 ```mermaid
 flowchart TB
-    subgraph Base_CSE_Module ["Module 1: Base CSE Infrastructure (Singleton Instance)"]
+    subgraph Base_CSE_Module ["Module 1: Base CSE Infrastructure (Singleton on Server/VM)"]
         direction TB
         MOSQ["Central MQTT Message Broker<br/>(Eclipse Mosquitto: Port 8883 mTLS 1.3 / 1883)"]
         CSE["ACME oneM2M IN-CSE<br/>(Native TS-0010 MQTT Binding & Mca HTTP :8080)"]
@@ -37,9 +45,9 @@ flowchart TB
         CSE -.->|sub_downlink<br/>Direct MQTT Dispatch| MOSQ
     end
 
-    subgraph Vehicle_AE_Module_1 ["Module 2: Vehicle AE Instance 01 (VIN: ...-0042)"]
+    subgraph Vehicle_AE_Module_1 ["Module 2: Vehicle AE Instance 01 (In-Vehicle Raspberry Pi 5)"]
         direction TB
-        SENS_1["7-Transducer Physical Suite & 4x LEDs<br/>(SCD30, DHT22, CO, IAQ, PWM, Tachometer)"]
+        SENS_1["In-Cabin Instrumentation & 4x LEDs<br/>(SCD30, DHT22, CO, IAQ, PWM, Tachometer)"]
         ESP_1["Micro-ECU: ESP32-S3<br/>(FreeRTOS Fail-Safe, eFuse UID)"]
         PI_1["Vehicular MEC Host: RPi 5<br/>(X.509 Client Cert: SAN VIN-0042)"]
         AE_1["oneM2M AE Client Daemon<br/>(Target: /cse-in/ae_vin_...0042)"]
@@ -47,9 +55,9 @@ flowchart TB
         SENS_1 <--> ESP_1 <--> PI_1 <--> AE_1
     end
 
-    subgraph Vehicle_AE_Module_N ["Module 2: Vehicle AE Instance N (VIN: ...-0099)"]
+    subgraph Vehicle_AE_Module_N ["Module 2: Vehicle AE Instance N (In-Vehicle Raspberry Pi 5)"]
         direction TB
-        SENS_N["7-Transducer Physical Suite & 4x LEDs<br/>(SCD30, DHT22, CO, IAQ, PWM, Tachometer)"]
+        SENS_N["In-Cabin Instrumentation & 4x LEDs<br/>(SCD30, DHT22, CO, IAQ, PWM, Tachometer)"]
         ESP_N["Micro-ECU: ESP32-S3<br/>(FreeRTOS Fail-Safe, eFuse UID)"]
         PI_N["Vehicular MEC Host: RPi 5<br/>(X.509 Client Cert: SAN VIN-0099)"]
         AE_N["oneM2M AE Client Daemon<br/>(Target: /cse-in/ae_vin_...0099)"]
@@ -57,9 +65,9 @@ flowchart TB
         SENS_N <--> ESP_N <--> PI_N <--> AE_N
     end
 
-    AE_1 == "Perimeter mTLS 1.3 / Port 8883" ==> MOSQ
+    AE_1 == "Perimeter mTLS 1.3 / Port 8883 (WAN)" ==> MOSQ
     AE_1 -.->|Mca REST HTTP / Port 8080| CSE
-    AE_N == "Perimeter mTLS 1.3 / Port 8883" ==> MOSQ
+    AE_N == "Perimeter mTLS 1.3 / Port 8883 (WAN)" ==> MOSQ
     AE_N -.->|Mca REST HTTP / Port 8080| CSE
 ```
 
@@ -106,12 +114,14 @@ To guarantee cyber-physical safety, cryptographic robustness, and high-performan
 
 ---
 
-## 3. Module 1: Base CSE Infrastructure Specification (Singleton)
+## 3. Module 1: Base CSE Infrastructure Specification (Singleton on Server / Virtual Machine)
 
-### 3.1 Scope and Singleton Constraint
-The Base CSE module acts as the single source of semantic truth for the entire vehicular fleet. It must be deployed exactly once per environment. Deploying multiple Base CSE instances within the same operational domain is prohibited unless configured under explicit oneM2M $Mcc$ Inter-CSE federation topologies.
+### 3.1 Host Platform and Deployment Topology
+* **Host Platform:** Dedicated physical server, cloud instance, or virtual machine (VM) (Linux x86_64 or aarch64 server environment).
+* **Singleton Constraint:** Exactly one Base CSE infrastructure instance exists per operational cluster. It operates with a stable, routable network identity (e.g. `GATEWAY_IP=192.168.122.91` or cluster FQDN).
+* **Deployment Packaging:** Packaged and deployed via `deploy/docker-compose.yml` on the central host.
 
-### 3.2 Core Components
+### 3.2 Core Component Responsibilities
 1. **ACME oneM2M IN-CSE (`sdv_onem2m_cse`):**
    * Exposes standard Mca HTTP(S) reference point on port `8080` and native oneM2M TS-0010 MQTT binding on internal port `1883`.
    * Manages the root `<m2m:cb>` (CSEBase) identified by `cse_id` (`id-in`) and accessible at path `/{{ cse_rn }}` (`/cse-in` or `/sdv-cse`).
@@ -121,25 +131,28 @@ The Base CSE module acts as the single source of semantic truth for the entire v
    * **Fleet Fan-Out Group (`grp_fleet_telemetry`):** An aggregate `<m2m:grp>` whose member IDs (`mid`) dynamically index the raw telemetry containers of all onboarded vehicles. Supports atomic fleet queries via `/grp_fleet_telemetry/fopt/la`.
    * **Downlink & Cloud Ingestion Subscriptions:** Dispatches asynchronous change events to subscriber targets.
 3. **Data Health & Storage Pipeline:**
-   * **Central Mosquitto Broker (`sdv_mosquitto_broker`):** Terminates network mTLS 1.3 on port 8883.
+   * **Central Mosquitto Broker (`sdv_mosquitto_broker`):** Terminates network mTLS 1.3 on port 8883 from all vehicular Raspberry Pi 5 nodes.
    * **Bridge AE Time-Series Consumer (`sdv_bridge_ae`):** Consumes `<subscription>` notifications and writes clean records to InfluxDB.
    * **InfluxDB 2.x TSDB (`sdv_influxdb`):** Historical time-series persistence.
    * **Grafana Operational Cockpit (`sdv_grafana`):** Observability and fleet-wide KPI visualisation.
 
 ### 3.3 Initial State Guarantee
-Upon initial bootstrap, the Base CSE module **must contain zero vehicular Application Entities**. No vehicle node shall be present until dynamically onboarded by an authentic Vehicle AE module.
+Upon initial bootstrap, the Base CSE module **must contain zero vehicular Application Entities**. No vehicle node shall be present until dynamically onboarded by an authentic Vehicle AE module running on an in-vehicle Raspberry Pi 5.
 
 ---
 
-## 4. Module 2: Vehicle AE Specification (Multi-Instance)
+## 4. Module 2: Vehicle AE Specification (Multi-Instance on In-Vehicle Raspberry Pi 5)
 
-### 4.1 Scope and Multi-Instance Constraint
-The Vehicle AE module represents the onboard cyber-physical system of a single vehicle. Any arbitrary number of instances ($i \in \{1, 2, \dots, N\}$) may be commissioned and deployed concurrently. Each instance is completely isolated from all other instances and maintains strict local autonomy.
+### 4.1 Host Platform and Deployment Topology
+* **Host Platform:** Dedicated **Raspberry Pi 5 single-board computer** installed inside each individual vehicle.
+* **Multi-Instance Constraint:** For $N$ vehicles in the fleet, $N$ distinct Raspberry Pi 5 units are deployed. Each unit operates completely independently with zero shared local state, executing its own isolated edge runtime.
+* **Network Connection to Base CSE:** Connects over vehicular wide-area networks (cellular 4G/5G, road-side Wi-Fi, or vehicular mesh) back to the central Server/VM on port 8883 (mTLS 1.3) and port 8080 (oneM2M Mca).
 
 ### 4.2 Physical and Edge Compute Stack
-Each Vehicle AE instance comprises two distinct computational tiers:
+Each in-vehicle Raspberry Pi 5 orchestrates two physical and computational tiers:
 
 #### Tier A: Physical Sensing & Actuation Node (ESP32-S3 Micro-ECU)
+* **Hardware Interface to Raspberry Pi 5:** Directly connected via a dedicated physical serial bus (USB-CDC on `/dev/serial/by-id/usb-Espressif_ESP32-S3_...` or hardware GPIO UART) with parity checking.
 * **Transducers (7 Environmental Channels):**
   * Sensirion SCD30: NDIR $\text{CO}_2$ (0–10,000 ppm), dry-bulb temperature, relative humidity over $\text{I}^2\text{C}$ Fast-Mode (400 kHz) with hardware CRC-8 verification.
   * DHT22: Redundant temperature and relative humidity over 1-Wire bus with parity checksum.
@@ -157,17 +170,17 @@ Each Vehicle AE instance comprises two distinct computational tiers:
 * **Hardware Identity:** Immutable 48-bit MAC address and 128-bit UID read from write-once eFuse registers.
 
 #### Tier B: Vehicular MEC Host (Raspberry Pi 5)
-* **Compute Platform:** Quad-core ARM Cortex-A76 vehicular edge host.
-* **Local Broker / Ingress Agent:** Manages local sensor aggregation, payload formatting, and schema validation.
-* **Vehicle Identity Master:** Stores the vehicle's ISO 3779 VIN, OTP board serial, and cryptographic private keys.
-* **oneM2M AE Client Agent:** Executes the onboarding reconciliation loop, periodic telemetry transmission to the Base CSE via native TS-0010 MQTT or Mca REST, and actuation downlink execution.
+* **Compute Platform:** Quad-core ARM Cortex-A76 vehicular edge host running vehicular Linux.
+* **Local Ingress & Formatting Agent:** Ingests raw telemetry frames from the ESP32-S3, verifies CRC-8/parity checksums, and serialises valid oneM2M JSON content instances.
+* **Cryptographic Identity Vault:** Securely stores the vehicle's unique ISO 3779 VIN, OTP board serial, and private key/X.509 client certificate for mTLS 1.3 authentication against the central server/VM.
+* **oneM2M AE Client Agent:** Executes the onboarding reconciliation loop, periodic telemetry transmission to the Base CSE via native TS-0010 MQTT or Mca REST, and actuation downlink command dispatch to the ESP32-S3.
 
 ### 4.3 Dynamic oneM2M Resource Representation
-When an instance registers with the Base CSE, it provisions a dedicated subtree under `<m2m:cb>`:
+When a vehicle's Raspberry Pi 5 registers with the Base CSE on the server/VM, it provisions a dedicated subtree under `<m2m:cb>`:
 
 ```text
-/cse-in (CSEBase)
- └── ae_vin_wauzzz_sdv_2026_0042 (Application Entity: <m2m:ae>)
+/cse-in (CSEBase on Server/VM)
+ └── ae_vin_wauzzz_sdv_2026_0042 (Application Entity: <m2m:ae> deployed on RPi 5)
       ├── temperature-cabin (Container: <m2m:cnt>)
       ├── humidity-cabin (Container: <m2m:cnt>)
       ├── co2-cabin (Container: <m2m:cnt>)
@@ -187,13 +200,13 @@ When an instance registers with the Base CSE, it provisions a dedicated subtree 
 
 To guarantee that each physical vehicle solely and accurately links to its designated AE instance on the Base CSE without cross-talk or collision, the 5-layer binding mechanism operates across the module boundary:
 
-| Layer | Binding Mechanism | Implementation in Module Partition |
+| Layer | Binding Mechanism | Implementation Across Physical Hosts |
 | :--- | :--- | :--- |
-| **1. Physical Hardware** | ESP32 eFuse MAC + RPi 5 Board Serial $\to$ ISO 3779 VIN | **Vehicle AE Module:** Embedded in local device tree and sensor frame headers. |
-| **2. Transport Security** | X.509 Mutual TLS 1.3 with Subject Alternative Name (SAN) | **Boundary Interface:** Vehicle AE presents cert with `SAN: URI:urn:sdv:vin:<VIN>`. Base CSE / Gateway authenticates cert against vehicular Root CA. |
-| **3. Semantic Identity** | Deterministic Resource Name ($rn = \text{FNV-1a}(\text{VIN})$) | **Boundary Interface:** Vehicle registers/reconciles deterministic $rn$. Base CSE binds allocated $aei$ to client credential. |
-| **4. Access Control** | Dedicated `<m2m:acp>` per vehicle ($acop = 63$ for $aei$) | **Base CSE Module:** Restricts CRUD operations on `/ae_vin_<slug>/*` strictly to that vehicle's authenticated $aei$ and $CAdmin$. |
-| **5. Downlink Routing** | Targeted Point of Access ($poa$) & MQTT topics | **Boundary Interface:** Actuator directives route strictly to `sdv/{vin}/control/cmd` or native topic `/oneM2M/req/id-in/{aei}/json`. |
+| **1. Physical Hardware** | ESP32 eFuse MAC + RPi 5 Board Serial $\to$ ISO 3779 VIN | **In-Vehicle RPi 5:** Embedded in local device tree and sensor frame headers. |
+| **2. Transport Security** | X.509 Mutual TLS 1.3 with Subject Alternative Name (SAN) | **Network Boundary:** RPi 5 presents client cert with `SAN: URI:urn:sdv:vin:<VIN>`. Server/VM gateway authenticates cert against vehicular Root CA. |
+| **3. Semantic Identity** | Deterministic Resource Name ($rn = \text{FNV-1a}(\text{VIN})$) | **Middleware Boundary:** RPi 5 registers/reconciles deterministic $rn$. Server/VM Base CSE binds allocated $aei$ to client credential. |
+| **4. Access Control** | Dedicated `<m2m:acp>` per vehicle ($acop = 63$ for $aei$) | **Server/VM Base CSE:** Restricts CRUD operations on `/ae_vin_<slug>/*` strictly to that vehicle's authenticated $aei$ and $CAdmin$. |
+| **5. Downlink Routing** | Targeted Point of Access ($poa$) & MQTT topics | **Network Boundary:** Actuator directives route strictly to `sdv/{vin}/control/cmd` or native topic `/oneM2M/req/id-in/{aei}/json`. |
 
 ### 5.1 Deterministic Resource Name Equation
 To prevent collisions and eliminate hardcoded aliases, the AE Resource Name is mathematically derived from the vehicle's unique identity string:
@@ -226,8 +239,8 @@ $$\text{Toxic Gas Hazard} \iff \text{CO} \ge 30.0\,\text{ppm}$$
 
 ## 7. Deployment and Operational Scenarios
 
-### 7.1 Scenario A: Singleton Base CSE Bootstrap
-1. The infrastructure deploys `deploy/docker-compose.yml`.
+### 7.1 Scenario A: Singleton Base CSE Bootstrap (Server / Virtual Machine)
+1. The cloud or server infrastructure deploys `deploy/docker-compose.yml` on the Server/VM.
 2. `sdv_onem2m_cse`, `sdv_mosquitto_broker`, `sdv_bridge_ae`, `sdv_influxdb`, and `sdv_grafana` initialize (Node-RED is decommissioned).
 3. The Base CSE governance bootstrap script (`deploy_acme_fleet_cse_base.py`) executes:
    * Verifies CSEBase reachability (`GET /cse-in`).
@@ -235,12 +248,12 @@ $$\text{Toxic Gas Hazard} \iff \text{CO} \ge 30.0\,\text{ppm}$$
    * Provisions `grp_fleet_telemetry` (<m2m:grp>) with an empty member array (`mid = []`).
    * **Result:** Clean, production-ready Base CSE with zero registered vehicle AEs.
 
-### 7.2 Scenario B: Commissioning a New Vehicle AE Instance ($N$-th Instance)
-Each physical vehicle executes its onboarding sequence independently:
+### 7.2 Scenario B: Commissioning a New Vehicle AE Instance (In-Vehicle Raspberry Pi 5)
+Each physical vehicle executes its onboarding sequence independently from its onboard Raspberry Pi 5:
 1. **Hardware Power-On:** ESP32 boots FreeRTOS, begins sensor sampling, and establishes local bus communication with the Raspberry Pi 5.
-2. **Identity Resolution:** Onboard agent reads local VIN and computes deterministic $rn_{\text{AE}}$.
+2. **Identity Resolution:** Raspberry Pi 5 agent reads local VIN and computes deterministic $rn_{\text{AE}}$.
 3. **Reconcile-on-Boot Check:**
-   * Vehicle issues `GET /cse-in/{{ vehicle_ae_rn }}` with `X-M2M-Origin: CAdmin` (or authenticated client cert).
+   * Raspberry Pi 5 issues `GET /cse-in/{{ vehicle_ae_rn }}` over WAN to the Server/VM with `X-M2M-Origin: CAdmin` (or authenticated client cert).
    * **Branch 1 (New Vehicle - 404 Not Found):**
      * Issues `POST /cse-in` with `ty=2` to create `<m2m:ae>` using deterministic $rn$.
      * Iterates through the canonical sensor manifest to create the 8 standard containers (`<m2m:cnt>`).
@@ -249,20 +262,20 @@ Each physical vehicle executes its onboarding sequence independently:
    * **Branch 2 (Reconnecting Vehicle - 200 OK):**
      * Validates existing container tree.
      * Reclaims its assigned `aei` and immediately resumes telemetry commits.
-4. **Steady-State Ingestion:** Vehicle posts telemetry instances (`<m2m:cin>`) via native oneM2M TS-0010 MQTT or Mca REST directly to its own `/raw-telemetry` container.
+4. **Steady-State Ingestion:** Raspberry Pi 5 posts telemetry instances (`<m2m:cin>`) via native oneM2M TS-0010 MQTT or Mca REST directly to its own `/raw-telemetry` container on the Server/VM.
 
 ### 7.3 Scenario C: Decommissioning / Retiring a Vehicle AE Instance
 When a vehicle is decommissioned or retired from the fleet:
-1. Administrative command or vehicle departure agent issues `DELETE /cse-in/{{ vehicle_ae_rn }}`.
+1. Administrative command or vehicle departure agent issues `DELETE /cse-in/{{ vehicle_ae_rn }}` against the Server/VM.
 2. Base CSE cascade-deletes the vehicle's `<m2m:ae>`, all 8 child `<m2m:cnt>` containers, all `<m2m:cin>` records, and subscriptions.
 3. Governance reconciliation script removes the deleted container URI from `grp_fleet_telemetry.mid`.
-4. Other active vehicle AE instances remain entirely unaffected.
+4. Other active vehicle AE instances running on other Raspberry Pi 5 units remain entirely unaffected.
 
 ---
 
 ## 8. Environment and Configuration Contracts
 
-### 8.1 Base CSE Environment (`deploy/.env`)
+### 8.1 Base CSE Server / VM Environment (`deploy/.env`)
 The Base CSE host maintains infrastructure-wide variables:
 ```dotenv
 # Infrastructure & Gateway Addressing
@@ -282,7 +295,7 @@ INFLUXDB_HOST_PORT=8087
 GRAFANA_PORT=3000
 ```
 
-### 8.2 Vehicle AE Node Environment (`vehicle/.env` per vehicle)
+### 8.2 In-Vehicle Raspberry Pi 5 Environment (`vehicle/.env` per vehicle)
 Each physical vehicle host maintains its local instance parameters:
 ```dotenv
 # Vehicle Hardware & Cryptographic Identity
@@ -291,14 +304,14 @@ VEHICLE_NODE_ID=sdv-car-0042
 CLIENT_CERT_PATH=/etc/sdv/certs/client.crt
 CLIENT_KEY_PATH=/etc/sdv/certs/client.key
 
-# Target Base CSE Gateway Connection
+# Target Central Base CSE Server / VM Connection
 BASE_URL=http://192.168.122.91:8080
 CSE_RN=cse-in
 ORIGINATOR=CAdmin
 APP_ID=N.org.fhtw.sdv.cabin
 RVI=3
 
-# Local Actuation & Downlink Configuration
+# Local In-Vehicle Instrumentation Configuration
 LOCAL_ESP32_PORT=/dev/serial/by-id/usb-Espressif_ESP32-S3_001
 DOWNLINK_NOTIFICATION_URL=mqtt://192.168.122.91:8883/oneM2M/req/id-in/C_ae_vin_wauzzz_0042/json
 ```
@@ -309,9 +322,9 @@ DOWNLINK_NOTIFICATION_URL=mqtt://192.168.122.91:8883/oneM2M/req/id-in/C_ae_vin_w
 
 | Quality Attribute | Requirement Specification | Verification Method |
 | :--- | :--- | :--- |
-| **Singleton Guarantee** | Exactly one Base CSE exists per network domain. Zero duplicate CSEBase roots permitted. | Unit & integration test `make validate-base-cse` verifying singular `<m2m:cb>`. |
-| **AE Scalability** | Fleet capacity scales to $N$ independent vehicle AEs without code modifications. | Iterative test harness executing onboarding for $M$ arbitrary VINs. |
-| **Collision Immunity** | Two vehicles with different VINs must never claim or overwrite the same AE tree. | Ingestion collision test asserting HTTP 409 / 403 on duplicate registration attempts. |
-| **Zero Initial State** | Fresh deployment of Base CSE must start with zero vehicular AEs. | Preflight audit confirming `len(cb.childResource[ty==2]) == 0`. |
+| **Singleton Guarantee** | Exactly one Base CSE exists per network domain on the Server/VM. Zero duplicate CSEBase roots permitted. | Unit & integration test `make validate-base-cse` verifying singular `<m2m:cb>`. |
+| **AE Scalability** | Fleet capacity scales to $N$ independent vehicle AEs on distributed Raspberry Pi 5 units without code modifications. | Iterative test harness executing onboarding for $M$ arbitrary VINs. |
+| **Collision Immunity** | Two vehicles with different VINs must never claim or overwrite the same AE tree on the Base CSE. | Ingestion collision test asserting HTTP 409 / 403 on duplicate registration attempts. |
+| **Zero Initial State** | Fresh deployment of Base CSE on the Server/VM must start with zero vehicular AEs. | Preflight audit confirming `len(cb.childResource[ty==2]) == 0`. |
 | **Native Ingestion** | Zero intermediary proxy containers; native oneM2M TS-0010 MQTT / Mca HTTP. | Integration test verifying Node-RED absence and direct primitive routing. |
-| **Fail-Safe Containment**| Network disconnection of Vehicle $A$ has zero impact on Vehicle $B$'s ingestion loop. | Network fault injection testing with `inject_faults.py`. |
+| **Fail-Safe Containment**| Network disconnection of Vehicle $A$'s Raspberry Pi 5 has zero impact on Vehicle $B$'s ingestion loop. | Network fault injection testing with `inject_faults.py`. |
