@@ -118,7 +118,7 @@ if [ "${SKIP_TELEMETRY}" = "true" ]; then
     EXTRA_ARGS+=("--skip-telemetry")
 fi
 
-echo -e "\n[STEP 1/2] Onboarding and registering Vehicle AE on Base CSE..."
+echo -e "\n[STEP 1/2] Onboarding and registering Vehicle AE (with 8 oneM2M <container> resources) on Base CSE..."
 ${PYTHON_CMD} "${ROOT_DIR}/scripts/deploy_acme_fleet_single_vehicle_ae.py" \
     --base-host "${RESOLVED_BASE_HOST}" \
     --host "${RESOLVED_BASE_HOST}" \
@@ -136,16 +136,28 @@ CLIENT_KEY="${DEPLOY_DIR}/mosquitto/certs/client_esp32.key"
 if [ -f "${CA_CERT}" ] && [ -f "${CLIENT_CERT}" ] && [ -f "${CLIENT_KEY}" ]; then
     if nc -z -w 2 "${RESOLVED_BASE_HOST}" "${MQTT_PORT}" >/dev/null 2>&1; then
         echo "[INFO] Testing mTLS 1.3 connection to Mosquitto on ${RESOLVED_BASE_HOST}:${MQTT_PORT}..."
-        ${PYTHON_CMD} "${ROOT_DIR}/scripts/testing/simulate_telemetry.py" \
-            --host "${RESOLVED_BASE_HOST}" \
-            --port "${MQTT_PORT}" \
-            --ca-cert "${CA_CERT}" \
-            --client-cert "${CLIENT_CERT}" \
-            --client-key "${CLIENT_KEY}" \
-            --route native \
-            --mode normal \
-            --count 3 \
-            --interval 1.0 || echo "[WARN] Simulated telemetry sample run completed."
+        if ! ${PYTHON_CMD} -c "import paho.mqtt.client" >/dev/null 2>&1; then
+            if command -v apt-get >/dev/null 2>&1 && command -v sudo >/dev/null 2>&1; then
+                sudo -n apt-get update -qq >/dev/null 2>&1 || true
+                sudo -n apt-get install -y -qq python3-paho-mqtt >/dev/null 2>&1 || true
+            fi
+        fi
+
+        if ${PYTHON_CMD} -c "import paho.mqtt.client" >/dev/null 2>&1; then
+            ${PYTHON_CMD} "${ROOT_DIR}/scripts/testing/simulate_telemetry.py" \
+                --host "${RESOLVED_BASE_HOST}" \
+                --port "${MQTT_PORT}" \
+                --ca-cert "${CA_CERT}" \
+                --client-cert "${CLIENT_CERT}" \
+                --client-key "${CLIENT_KEY}" \
+                --route native \
+                --mode normal \
+                --count 3 \
+                --interval 1.0 || echo "[WARN] Simulated telemetry sample run completed."
+        else
+            echo "[INFO] Optional 'paho-mqtt' library is not present on this host; skipping simulated MQTT traffic."
+            echo "       (To run live telemetry simulation later: sudo apt-get install -y python3-paho-mqtt)"
+        fi
     else
         echo "[INFO] MQTT broker port ${MQTT_PORT} on ${RESOLVED_BASE_HOST} is offline. Skipping simulated telemetry stream."
     fi
@@ -156,5 +168,8 @@ fi
 
 echo -e "\n================================================================================"
 echo "  [SUCCESS] Module 2 (Vehicle AE: ${VEHICLE_ID}) successfully commissioned!"
-echo "  Target Base CSE: ${RESOLVED_BASE_HOST}:${RESOLVED_PORT}"
+echo "  Target Base CSE: http://${RESOLVED_BASE_HOST}:${RESOLVED_PORT}/sdv-cse"
+echo "  Registered oneM2M Resources: 8 semantic <container> nodes (Type 3) under /${VEHICLE_ID}"
+echo "  Observability: View live resource tree at http://${RESOLVED_BASE_HOST}:${RESOLVED_PORT}/webui"
+echo "  Note: oneM2M <container> resources reside inside Base CSE (not local Docker ps)."
 echo "================================================================================"

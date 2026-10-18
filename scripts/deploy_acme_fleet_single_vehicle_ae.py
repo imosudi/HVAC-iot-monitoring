@@ -290,9 +290,9 @@ def main():
         sys.exit(1)
 
     # -------------------------------------------------------------------------
-    # STEP 2: Reconcile 8 Manifest Containers
+    # STEP 2: Reconcile 8 Manifest oneM2M Containers (<cnt>)
     # -------------------------------------------------------------------------
-    log("STEP 2", f"Reconciling 8 Manifest Containers for {vehicle_id} (mia: 86400)...", "36")
+    log("STEP 2", f"Reconciling 8 oneM2M <container> (Type 3) Resources for {vehicle_id} (mia: 86400)...", "36")
     reconciled_cnts = {}
     for cnt_def in SENSOR_MANIFEST:
         c_name = cnt_def["name"]
@@ -320,9 +320,9 @@ def main():
         if c_status == 201:
             cnt_ri = c_res["m2m:cnt"]["ri"]
             reconciled_cnts[c_name] = cnt_ri
-            log("CREATED", f"  -> Container: {c_name:<22} (mni={mni:<4}, mia=86400, RI={cnt_ri})", "32")
+            log("CREATED", f"  -> oneM2M <cnt>: {c_name:<20} (mni={mni:<4}, mia=86400, RI={cnt_ri})", "32")
         elif c_status == 409:
-            log("VERIFIED", f"  -> Container: {c_name:<22} (already provisioned)", "34")
+            log("VERIFIED", f"  -> oneM2M <cnt>: {c_name:<20} (already provisioned)", "34")
             reconciled_cnts[c_name] = "existing"
         else:
             log("WARN", f"  -> Failed to provision {c_name}: HTTP {c_status} {c_res}", "33")
@@ -534,11 +534,12 @@ def main():
         print(f"  Resource ID (RI):    {ae_data.get('ri')}")
         print(f"  Assigned AEI:        {ae_data.get('aei')}")
         print(f"  Labels:              {ae_data.get('lbl')}")
-        print(f"  Expected Containers: {len(manifest_names)}")
-        print(f"  Verified Count:      {len(verified)} / {len(manifest_names)}")
-        print(f"  Verified Names:      {verified}")
-        print(f"  Missing Names:       {missing}")
-        print(f"  Audit Status:        {'PASSED - 100% RECONCILED' if len(missing) == 0 else 'FAILED'}")
+        print(f"  Expected oneM2M <cnt>: {len(manifest_names)} (Type 3 Resource Nodes)")
+        print(f"  Verified Count:        {len(verified)} / {len(manifest_names)}")
+        print(f"  Verified Names:        {verified}")
+        print(f"  Missing Names:         {missing}")
+        print(f"  Audit Status:          {'PASSED - 100% RECONCILED' if len(missing) == 0 else 'FAILED'}")
+        print("  Note: oneM2M <cnt> resources reside inside Base CSE (not local Docker ps)")
         print("=" * 60 + "\n")
 
     log("COMPLETE", f"Vehicle Application Entity '{vehicle_id}' successfully deployed to ACME CSE!\n", "32")

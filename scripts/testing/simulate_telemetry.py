@@ -17,7 +17,10 @@ import sys
 import time
 from datetime import datetime, timezone
 from pathlib import Path
-import paho.mqtt.client as mqtt
+try:
+    import paho.mqtt.client as mqtt
+except ImportError:
+    mqtt = None
 
 
 def _load_env_file():
@@ -180,6 +183,13 @@ def build_argument_parser() -> argparse.ArgumentParser:
 def main():
     parser = build_argument_parser()
     args = parser.parse_args()
+
+    if mqtt is None:
+        logger.error("Required dependency 'paho-mqtt' is not installed.")
+        logger.error("To enable MQTT telemetry simulation, install it via:")
+        logger.error("  sudo apt-get install -y python3-paho-mqtt   (Debian/Ubuntu system package)")
+        logger.error("  or: pip install paho-mqtt                 (Virtual environment)")
+        sys.exit(1)
 
     client = mqtt.Client(
         mqtt.CallbackAPIVersion.VERSION2,
