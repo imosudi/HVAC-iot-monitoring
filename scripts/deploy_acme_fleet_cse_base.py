@@ -33,9 +33,29 @@ import sys
 import time
 import urllib.error
 import urllib.request
+from pathlib import Path
 
-API_ID = "N.org.fhtw.sdv.cabin"
-RVI = "3"
+
+def _load_env_file():
+    """Dynamically loads configuration from root or deploy .env files."""
+    root = Path(__file__).resolve().parent.parent
+    for env_path in [root / ".env", root / "deploy" / ".env"]:
+        if env_path.exists():
+            with open(env_path, "r", encoding="utf-8") as f:
+                for line in f:
+                    clean = line.strip()
+                    if clean and not clean.startswith("#") and "=" in clean:
+                        k, v = clean.split("=", 1)
+                        k = k.strip()
+                        v = v.strip().strip("'\"")
+                        if k and k not in os.environ:
+                            os.environ[k] = v
+
+
+_load_env_file()
+
+API_ID = os.getenv("API_ID", "N.org.fhtw.sdv.cabin")
+RVI = os.getenv("RVI", os.getenv("ONEM2M_RVI", "3"))
 
 SENSOR_MANIFEST = [
     {"name": "temperature-cabin", "measurement": "temperature", "location": "cabin", "unit": "Cel"},
@@ -89,13 +109,13 @@ def parse_arguments():
     )
     parser.add_argument(
         "--host",
-        default=os.getenv("ACME_HOST", "192.168.122.91"),
+        default=os.getenv("ACME_HOST", os.getenv("CSE_HOST", os.getenv("GATEWAY_IP", "127.0.0.1"))),
         help="ACME CSE hostname or IP address"
     )
     parser.add_argument(
         "--port", "-p",
         type=int,
-        default=int(os.getenv("ACME_PORT", "8080")),
+        default=int(os.getenv("ACME_PORT", os.getenv("ONEM2M_PORT", "8080"))),
         help="ACME CSE HTTP port"
     )
     parser.add_argument(

@@ -52,11 +52,28 @@ class BaseCSEValidator:
     def __init__(self):
         self.root_dir = Path(__file__).resolve().parent.parent.parent
         self.env_file = self.root_dir / "deploy" / ".env"
-        self.env = load_env_file(self.env_file)
+        self.env = load_env_file(self.root_dir / ".env")
+        self.env.update(load_env_file(self.env_file))
 
         # Config resolution
-        self.cse_host = os.getenv("CSE_HOST", "localhost")
         self.cse_port = int(self.env.get("ONEM2M_PORT", os.getenv("CSE_PORT", "8080")))
+        configured_host = os.getenv("CSE_HOST", self.env.get("CSE_HOST", self.env.get("GATEWAY_IP", "localhost")))
+
+        # Check reachability; fall back to localhost if running on development workstation
+        def _is_host_reachable(host: str, port: int) -> bool:
+            try:
+                with socket.create_connection((host, port), timeout=0.5):
+                    return True
+            except (socket.timeout, OSError):
+                return False
+
+        if _is_host_reachable(configured_host, self.cse_port):
+            self.cse_host = configured_host
+        elif _is_host_reachable("localhost", self.cse_port):
+            self.cse_host = "localhost"
+        else:
+            self.cse_host = configured_host
+
         self.cse_name = self.env.get("ONEM2M_CSE_NAME", os.getenv("CSE_NAME", "sdv-cse"))
         self.cse_id = self.env.get("ONEM2M_CSE_ID", os.getenv("CSE_ID", "id-sdv"))
         self.originator = self.env.get("ONEM2M_ADMIN_ORIGIN", os.getenv("ORIGIN", "CAdmin"))

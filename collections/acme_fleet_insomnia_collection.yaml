@@ -36,8 +36,22 @@ collection:
     value: '{{ rvi }}'
   scripts:
     preRequest: |
-      // 1. Validate required environment settings
-      const baseUrl = insomnia.environment.get('base_url');
+      // 1. Resolve & Validate required environment settings
+      const gatewayIp = insomnia.environment.get('gateway_ip') || insomnia.environment.get('cse_host') || '192.168.122.91';
+      const csePort = insomnia.environment.get('port') || insomnia.environment.get('onem2m_port') || '8080';
+      let baseUrl = insomnia.environment.get('base_url');
+      if (!baseUrl || baseUrl.trim() === '') {
+          baseUrl = `http://${gatewayIp}:${csePort}`;
+          insomnia.baseEnvironment.set('base_url', baseUrl);
+      }
+      let notifBaseUrl = insomnia.environment.get('notification_base_url');
+      if (!notifBaseUrl || notifBaseUrl.trim() === '') {
+          insomnia.baseEnvironment.set('notification_base_url', `http://${gatewayIp}:${csePort}`);
+      }
+      let downlinkUrl = insomnia.environment.get('downlink_notification_url');
+      if (!downlinkUrl || downlinkUrl.trim() === '') {
+          insomnia.baseEnvironment.set('downlink_notification_url', `http://${gatewayIp}:${csePort}/downlink`);
+      }
       const cseRn = insomnia.environment.get('cse_rn');
       const originator = insomnia.environment.get('originator');
       const rvi = insomnia.environment.get('rvi');
@@ -1272,6 +1286,8 @@ environments:
     modified: 1791360000000
     isPrivate: false
   data:
+    gateway_ip: 192.168.122.91
+    port: '8080'
     base_url: http://192.168.122.91:8080
     cse_rn: cse-in
     cse_id: id-in

@@ -10,11 +10,32 @@ the cyber-physical boundary without uncaught runtime exceptions.
 import argparse
 import json
 import logging
+import os
 import ssl
 import sys
 import time
 from datetime import datetime, timezone
+from pathlib import Path
 import paho.mqtt.client as mqtt
+
+
+def _load_env_file():
+    """Dynamically loads configuration from root or deploy .env files."""
+    root = Path(__file__).resolve().parent.parent.parent
+    for env_path in [root / ".env", root / "deploy" / ".env"]:
+        if env_path.exists():
+            with open(env_path, "r", encoding="utf-8") as f:
+                for line in f:
+                    clean = line.strip()
+                    if clean and not clean.startswith("#") and "=" in clean:
+                        k, v = clean.split("=", 1)
+                        k = k.strip()
+                        v = v.strip().strip("'\"")
+                        if k and k not in os.environ:
+                            os.environ[k] = v
+
+
+_load_env_file()
 
 logging.basicConfig(
     level=logging.INFO,
@@ -188,8 +209,17 @@ def run_injection_tests(
 
 def main():
     parser = argparse.ArgumentParser(description="SDV HVAC Fault Injection Utility")
-    parser.add_argument("--host", default="localhost", help="MQTT broker host")
-    parser.add_argument("--port", type=int, default=8883, help="MQTT broker port (8883 for TLS)")
+    parser.add_argument(
+        "--host",
+        default=os.getenv("MQTT_HOST", os.getenv("GATEWAY_IP", "localhost")),
+        help="MQTT broker host"
+    )
+    parser.add_argument(
+        "--port",
+        type=int,
+        default=int(os.getenv("MQTT_PORT", os.getenv("MOSQUITTO_PORT", "8883"))),
+        help="MQTT broker port (8883 for TLS)"
+    )
     parser.add_argument("--vehicle-id", default="vehicle_01", help="Vehicle ID target")
     parser.add_argument(
         "--route",

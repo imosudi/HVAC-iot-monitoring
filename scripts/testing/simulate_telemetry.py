@@ -11,11 +11,32 @@ Bridge AE data health state machine.
 import argparse
 import json
 import logging
+import os
 import ssl
 import sys
 import time
 from datetime import datetime, timezone
+from pathlib import Path
 import paho.mqtt.client as mqtt
+
+
+def _load_env_file():
+    """Dynamically loads configuration from root or deploy .env files."""
+    root = Path(__file__).resolve().parent.parent.parent
+    for env_path in [root / ".env", root / "deploy" / ".env"]:
+        if env_path.exists():
+            with open(env_path, "r", encoding="utf-8") as f:
+                for line in f:
+                    clean = line.strip()
+                    if clean and not clean.startswith("#") and "=" in clean:
+                        k, v = clean.split("=", 1)
+                        k = k.strip()
+                        v = v.strip().strip("'\"")
+                        if k and k not in os.environ:
+                            os.environ[k] = v
+
+
+_load_env_file()
 
 logging.basicConfig(
     level=logging.INFO,
@@ -124,8 +145,17 @@ def build_argument_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="Publish synthetic vehicular telemetry to Mosquitto MQTT broker."
     )
-    parser.add_argument("--host", default="localhost", help="MQTT broker hostname or IP address")
-    parser.add_argument("--port", type=int, default=8883, help="MQTT broker port (8883 for mTLS, 1883 for plain)")
+    parser.add_argument(
+        "--host",
+        default=os.getenv("MQTT_HOST", os.getenv("GATEWAY_IP", "localhost")),
+        help="MQTT broker hostname or IP address"
+    )
+    parser.add_argument(
+        "--port",
+        type=int,
+        default=int(os.getenv("MQTT_PORT", os.getenv("MOSQUITTO_PORT", "8883"))),
+        help="MQTT broker port (8883 for mTLS, 1883 for plain)"
+    )
     parser.add_argument("--vehicle-id", default="vehicle_01", help="Vehicle identifier")
     parser.add_argument("--interval", type=float, default=1.0, help="Publish interval in seconds")
     parser.add_argument("--count", type=int, default=0, help="Number of frames to send (0 = infinite)")
