@@ -78,6 +78,16 @@ echo "  Base CSE Host: ${RESOLVED_BASE_HOST}:${RESOLVED_PORT}"
 echo "================================================================================"
 
 # Execute deployment: Containerised mesh if docker available, or native Python ACME CSE
+if ! docker compose version >/dev/null 2>&1 && ! command -v docker-compose >/dev/null 2>&1 && ! command -v podman-compose >/dev/null 2>&1; then
+    # Attempt to install container runtime if setup script is available and sudo is functional
+    SETUP_SCRIPT="${ROOT_DIR}/scripts/setup/install_ubuntu_prerequisites.sh"
+    if [ -f "${SETUP_SCRIPT}" ] && command -v sudo >/dev/null 2>&1; then
+        echo "[INFO] Container runtime (Docker Compose) not detected on Base CSE host."
+        echo "[INFO] Attempting automated setup of Docker CE & Compose plugin..."
+        bash "${SETUP_SCRIPT}" --docker --yes || true
+    fi
+fi
+
 if docker compose version >/dev/null 2>&1 || command -v docker-compose >/dev/null 2>&1 || command -v podman-compose >/dev/null 2>&1; then
     # Stop native user services to prevent port collisions (8080, 8000)
     systemctl --user stop sdv-acme-cse.service sdv-web-portal.service 2>/dev/null || true
@@ -87,24 +97,7 @@ if docker compose version >/dev/null 2>&1 || command -v docker-compose >/dev/nul
         --lean \
         --localhost \
         --base-host "${RESOLVED_BASE_HOST}"
-else
-    # Attempt to install container runtime if setup script is available and sudo is functional
-    SETUP_SCRIPT="${ROOT_DIR}/scripts/setup/install_ubuntu_prerequisites.sh"
-    if [ -f "${SETUP_SCRIPT}" ] && command -v sudo >/dev/null 2>&1; then
-        echo "[INFO] Container runtime (Docker Compose) not detected on Base CSE host."
-        echo "[INFO] Attempting automated setup of Docker CE & Compose plugin..."
-        bash "${SETUP_SCRIPT}" --docker --yes || true
-    fi
-
-    if docker compose version >/dev/null 2>&1 || command -v docker-compose >/dev/null 2>&1 || command -v podman-compose >/dev/null 2>&1; then
-        systemctl --user stop sdv-acme-cse.service sdv-web-portal.service 2>/dev/null || true
-        systemctl --user disable sdv-acme-cse.service sdv-web-portal.service 2>/dev/null || true
-
-        bash "${DEPLOY_DIR}/deploy_gateway.sh" \
-            --lean \
-            --localhost \
-            --base-host "${RESOLVED_BASE_HOST}"
-    elif [ -d "${HOME}/onem2m/venv" ] || [ -f "/home/mosud/onem2m/venv/bin/python3" ]; then
+elif [ -d "${HOME}/onem2m/venv" ] || [ -f "/home/mosud/onem2m/venv/bin/python3" ]; then
     echo "[INFO] Container runtime not installed on host, but native ACME oneM2M CSE detected."
     VENV_PYTHON="${HOME}/onem2m/venv/bin/python3"
     if [ ! -f "${VENV_PYTHON}" ]; then
