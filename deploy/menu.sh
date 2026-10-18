@@ -17,13 +17,14 @@ set -euo pipefail
 DEPLOY_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "${DEPLOY_DIR}/.." && pwd)"
 
-# Load environment configuration
+# Load environment configuration (deploy/.env first, root .env overrides)
 if [ -f "${DEPLOY_DIR}/.env" ]; then
     set -a
     # shellcheck disable=SC1090
     source <(grep -v '^#' "${DEPLOY_DIR}/.env" | grep -v '^[[:space:]]*$' || true)
     set +a
-elif [ -f "${ROOT_DIR}/.env" ]; then
+fi
+if [ -f "${ROOT_DIR}/.env" ]; then
     set -a
     # shellcheck disable=SC1090
     source <(grep -v '^#' "${ROOT_DIR}/.env" | grep -v '^[[:space:]]*$' || true)
