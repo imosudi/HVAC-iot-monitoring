@@ -16,7 +16,7 @@
 set -euo pipefail
 
 DEPLOY_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ROOT_DIR="${DEPLOY_DIR}/.."
+ROOT_DIR="$(cd "${DEPLOY_DIR}/.." && pwd)"
 
 TARGET_MODE=""
 BASE_HOST=""
@@ -125,6 +125,35 @@ EOF
     systemctl --user daemon-reload
     systemctl --user enable sdv-acme-cse.service >/dev/null 2>&1 || true
     systemctl --user restart sdv-acme-cse.service
+
+    # Install and configure Web Management Portal systemd user service (Port 8000)
+    if [ -d "${ROOT_DIR}/services/web_portal" ]; then
+        echo "[INFO] Configuring SDV Web Management Portal service on port 8000..."
+        cat << EOF > "${HOME}/.config/systemd/user/sdv-web-portal.service"
+[Unit]
+Description=SDV Web Management Portal Service
+After=network.target sdv-acme-cse.service
+
+[Service]
+Type=simple
+WorkingDirectory=${ROOT_DIR}
+Environment=PYTHONPATH=${ROOT_DIR}
+Environment=PORT=8000
+Environment=HOST=0.0.0.0
+Environment=ONEM2M_CSE_URL=http://localhost:${RESOLVED_PORT}/sdv-cse
+ExecStart=${VENV_PYTHON} -m services.web_portal.app
+Restart=always
+RestartSec=3
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=default.target
+EOF
+        systemctl --user daemon-reload
+        systemctl --user enable sdv-web-portal.service >/dev/null 2>&1 || true
+        systemctl --user restart sdv-web-portal.service
+    fi
 
     # Await CSEBase HTTP readiness
     echo "[INFO] Awaiting ACME CSEBase readiness on localhost:${RESOLVED_PORT} (/sdv-cse)..."

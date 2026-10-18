@@ -19,7 +19,7 @@
 set -euo pipefail
 
 DEPLOY_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ROOT_DIR="${DEPLOY_DIR}/.."
+ROOT_DIR="$(cd "${DEPLOY_DIR}/.." && pwd)"
 
 TARGET_MODE=""
 BASE_HOST=""
@@ -151,6 +151,37 @@ if [ -f "${CA_CERT}" ] && [ -f "${CLIENT_CERT}" ] && [ -f "${CLIENT_KEY}" ]; the
     fi
 else
     echo "[INFO] Certificates not found locally in deploy/mosquitto/certs. Skipping simulated telemetry stream."
+fi
+
+# Configure in-vehicle Web Management Portal systemd user service (Port 8000)
+if [ -d "${ROOT_DIR}/services/web_portal" ] && command -v systemctl >/dev/null 2>&1; then
+    echo "[INFO] Configuring In-Vehicle Web Management Portal service on port 8000..."
+    loginctl enable-linger "${USER}" 2>/dev/null || true
+    mkdir -p "${HOME}/.config/systemd/user"
+    cat << EOF > "${HOME}/.config/systemd/user/sdv-web-portal.service"
+[Unit]
+Description=SDV In-Vehicle Web Management Portal Service
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=${ROOT_DIR}
+Environment=PYTHONPATH=${ROOT_DIR}
+Environment=PORT=8000
+Environment=HOST=0.0.0.0
+Environment=ONEM2M_CSE_URL=http://${RESOLVED_BASE_HOST}:${RESOLVED_PORT}/sdv-cse
+ExecStart=${PYTHON_CMD} -m services.web_portal.app
+Restart=always
+RestartSec=3
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=default.target
+EOF
+    systemctl --user daemon-reload
+    systemctl --user enable sdv-web-portal.service >/dev/null 2>&1 || true
+    systemctl --user restart sdv-web-portal.service
 fi
 
 echo -e "\n================================================================================"

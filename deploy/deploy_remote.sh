@@ -9,7 +9,7 @@
 set -euo pipefail
 
 DEPLOY_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ROOT_DIR="${DEPLOY_DIR}/.."
+ROOT_DIR="$(cd "${DEPLOY_DIR}/.." && pwd)"
 
 # Load local environment configuration
 if [ -f "${DEPLOY_DIR}/.env" ]; then
@@ -303,6 +303,7 @@ deploy_remote_base_cse() {
         echo "[INFO] Synchronising deployment configuration and scripts to ${BASE_HOST}:${BASE_DIR}..."
         sync_directory "${BASE_HOST}" "${BASE_USER}" "${BASE_PORT}" "${BASE_KEY}" "${DEPLOY_DIR}" "${BASE_DIR}/deploy"
         sync_directory "${BASE_HOST}" "${BASE_USER}" "${BASE_PORT}" "${BASE_KEY}" "${ROOT_DIR}/scripts" "${BASE_DIR}/scripts"
+        sync_directory "${BASE_HOST}" "${BASE_USER}" "${BASE_PORT}" "${BASE_KEY}" "${ROOT_DIR}/services" "${BASE_DIR}/services"
 
         if [ -f "${ROOT_DIR}/.env" ]; then
             sync_file "${BASE_HOST}" "${BASE_USER}" "${BASE_PORT}" "${BASE_KEY}" "${ROOT_DIR}/.env" "${BASE_DIR}/.env"
@@ -345,6 +346,7 @@ deploy_remote_vehicle_ae() {
     if [ "${SKIP_SYNC}" = "false" ]; then
         echo "[INFO] Synchronising Vehicle AE scripts and certificates to ${VEHICLE_HOST}:${VEHICLE_DIR}..."
         sync_directory "${VEHICLE_HOST}" "${VEHICLE_USER}" "${VEHICLE_PORT}" "${VEHICLE_KEY}" "${ROOT_DIR}/scripts" "${VEHICLE_DIR}/scripts"
+        sync_directory "${VEHICLE_HOST}" "${VEHICLE_USER}" "${VEHICLE_PORT}" "${VEHICLE_KEY}" "${ROOT_DIR}/services" "${VEHICLE_DIR}/services"
 
         sync_file "${VEHICLE_HOST}" "${VEHICLE_USER}" "${VEHICLE_PORT}" "${VEHICLE_KEY}" "${DEPLOY_DIR}/deploy_vehicle_ae.sh" "${VEHICLE_DIR}/deploy/deploy_vehicle_ae.sh"
 

@@ -7,7 +7,7 @@
 set -euo pipefail
 
 DEPLOY_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ROOT_DIR="${DEPLOY_DIR}/.."
+ROOT_DIR="$(cd "${DEPLOY_DIR}/.." && pwd)"
 
 # Deployment configuration defaults
 LEAN_MODE=true

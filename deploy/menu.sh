@@ -15,7 +15,7 @@
 set -euo pipefail
 
 DEPLOY_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ROOT_DIR="${DEPLOY_DIR}/.."
+ROOT_DIR="$(cd "${DEPLOY_DIR}/.." && pwd)"
 
 # Load environment configuration
 if [ -f "${DEPLOY_DIR}/.env" ]; then
@@ -401,6 +401,13 @@ action_diagnostics() {
         echo -e "  [INFO] Localhost Mosquitto port 8883 is closed."
     fi
 
+    # Local Web Portal
+    if nc -z -w 1 127.0.0.1 8000 >/dev/null 2>&1; then
+        echo -e "  [OK] Localhost Web Management Portal port 8000 is ${GREEN}LISTENING${RESET}."
+    else
+        echo -e "  [INFO] Localhost Web Management Portal port 8000 is closed."
+    fi
+
     # Remote Base CSE Host
     if nc -z -w 1 "${DEF_BASE_HOST}" 22 >/dev/null 2>&1; then
         echo -e "  [OK] Remote Base CSE Host (${DEF_BASE_HOST}:22 SSH) is ${GREEN}REACHABLE${RESET}."
@@ -417,6 +424,12 @@ action_diagnostics() {
         else
             echo -e "  [INFO] Remote Base CSE HTTP port 8080 is not currently open."
         fi
+
+        if nc -z -w 1 "${DEF_BASE_HOST}" 8000 >/dev/null 2>&1; then
+            echo -e "  [OK] Remote Base CSE Web Management Portal port 8000 is ${GREEN}ONLINE${RESET} (http://${DEF_BASE_HOST}:8000)."
+        else
+            echo -e "  [INFO] Remote Base CSE Web Management Portal port 8000 is closed."
+        fi
     else
         echo -e "  [WARN] Remote Base CSE Host (${DEF_BASE_HOST}:22) is unreachable."
     fi
@@ -424,6 +437,11 @@ action_diagnostics() {
     # Remote Vehicle AE Host
     if nc -z -w 1 "${DEF_VEHICLE_AE_HOST:-${DEF_VEHICLE_HOST}}" 22 >/dev/null 2>&1; then
         echo -e "  [OK] Remote Vehicle AE Host (${DEF_VEHICLE_HOST}:22 SSH) is ${GREEN}REACHABLE${RESET}."
+        if nc -z -w 1 "${DEF_VEHICLE_AE_HOST:-${DEF_VEHICLE_HOST}}" 8000 >/dev/null 2>&1; then
+            echo -e "  [OK] Remote Vehicle AE In-Vehicle Web Portal port 8000 is ${GREEN}ONLINE${RESET} (http://${DEF_VEHICLE_HOST}:8000)."
+        else
+            echo -e "  [INFO] Remote Vehicle AE Web Portal port 8000 is closed."
+        fi
     else
         echo -e "  [INFO] Remote Vehicle AE Host (${DEF_VEHICLE_HOST}:22) is not reachable on current network."
     fi
