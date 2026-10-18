@@ -93,6 +93,19 @@ if docker compose version >/dev/null 2>&1 || command -v docker-compose >/dev/nul
     systemctl --user stop sdv-acme-cse.service sdv-web-portal.service 2>/dev/null || true
     systemctl --user disable sdv-acme-cse.service sdv-web-portal.service 2>/dev/null || true
 
+    # Check for low disk space and proactively expand LVM volume or clean caches
+    avail_kb=$(df -P / 2>/dev/null | awk 'NR==2 {print $4}')
+    if [ -n "${avail_kb}" ] && [ "${avail_kb}" -lt 1500000 ]; then
+        echo "[INFO] Free disk space on root volume is critically low ($((avail_kb / 1024))MB available)."
+        rm -rf "${HOME}/.docker/buildx/activity/"* 2>/dev/null || true
+        # If LVM root volume exists, expand it to use available disk capacity
+        if [ -e /dev/ubuntu-vg/ubuntu-lv ] && command -v sudo >/dev/null 2>&1; then
+            echo "[INFO] Unallocated LVM disk space detected. Expanding root filesystem to 100% capacity..."
+            sudo lvextend -l +100%FREE /dev/ubuntu-vg/ubuntu-lv -r || true
+            sudo apt-get clean 2>/dev/null || true
+        fi
+    fi
+
     bash "${DEPLOY_DIR}/deploy_gateway.sh" \
         --lean \
         --localhost \

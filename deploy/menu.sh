@@ -173,16 +173,22 @@ action_distributed_deployment() {
 # Action 2: Standalone Base CSE Infrastructure (Module 1)
 # ------------------------------------------------------------------------------
 action_base_cse() {
-    echo -e "\n${CYAN}===> Standalone Base CSE Infrastructure Deployment${RESET}"
-    echo -e "${GRAY}Deploys full Module 1 Base CSE platform (all 6 co-located microservices: CSE, Mosquitto, InfluxDB, Grafana, Bridge AE, Web Portal).${RESET}"
+    echo -e "\n${CYAN}===> Standalone Base CSE Infrastructure Deployment (ACME IN-CSE, Zero AEs, Baseline Governance)${RESET}"
+    echo -e "${GRAY}Deploys full Module 1 Base CSE platform ensuring all 6 co-located microservices reside on the same device:${RESET}"
+    echo -e "  - ${CYAN}sdv_onem2m_cse${RESET}       (ACME oneM2M IN-CSE, Port 8080)"
+    echo -e "  - ${CYAN}sdv_mosquitto_broker${RESET} (Mosquitto MQTT Broker mTLS 1.3, Ports 1883/8883)"
+    echo -e "  - ${CYAN}sdv_bridge_ae${RESET}        (Bridge Application Entity Service, Port 5000)"
+    echo -e "  - ${CYAN}sdv_influxdb${RESET}         (InfluxDB 2.x Time-Series Storage, Port 8087)"
+    echo -e "  - ${CYAN}sdv_grafana${RESET}          (Grafana Observability Cockpit, Port 3000)"
+    echo -e "  - ${CYAN}sdv_web_portal${RESET}       (Management Operations Portal, Port 8000)\n"
 
     prompt_host_type "Base CSE Infrastructure"
     if [ "${HOST_CHOICE}" = "1" ]; then
-        echo -e "\n${CYAN}[INFO] Commissioning Base CSE locally on current host...${RESET}"
+        echo -e "\n${CYAN}[INFO] Commissioning Base CSE locally on current host (all 6 co-located microservices)...${RESET}"
         bash "${DEPLOY_DIR}/deploy_base_cse.sh" --localhost --port 8080
     else
         prompt_remote_credentials "Base CSE Host" "${DEF_BASE_HOST}" "${DEF_BASE_USER}" "${DEF_BASE_PORT}" "${DEF_BASE_KEY}"
-        echo -e "\n${CYAN}[INFO] Commissioning Base CSE on remote host ${RET_HOST}...${RESET}"
+        echo -e "\n${CYAN}[INFO] Commissioning Base CSE on remote host ${RET_HOST} (all 6 co-located microservices)...${RESET}"
         bash "${DEPLOY_DIR}/deploy_remote.sh" \
             --base-host "${RET_HOST}" \
             --base-user "${RET_USER}" \
@@ -337,10 +343,10 @@ action_systemd_management() {
 }
 
 # ------------------------------------------------------------------------------
-# Action 6: Pre-flight Hardware & Network Diagnostics Check
+# Action 6: Pre-flight Software & Hardware Diagnostics Check
 # ------------------------------------------------------------------------------
-action_diagnostics() {
-    echo -e "\n${CYAN}===> Pre-Flight Hardware & Network Diagnostics Check${RESET}"
+run_local_hardware_diagnostics() {
+    echo -e "\n${CYAN}===> Local Peripheral, Hardware & Network Diagnostics Suite${RESET}"
     echo -e "${GRAY}Probes host hardware, sensor buses, peripheral interfaces, TCP endpoints, and SSH key authentication.${RESET}\n"
 
     # 1. Peripheral & Transducer Bus Diagnostics
@@ -414,7 +420,6 @@ action_diagnostics() {
         echo -e "  [OK] Remote Base CSE Host (${DEF_BASE_HOST}:22 SSH) is ${GREEN}REACHABLE${RESET}."
         if nc -z -w 1 "${DEF_BASE_HOST}" 8080 >/dev/null 2>&1; then
             echo -e "  [OK] Remote Base CSE HTTP port 8080 is ${GREEN}OPEN${RESET}."
-            # oneM2M probe
             local http_code
             http_code=$(curl -s -o /dev/null -w "%{http_code}" -H "X-M2M-Origin: CAdmin" -H "X-M2M-RI: diag" -H "X-M2M-RVI: 3" "http://${DEF_BASE_HOST}:8080/sdv-cse" || echo "000")
             if [ "${http_code}" = "200" ]; then
@@ -459,6 +464,61 @@ action_diagnostics() {
             echo -e "  [WARN] Passwordless SSH key authentication to Vehicle AE (${DEF_VEHICLE_USER}@${DEF_VEHICLE_HOST}) failed."
         fi
     fi
+}
+
+action_diagnostics() {
+    echo -e "\n${CYAN}===> Pre-Flight Software & Hardware Diagnostics Check${RESET}"
+    echo -e "${GRAY}Diagnostic toolchain for Docker Engine, SSH passwordless/password authentication, build tools, and hardware interfaces.${RESET}\n"
+
+    echo -e "${WHITE}Select pre-flight diagnostic workflow:${RESET}"
+    echo -e "  ${CYAN}[1]${RESET} Full pre-flight check with automated Docker, build tools, update & upgrade, and SSH setup (--preflight)"
+    echo -e "  ${CYAN}[2]${RESET} Inspection-only report (changes nothing, reports missing dependencies) (--check-only)"
+    echo -e "  ${CYAN}[3]${RESET} Explicitly ensure SSH password authentication is enabled (--enable-password-auth)"
+    echo -e "  ${CYAN}[4]${RESET} Optional: Enforce key-only authentication (disable password logins) (--disable-password-auth)"
+    echo -e "  ${CYAN}[5]${RESET} Local Hardware Peripheral & Network Diagnostics (V4L2, UART, I2C, CAN, sysfs, TCP)"
+    echo -e "  ${CYAN}[6]${RESET} Comprehensive Diagnostics (Run both remote preflight check & local hardware probes)"
+    echo -e "  ${RED}[0]${RESET} Return to main menu\n"
+
+    prompt_input "Enter choice [1-6, 0 to return] (default: 1): " "1" diag_choice
+
+    case "${diag_choice}" in
+        1|2|3|4|6)
+            echo -e "\n${CYAN}--- Target Remote Host Configuration ---${RESET}"
+            prompt_input "Enter target remote username [default: ${DEF_BASE_USER}]: " "${DEF_BASE_USER}" diag_user
+            prompt_input "Enter target remote hostname or IP address [default: ${DEF_BASE_HOST}]: " "${DEF_BASE_HOST}" diag_host
+            prompt_input "Enter target remote SSH port [default: ${DEF_BASE_PORT}]: " "${DEF_BASE_PORT}" diag_port
+            prompt_input "Enter path to SSH private key [default: ${DEF_BASE_KEY}]: " "${DEF_BASE_KEY}" diag_key
+
+            local script_path="${ROOT_DIR}/scripts/check_install-docker_ssh.sh"
+            local flag="--preflight"
+            [ "${diag_choice}" = "2" ] && flag="--check-only"
+            [ "${diag_choice}" = "3" ] && flag="--enable-password-auth"
+            [ "${diag_choice}" = "4" ] && flag="--disable-password-auth"
+
+            echo -e "\n${CYAN}[INFO] Executing pre-flight diagnostic (${flag}) against ${diag_user}@${diag_host}:${diag_port}...${RESET}\n"
+            bash "${script_path}" \
+                --port "${diag_port}" \
+                $( [ -n "${diag_key}" ] && [ -f "${diag_key}" ] && echo "--identity ${diag_key}" || true ) \
+                ${flag} \
+                "${diag_user}@${diag_host}" || true
+
+            if [ "${diag_choice}" = "6" ]; then
+                echo -e "\n${CYAN}================================================================================${RESET}"
+                echo -e "${CYAN}Executing Local Peripheral & Hardware Diagnostic Suite...${RESET}"
+                echo -e "${CYAN}================================================================================${RESET}"
+                run_local_hardware_diagnostics
+            fi
+            ;;
+        5)
+            run_local_hardware_diagnostics
+            ;;
+        0)
+            return 0
+            ;;
+        *)
+            echo -e "${RED}[ERROR] Invalid selection.${RESET}"
+            ;;
+    esac
 }
 
 # ------------------------------------------------------------------------------
@@ -556,11 +616,11 @@ main() {
         echo -e "${CYAN}===> ${WHITE}Interactive Deployment Selection${RESET}\n"
         echo -e "${GRAY}Please choose an execution or deployment option:${RESET}\n"
         echo -e "  ${CYAN}[1]${RESET} Distributed Multi-Host Deployment (Module 1 Base CSE on Server + Module 2 Vehicle AE on Pi 5)"
-        echo -e "  ${CYAN}[2]${RESET} Standalone Base CSE Infrastructure (All 6 Microservices: CSE, MQTT, InfluxDB, Grafana, Bridge, Portal)"
+        echo -e "  ${CYAN}[2]${RESET} Standalone Base CSE Infrastructure (ACME IN-CSE, Zero AEs, Baseline Governance)"
         echo -e "  ${CYAN}[3]${RESET} Standalone Vehicle Application Entity (Raspberry Pi 5 AE Onboarding to Base CSE)"
         echo -e "  ${CYAN}[4]${RESET} Complete Localhost Development Stack (Local Base CSE + InfluxDB + Grafana + Web Portal)"
         echo -e "  ${CYAN}[5]${RESET} systemd Host Service Management (Install, Status, Logs, Restart)"
-        echo -e "  ${CYAN}[6]${RESET} Pre-flight Hardware Diagnostics Check (V4L2, Serial/UART, sysfs, TCP, SSH)"
+        echo -e "  ${CYAN}[6]${RESET} Pre-flight Software & Hardware Diagnostics Check (Docker, SSH passwordless, build tools, sysfs, TCP)"
         echo -e "  ${CYAN}[7]${RESET} Telemetry Ingestion & Simulation Pipeline (mTLS 1.3, Native TS-0010 MQTT, Fan-Out)"
         echo -e "  ${CYAN}[8]${RESET} Display Least-Privilege Service Comparison Matrix"
         echo -e "  ${RED}[0]${RESET} Exit\n"

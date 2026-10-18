@@ -263,7 +263,9 @@ check_remote_host() {
         return 0
     else
         echo "[WARN] Passwordless SSH authentication failed for ${user}@${host}." >&2
-        echo "       To enable passwordless key login, install your public key via:" >&2
+        echo "       To configure SSH key access, password login, and Docker runtime automatically, run:" >&2
+        echo "       bash scripts/check_install-docker_ssh.sh --preflight -p ${port} ${user}@${host}" >&2
+        echo "       Or install your public key manually via:" >&2
         if [ -n "${key}" ]; then
             echo "       ssh-copy-id -i ${key}.pub -o IdentitiesOnly=yes -p ${port} ${user}@${host}" >&2
         else

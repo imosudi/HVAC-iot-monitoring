@@ -150,8 +150,14 @@ else
     fi
 fi
 
-${COMPOSE_CMD} build
-${COMPOSE_CMD} up -d --remove-orphans
+if ! docker info >/dev/null 2>&1 && command -v sg >/dev/null 2>&1 && getent group docker | grep -qw "${USER}"; then
+    COMPOSE_EXEC="sg docker -c"
+    ${COMPOSE_EXEC} "${COMPOSE_CMD} build"
+    ${COMPOSE_EXEC} "${COMPOSE_CMD} up -d --remove-orphans"
+else
+    ${COMPOSE_CMD} build
+    ${COMPOSE_CMD} up -d --remove-orphans
+fi
 
 echo "[STEP 4/4] Initialising oneM2M semantic resource hierarchy..."
 CSE_PORT="${ONEM2M_PORT:-8080}"
