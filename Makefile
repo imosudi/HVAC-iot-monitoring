@@ -61,16 +61,34 @@ deploy-localhost:
 	@bash deploy/deploy_gateway.sh --localhost --lean
 
 deploy-remote:
-	@echo "Deploying distributed SDV stack on remote hosts (Base CSE & Vehicle AE)..."
-	@bash deploy/deploy_gateway.sh --remote --lean $(if $(BASE_HOST),--base-host $(BASE_HOST),) $(if $(VEHICLE_HOST),--vehicle-host $(VEHICLE_HOST),)
+	@echo "Deploying distributed SDV stack on remote hosts via SSH (Base CSE & Vehicle AE)..."
+	@bash deploy/deploy_remote.sh \
+		$(if $(BASE_HOST),--base-host $(BASE_HOST),) \
+		$(if $(BASE_USER),--base-user $(BASE_USER),) \
+		$(if $(BASE_PORT),--base-port $(BASE_PORT),) \
+		$(if $(BASE_KEY),--base-key $(BASE_KEY),) \
+		$(if $(VEHICLE_HOST),--vehicle-host $(VEHICLE_HOST),) \
+		$(if $(VEHICLE_USER),--vehicle-user $(VEHICLE_USER),) \
+		$(if $(VEHICLE_PORT),--vehicle-port $(VEHICLE_PORT),) \
+		$(if $(VEHICLE_KEY),--vehicle-key $(VEHICLE_KEY),) \
+		$(if $(VEHICLE_ID),--vehicle-id $(VEHICLE_ID),) \
+		$(if $(MODULE),--module $(MODULE),)
 
 deploy-base-cse:
 	@echo "Deploying Module 1: Base CSE Infrastructure on Server/VM..."
-	@bash deploy/deploy_base_cse.sh $(if $(TARGET),--target $(TARGET),) $(if $(BASE_HOST),--base-host $(BASE_HOST),)
+	@if [ "$$(echo $(TARGET) | tr '[:upper:]' '[:lower:]')" = "remote" ] || [ -n "$(BASE_HOST)" -a "$(BASE_HOST)" != "localhost" -a "$(BASE_HOST)" != "127.0.0.1" ]; then \
+		bash deploy/deploy_remote.sh --module base-cse $(if $(BASE_HOST),--base-host $(BASE_HOST),) $(if $(BASE_USER),--base-user $(BASE_USER),) $(if $(BASE_KEY),--base-key $(BASE_KEY),); \
+	else \
+		bash deploy/deploy_base_cse.sh $(if $(TARGET),--target $(TARGET),) $(if $(BASE_HOST),--base-host $(BASE_HOST),); \
+	fi
 
 deploy-vehicle-ae:
 	@echo "Deploying Module 2: Vehicle AE Module on in-vehicle Raspberry Pi 5..."
-	@bash deploy/deploy_vehicle_ae.sh $(if $(TARGET),--target $(TARGET),) $(if $(BASE_HOST),--base-host $(BASE_HOST),) $(if $(VEHICLE_ID),--vehicle-id $(VEHICLE_ID),)
+	@if [ "$$(echo $(TARGET) | tr '[:upper:]' '[:lower:]')" = "remote" ] || [ -n "$(VEHICLE_HOST)" -a "$(VEHICLE_HOST)" != "localhost" -a "$(VEHICLE_HOST)" != "127.0.0.1" ]; then \
+		bash deploy/deploy_remote.sh --module vehicle-ae $(if $(BASE_HOST),--base-host $(BASE_HOST),) $(if $(VEHICLE_HOST),--vehicle-host $(VEHICLE_HOST),) $(if $(VEHICLE_USER),--vehicle-user $(VEHICLE_USER),) $(if $(VEHICLE_KEY),--vehicle-key $(VEHICLE_KEY),) $(if $(VEHICLE_ID),--vehicle-id $(VEHICLE_ID),); \
+	else \
+		bash deploy/deploy_vehicle_ae.sh $(if $(TARGET),--target $(TARGET),) $(if $(BASE_HOST),--base-host $(BASE_HOST),) $(if $(VEHICLE_ID),--vehicle-id $(VEHICLE_ID),); \
+	fi
 
 stop-gateway:
 	@echo "Stopping vehicular MEC gateway container mesh..."

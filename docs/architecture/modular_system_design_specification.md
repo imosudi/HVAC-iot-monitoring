@@ -339,6 +339,25 @@ The **Distributed Remote Hosts Topology** implements the physical and operationa
 | **Ingress Firewall** | TCP 8883 (mTLS), 8080 (REST), 3000 (Grafana), 8000 (Portal), 8087 (TSDB). | **Zero ingress ports required**. All connections are outbound from vehicle to central server. |
 | **Deployment Command** | `make deploy-base-cse BASE_HOST=192.168.122.91` | `make deploy-vehicle-ae BASE_HOST=192.168.122.91 VEHICLE_ID=vehicle-001` |
 
+#### 8.2.1 Remote Host SSH Management and Login Credential Contracts
+
+When orchestrating a distributed deployment from a centralized engineering workstation or continuous integration pipeline, remote provisioning requires explicit SSH login credentials and access parameters for each target machine:
+
+| Parameter Key | Target System | Default Value | Description & Operational Security Scope |
+| :--- | :--- | :--- | :--- |
+| `BASE_CSE_HOST` | Remote Host 1 | `192.168.122.91` | Hostname or IPv4/IPv6 address of the central server/VM hosting the Base CSE. |
+| `BASE_CSE_USER` | Remote Host 1 | `${USER}` (`mosud`) | Login username possessing Docker group or sudo privileges on Remote Host 1. |
+| `BASE_CSE_SSH_PORT` | Remote Host 1 | `22` | TCP port for SSH management on the Base CSE server/VM. |
+| `BASE_CSE_SSH_KEY` | Remote Host 1 | `~/.ssh/id_ed25519` | Path to the private key used for passwordless public-key authentication. |
+| `BASE_CSE_REMOTE_DIR` | Remote Host 1 | `~/HVAC-iot-monitoring` | Working directory where Base CSE deployment manifests and scripts reside. |
+| `VEHICLE_AE_HOST` | Remote Host 2 | `192.168.122.145` | Hostname or IPv4/IPv6 address of the in-vehicle Raspberry Pi 5 SBC. |
+| `VEHICLE_AE_USER` | Remote Host 2 | `${USER}` (`mosud`) | Login username on the Raspberry Pi 5 single-board computer. |
+| `VEHICLE_AE_SSH_PORT`| Remote Host 2 | `22` | TCP port for SSH management on the Raspberry Pi 5. |
+| `VEHICLE_AE_SSH_KEY` | Remote Host 2 | `~/.ssh/id_ed25519` | Path to the private key used for passwordless public-key authentication. |
+| `VEHICLE_AE_REMOTE_DIR`| Remote Host 2| `~/HVAC-iot-monitoring` | Working directory where Vehicle AE daemon scripts and client certs reside. |
+
+The remote orchestrator (`deploy/deploy_remote.sh`) executes pre-flight reachability probes (`nc -z -w 2`), validates public-key authentication (`ssh -o BatchMode=yes`), synchronises deployment assets (`rsync`), and initiates execution remotely on each respective target host.
+
 ```mermaid
 flowchart TB
     subgraph Remote_Host_1 ["Remote Host 1: Base CSE Server / VM (Hostname: base-cse.sdv.local / IP: 192.168.122.91)"]
@@ -396,7 +415,16 @@ Configured on Remote Host 1 (Server / VM):
 
 DEPLOY_TARGET=remote
 BASE_CSE_HOST=192.168.122.91
-VEHICLE_AE_HOST=192.168.122.105
+BASE_CSE_USER=mosud
+BASE_CSE_SSH_PORT=22
+BASE_CSE_SSH_KEY=~/.ssh/id_ed25519
+BASE_CSE_REMOTE_DIR=~/HVAC-iot-monitoring
+
+VEHICLE_AE_HOST=192.168.122.145
+VEHICLE_AE_USER=mosud
+VEHICLE_AE_SSH_PORT=22
+VEHICLE_AE_SSH_KEY=~/.ssh/id_ed25519
+VEHICLE_AE_REMOTE_DIR=~/HVAC-iot-monitoring
 
 # Service Addressing
 GATEWAY_IP=192.168.122.91
@@ -436,7 +464,7 @@ Configured on Remote Host 2 (In-Vehicle Raspberry Pi 5):
 
 DEPLOY_TARGET=remote
 BASE_CSE_HOST=192.168.122.91
-VEHICLE_AE_HOST=192.168.122.105
+VEHICLE_AE_HOST=192.168.122.145
 
 # Vehicle Hardware & Cryptographic Identity
 VEHICLE_VIN=VIN-WAUZZZ-SDV-2026-0042

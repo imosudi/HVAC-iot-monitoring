@@ -105,6 +105,15 @@ echo "[INFO] Active Deployment Topology: ${DEPLOY_TARGET}"
 echo "[INFO] Module 1 (Base CSE Host):  ${BASE_CSE_HOST}"
 echo "[INFO] Module 2 (Vehicle AE Host): ${VEHICLE_AE_HOST}"
 
+# If remote deployment target specified with remote host addressing, delegate to SSH remote orchestrator
+if [ "${DEPLOY_TARGET}" = "remote" ] && [ "${BASE_CSE_HOST}" != "localhost" ] && [ "${BASE_CSE_HOST}" != "127.0.0.1" ]; then
+    echo "[INFO] Remote Distributed Deployment selected. Delegating to SSH deployment orchestrator..."
+    exec bash "${DEPLOY_DIR}/deploy_remote.sh" \
+        --base-host "${BASE_CSE_HOST}" \
+        --vehicle-host "${VEHICLE_AE_HOST}" \
+        --module "${MODULE_CLI}"
+fi
+
 echo "[STEP 3/4] Pulling container images and building microservices..."
 cd "${DEPLOY_DIR}"
 if [ -n "${COMPOSE_CMD:-}" ]; then
