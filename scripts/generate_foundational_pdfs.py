@@ -5,8 +5,7 @@ Software-Defined Vehicle (SDV) Cabin Environmental Monitoring & Automotive IoT M
 Technical Engineering Reference & Specification Compilation Suite
 
 Transforms Markdown specifications into publication-grade A4 PDF documents using
-Python-Markdown and headless Google Chrome, free from external institutional sanction
-headers or university logos.
+Python-Markdown, LaTeX-to-MathML mathematical typesetting, and headless Google Chrome.
 """
 
 import os
@@ -14,6 +13,7 @@ import re
 import subprocess
 import sys
 import markdown
+from latex2mathml.converter import convert
 
 BASE_DIR = "/home/mosud/Documents/dev/HVAC-iot-monitoring"
 FOUNDATIONAL_DIR = os.path.join(BASE_DIR, "foundational_document")
@@ -74,30 +74,102 @@ def convert_github_alerts(md_text: str) -> str:
     return "\n".join(output_lines)
 
 
-def clean_latex_math(text: str) -> str:
-    """Substitutes inline LaTeX symbols into clean unicode typography using exact string matching."""
+def clean_fallback_math(latex: str) -> str:
+    """Fallback text cleaner for basic mathematical notation."""
     replacements = [
-        (r"$\tau \le 2.5\,\text{s}$", "τ ≤ 2.5 s"),
-        (r"$\tau \le 2.5\text{s}$", "τ ≤ 2.5 s"),
-        (r"$\pm(30\,\text{ppm} + 3\%)$", "±(30 ppm + 3%)"),
-        (r"$\pm 0.4^\circ\text{C}$", "±0.4 °C"),
-        (r"$\pm 3\%)$", "±3%)"),
-        (r"$\pm 3\%$", "±3%"),
-        (r"$\pm 0.5^\circ\text{C}$", "±0.5 °C"),
-        (r"$CO_2$", "CO₂"),
-        (r"$t_{latency} \le 5.0\,\text{s}$", "t_latency ≤ 5.0 s"),
-        (r"$t_{latency} > 30.0\,\text{s}$", "t_latency > 30.0 s"),
-        (r"$|T_{SCD30} - T_{DHT22}| > 3.0^\circ\text{C}$", "|T_SCD30 - T_DHT22| > 3.0 °C"),
-        (r"$|RH_{SCD30} - RH_{DHT22}| > 15\%$", "|RH_SCD30 - RH_DHT22| > 15%"),
-        (r"$\frac{dT}{dt} > 0.5^\circ\text{C}/\text{s}$", "dT/dt > 0.5 °C/s"),
-        (r"$RPM < 300$", "RPM < 300"),
-        (r"$> 800\,\text{ppm}$", "> 800 ppm"),
-        (r"$> 1200\,\text{ppm}$", "> 1200 ppm"),
-        (r"$> 1800\,\text{ppm}$", "> 1800 ppm"),
-        (r"$25\,\text{kHz}$", "25 kHz"),
+        (r"\tau", "τ"),
+        (r"\Delta", "Δ"),
+        (r"\le", "≤"),
+        (r"\ge", "≥"),
+        (r"\approx", "≈"),
+        (r"\implies", "⟹"),
+        (r"\iff", "⟺"),
+        (r"\lor", "∨"),
+        (r"\land", "∧"),
+        (r"\pm", "±"),
+        (r"^\circ\text{C}", "°C"),
+        (r"\text{C}", "C"),
+        (r"\text{s}", "s"),
+        (r"\text{ppm}", "ppm"),
+        (r"\text{null}", "null"),
+        (r"\text{FRESH}", "FRESH"),
+        (r"\text{STALE}", "STALE"),
+        (r"\text{DEGRADED}", "DEGRADED"),
+        (r"\text{FAULT}", "FAULT"),
+        (r"\,", " "),
     ]
-    for target, repl in replacements:
-        text = text.replace(target, repl)
+    res = latex
+    for pat, rep in replacements:
+        res = res.replace(pat, rep)
+    return res
+
+
+def postprocess_mathml(mathml: str) -> str:
+    """
+    Enhances MathML output for publication-grade typographic spacing and correct semantic operators.
+    """
+    # 1. Format implication and equivalence arrows as relational operators with explicit spacing
+    mathml = re.sub(r'<mi>(&#x027F9;|&#x027FA;)</mi>', r'<mo lspace="0.35em" rspace="0.35em">\1</mo>', mathml)
+    # 2. Format single arrows (\to, \rightarrow, \Rightarrow) with proper spacing
+    mathml = re.sub(r'<mo>(&#x02192;|&#x021D2;)</mo>', r'<mo lspace="0.3em" rspace="0.3em">\1</mo>', mathml)
+    # 3. Format logical connectives (\lor, \land) with clean operator spacing
+    mathml = re.sub(r'<mo>(&#x02228;|&#x02227;)</mo>', r'<mo lspace="0.28em" rspace="0.28em">\1</mo>', mathml)
+    # 4. Remove unwanted extra space around negative unary minus when preceded by relational operator
+    mathml = re.sub(r'(<mo>&#x0003C;|</mo>)\s*<mo>&#x02212;</mo>\s*<mn>', r'\1<mo form="prefix" rspace="0.05em">&#x02212;</mo><mn>', mathml)
+    return mathml
+
+
+def clean_latex_input(latex: str) -> str:
+    """Pre-processes LaTeX to handle escaped characters, digit separators, and text blocks."""
+    # Normalize escaped underscores inside text/subscript
+    latex = latex.replace(r'\_', '_')
+    return latex
+
+
+def render_math_to_mathml(text: str) -> str:
+    """
+    Converts LaTeX mathematical equations ($...$ and $$...$$) into standard MathML Core tags.
+    Protects fenced code blocks and inline code spans to prevent accidental conversion.
+    """
+    code_blocks = []
+    def save_code(match):
+        code_blocks.append(match.group(0))
+        return f"___CODE_BLOCK_{len(code_blocks)-1}___"
+
+    # Protect code blocks and inline code spans
+    text = re.sub(r'```[\s\S]*?```', save_code, text)
+    text = re.sub(r'`[^`\n]+`', save_code, text)
+
+    # 1. Block equations: $$...$$
+    def replace_block_math(match):
+        latex = clean_latex_input(match.group(1).strip())
+        try:
+            mathml = convert(latex, display="block")
+            mathml = postprocess_mathml(mathml)
+            return f'\n\n<div class="math-block">{mathml}</div>\n\n'
+        except Exception:
+            fallback = clean_fallback_math(latex)
+            return f'\n\n<div class="math-block"><code class="math-fallback">{fallback}</code></div>\n\n'
+
+    text = re.sub(r'\$\$([\s\S]*?)\$\$', replace_block_math, text)
+
+    # 2. Inline equations: $...$
+    def replace_inline_math(match):
+        latex = clean_latex_input(match.group(1).strip())
+        try:
+            mathml = convert(latex, display="inline")
+            mathml = postprocess_mathml(mathml)
+            return mathml
+        except Exception:
+            fallback = clean_fallback_math(latex)
+            return f'<span class="math-inline">{fallback}</span>'
+
+    text = re.sub(r'(?<!\$)\$(?!\$)([^\$\n]+?)(?<!\$)\$(?!\$)', replace_inline_math, text)
+
+    # Restore code blocks
+    for i, cb in enumerate(code_blocks):
+        text = text.replace(f"___CODE_BLOCK_{i}___", cb)
+
     return text
 
 
@@ -110,7 +182,6 @@ def strip_institutional_sanctions(text: str) -> str:
     filtered_lines = []
 
     for line in lines:
-        # Filter out university/department branding headers
         if "FH TECHNIKUM WIEN" in line or "TECHNIKUM WIEN" in line:
             continue
         if "DEPARTMENT OF ELECTRONIC ENGINEERING" in line or "Department of Electronic Engineering" in line:
@@ -296,6 +367,35 @@ def build_html_document(title: str, doc_id: str, doc_status: str, html_body: str
     margin-bottom: 2px;
   }}
 
+  /* Mathematical typesetting (MathML Core) */
+  math {{
+    font-family: "Latin Modern Math", "DejaVu Math TeX Gyre", "STIX Two Math", "Cambria Math", serif;
+    font-size: 1.05em;
+    vertical-align: middle;
+  }}
+
+  math[display="inline"] {{
+    display: inline-math;
+    padding: 0 1px;
+  }}
+
+  .math-block {{
+    display: block;
+    text-align: center;
+    margin: 10px 0;
+    padding: 9px 14px;
+    background-color: #f8fafc;
+    border-radius: 6px;
+    border: 1px solid #e2e8f0;
+    page-break-inside: avoid;
+    overflow-x: auto;
+  }}
+
+  .math-block math[display="block"] {{
+    display: inline-block;
+    font-size: 1.18em;
+  }}
+
   /* Tables: allow table to split across pages cleanly, but repeat header and avoid split inside row */
   table {{
     width: 100%;
@@ -479,7 +579,7 @@ def build_html_document(title: str, doc_id: str, doc_status: str, html_body: str
 
 
 def compile_md_to_pdf(input_md_path: str, output_pdf_path: str, doc_id: str, doc_status: str = "Approved Technical Specification") -> bool:
-    """Renders a single Markdown file to publication-grade PDF via Chrome."""
+    """Renders a single Markdown file to publication-grade PDF via Chrome with MathML rendering."""
     if not os.path.exists(input_md_path):
         print(f"[ERROR] Input markdown file does not exist: {input_md_path}")
         return False
@@ -495,9 +595,12 @@ def compile_md_to_pdf(input_md_path: str, output_pdf_path: str, doc_id: str, doc
     if title_match:
         md_content = md_content[:title_match.start()] + md_content[title_match.end():]
 
-    # Pre-process: strip institutional sanctions, LaTeX math, and alerts
+    # Pre-process pipeline:
+    # 1. Strip institutional sanction claims
     processed_md = strip_institutional_sanctions(md_content)
-    processed_md = clean_latex_math(processed_md)
+    # 2. Render LaTeX mathematical equations ($ and $$) into native MathML
+    processed_md = render_math_to_mathml(processed_md)
+    # 3. Convert GitHub alerts into styled callout HTML blocks
     processed_md = convert_github_alerts(processed_md)
 
     # Convert markdown to HTML
@@ -587,6 +690,36 @@ def main():
             "pdf": os.path.join(FOUNDATIONAL_DIR, "project_directory_and_file_structure.pdf"),
             "doc_id": "SDV-STRUCT-001",
             "status": "Repository Topology Specification"
+        },
+        {
+            "md": os.path.join(FOUNDATIONAL_DIR, "acme_cse_gateway_capability_review.md"),
+            "pdf": os.path.join(FOUNDATIONAL_DIR, "acme_cse_gateway_capability_review.pdf"),
+            "doc_id": "SDV-REV-001",
+            "status": "Architectural Gap Analysis & Capability Review"
+        },
+        {
+            "md": os.path.join(FOUNDATIONAL_DIR, "onem2m_cabinnode_car01_registration_guide.md"),
+            "pdf": os.path.join(FOUNDATIONAL_DIR, "onem2m_cabinnode_car01_registration_guide.pdf"),
+            "doc_id": "SDV-REG-001",
+            "status": "oneM2M AE Registration Guide: CabinNode"
+        },
+        {
+            "md": os.path.join(FOUNDATIONAL_DIR, "onem2m_nodered_ingress_ipe_registration_guide.md"),
+            "pdf": os.path.join(FOUNDATIONAL_DIR, "onem2m_nodered_ingress_ipe_registration_guide.pdf"),
+            "doc_id": "SDV-REG-002",
+            "status": "oneM2M IPE Registration Guide: Node-RED"
+        },
+        {
+            "md": os.path.join(FOUNDATIONAL_DIR, "onem2m_python_bridge_ae_registration_guide.md"),
+            "pdf": os.path.join(FOUNDATIONAL_DIR, "onem2m_python_bridge_ae_registration_guide.pdf"),
+            "doc_id": "SDV-REG-003",
+            "status": "oneM2M AE Registration Guide: Python Bridge"
+        },
+        {
+            "md": os.path.join(FOUNDATIONAL_DIR, "onem2m_service_role_classification_and_topology.md"),
+            "pdf": os.path.join(FOUNDATIONAL_DIR, "onem2m_service_role_classification_and_topology.pdf"),
+            "doc_id": "SDV-TOPO-001",
+            "status": "oneM2M Service Role & Topology Guide"
         }
     ]
 
