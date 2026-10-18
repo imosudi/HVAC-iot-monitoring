@@ -49,15 +49,24 @@ def load_env_file(filepath: Path) -> Dict[str, str]:
 class BaseCSEValidator:
     """Automated validator and verifier for the environment and vanilla Base CSE."""
 
-    def __init__(self):
+    def __init__(self, target_host: Optional[str] = None, target_port: Optional[int] = None, target_mode: Optional[str] = None):
         self.root_dir = Path(__file__).resolve().parent.parent.parent
         self.env_file = self.root_dir / "deploy" / ".env"
         self.env = load_env_file(self.root_dir / ".env")
         self.env.update(load_env_file(self.env_file))
 
+        self.deploy_target = target_mode or os.getenv("DEPLOY_TARGET", self.env.get("DEPLOY_TARGET", "localhost"))
+        self.base_cse_host = os.getenv("BASE_CSE_HOST", self.env.get("BASE_CSE_HOST", "localhost"))
+        self.vehicle_ae_host = os.getenv("VEHICLE_AE_HOST", self.env.get("VEHICLE_AE_HOST", "localhost"))
+
         # Config resolution
-        self.cse_port = int(self.env.get("ONEM2M_PORT", os.getenv("CSE_PORT", "8080")))
-        configured_host = os.getenv("CSE_HOST", self.env.get("CSE_HOST", self.env.get("GATEWAY_IP", "localhost")))
+        self.cse_port = target_port or int(self.env.get("ONEM2M_PORT", os.getenv("CSE_PORT", "8080")))
+        if target_host:
+            configured_host = target_host
+        elif self.deploy_target == "localhost":
+            configured_host = "localhost"
+        else:
+            configured_host = self.base_cse_host if self.base_cse_host != "localhost" else os.getenv("CSE_HOST", self.env.get("CSE_HOST", self.env.get("GATEWAY_IP", "localhost")))
 
         # Check reachability; fall back to localhost if running on development workstation
         def _is_host_reachable(host: str, port: int) -> bool:
@@ -334,6 +343,13 @@ class BaseCSEValidator:
 
 
 if __name__ == "__main__":
-    validator = BaseCSEValidator()
+    import argparse
+    parser = argparse.ArgumentParser(description="SDV Lean oneM2M Base CSE Automated Validator")
+    parser.add_argument("--host", "-H", default=None, help="Base CSE target host or IP")
+    parser.add_argument("--port", "-p", type=int, default=None, help="Base CSE target port")
+    parser.add_argument("--target", "-t", default=None, choices=["localhost", "remote"], help="Deployment topology target")
+    args = parser.parse_args()
+
+    validator = BaseCSEValidator(target_host=args.host, target_port=args.port, target_mode=args.target)
     success = validator.run_all()
     sys.exit(0 if success else 1)

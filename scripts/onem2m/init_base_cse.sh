@@ -24,17 +24,73 @@ if [ -f "${ENV_FILE}" ]; then
     set +a
 fi
 
-CSE_HOST="${CSE_HOST:-localhost}"
-CSE_PORT="${ONEM2M_PORT:-${CSE_PORT:-8080}}"
-CSE_BASE="${ONEM2M_CSE_NAME:-${CSE_BASE:-sdv-cse}}"
-ORIGIN="${ONEM2M_ADMIN_ORIGIN:-${ORIGIN:-CAdmin}}"
+CLI_HOST=""
+CLI_PORT=""
+CLI_TARGET=""
+CLI_CSE_BASE=""
+CLI_ORIGIN=""
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --host|-h)
+            CLI_HOST="$2"
+            shift 2
+            ;;
+        --port|-p)
+            CLI_PORT="$2"
+            shift 2
+            ;;
+        --target|-t)
+            CLI_TARGET="$2"
+            shift 2
+            ;;
+        --localhost|-l)
+            CLI_TARGET="localhost"
+            shift
+            ;;
+        --remote|-r)
+            CLI_TARGET="remote"
+            shift
+            ;;
+        --base-cse-host|--base-host)
+            CLI_HOST="$2"
+            shift 2
+            ;;
+        --cse-base)
+            CLI_CSE_BASE="$2"
+            shift 2
+            ;;
+        --origin)
+            CLI_ORIGIN="$2"
+            shift 2
+            ;;
+        *)
+            shift
+            ;;
+    esac
+done
+
+TARGET_MODE="${CLI_TARGET:-${DEPLOY_TARGET:-localhost}}"
+
+if [ -n "${CLI_HOST}" ]; then
+    TARGET_HOST="${CLI_HOST}"
+elif [ "${TARGET_MODE}" = "localhost" ]; then
+    TARGET_HOST="localhost"
+else
+    TARGET_HOST="${BASE_CSE_HOST:-${CSE_HOST:-localhost}}"
+fi
+
+CSE_PORT="${CLI_PORT:-${ONEM2M_PORT:-${CSE_PORT:-8080}}}"
+CSE_BASE="${CLI_CSE_BASE:-${ONEM2M_CSE_NAME:-${CSE_BASE:-sdv-cse}}}"
+ORIGIN="${CLI_ORIGIN:-${ONEM2M_ADMIN_ORIGIN:-${ORIGIN:-CAdmin}}}"
 RVI="${ONEM2M_RVI:-${RVI:-3}}"
-BASE_URL="http://${CSE_HOST}:${CSE_PORT}/${CSE_BASE}"
+BASE_URL="http://${TARGET_HOST}:${CSE_PORT}/${CSE_BASE}"
 
 echo "================================================================================"
 echo "  SDV VEHICULAR EDGE GATEWAY: LEAN oneM2M BASE CSE PROVISIONER"
-echo "  Mode: Vanilla Base CSE (Strictly Zero Application Entities)"
-echo "  Target: ${BASE_URL} | Admin Originator: ${ORIGIN} | RVI: ${RVI}"
+echo "  Topology: ${TARGET_MODE} | Mode: Vanilla Base CSE (Strictly Zero AEs)"
+echo "  Target Host: ${TARGET_HOST} | Target Base URL: ${BASE_URL}"
+echo "  Admin Originator: ${ORIGIN} | oneM2M Release Version: ${RVI}"
 echo "================================================================================"
 
 # Helper function to issue oneM2M POST request with idempotency handling
@@ -77,23 +133,52 @@ create_resource() {
 # ------------------------------------------------------------------------------
 # STEP 1: Verify CSEBase Connectivity
 # ------------------------------------------------------------------------------
-echo -e "\n[STEP 1/3] Verifying Base CSE reachability at ${BASE_URL}..."
+echo -e "\n[STEP 1/3] Verifying Base CSE reachability at ${BASE_URL} (Target mode: ${TARGET_MODE})..."
 CSE_READY=0
-for i in $(seq 1 30); do
-    if curl -s -f -o /dev/null \
-        -H "X-M2M-Origin: ${ORIGIN}" \
-        -H "X-M2M-RI: preflight_check" \
-        -H "X-M2M-RVI: ${RVI}" \
-        "${BASE_URL}" >/dev/null 2>&1; then
-        echo "  [OK] oneM2M CSEBase /${CSE_BASE} is reachable and responding (HTTP 200)."
-        CSE_READY=1
-        break
+
+# Fast probe configured target
+if curl -s -f -m 2 -o /dev/null \
+    -H "X-M2M-Origin: ${ORIGIN}" \
+    -H "X-M2M-RI: preflight_check" \
+    -H "X-M2M-RVI: ${RVI}" \
+    "${BASE_URL}" >/dev/null 2>&1; then
+    echo "  [OK] oneM2M CSEBase /${CSE_BASE} is reachable and responding (HTTP 200)."
+    CSE_READY=1
+else
+    # Fallback to localhost if configured remote host is offline but local instance is active
+    if [ "${TARGET_HOST}" != "localhost" ] && [ "${TARGET_HOST}" != "127.0.0.1" ]; then
+        if curl -s -f -m 1 -o /dev/null \
+            -H "X-M2M-Origin: ${ORIGIN}" \
+            -H "X-M2M-RI: preflight_check" \
+            -H "X-M2M-RVI: ${RVI}" \
+            "http://localhost:${CSE_PORT}/${CSE_BASE}" >/dev/null 2>&1; then
+            echo "  [NOTICE] Target host '${TARGET_HOST}' is unreachable, but local Base CSE is active on localhost."
+            echo "  [NOTICE] Automatically adopting localhost fallback: http://localhost:${CSE_PORT}/${CSE_BASE}"
+            TARGET_HOST="localhost"
+            BASE_URL="http://${TARGET_HOST}:${CSE_PORT}/${CSE_BASE}"
+            CSE_READY=1
+        fi
     fi
-    sleep 1
-done
+fi
 
 if [ "${CSE_READY}" -ne 1 ]; then
-    echo "  [ERROR] CSEBase /${CSE_BASE} failed to respond within 30 seconds." >&2
+    for i in $(seq 1 15); do
+        if curl -s -f -m 2 -o /dev/null \
+            -H "X-M2M-Origin: ${ORIGIN}" \
+            -H "X-M2M-RI: preflight_check" \
+            -H "X-M2M-RVI: ${RVI}" \
+            "${BASE_URL}" >/dev/null 2>&1; then
+            echo "  [OK] oneM2M CSEBase /${CSE_BASE} is reachable and responding (HTTP 200)."
+            CSE_READY=1
+            break
+        fi
+        sleep 1
+    done
+fi
+
+if [ "${CSE_READY}" -ne 1 ]; then
+    echo "  [ERROR] CSEBase /${CSE_BASE} at ${BASE_URL} failed to respond." >&2
+    echo "  [INFO] Please verify that the Base CSE container or host is running on ${TARGET_HOST}:${CSE_PORT}." >&2
     exit 1
 fi
 

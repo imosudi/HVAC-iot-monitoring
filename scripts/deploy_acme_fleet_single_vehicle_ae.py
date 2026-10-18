@@ -33,6 +33,7 @@ Functionality:
 import argparse
 import json
 import os
+import socket
 import sys
 import time
 import urllib.error
@@ -122,8 +123,20 @@ def parse_arguments():
         help="Vehicle Identification Number (default: generated based on vehicle-id)"
     )
     parser.add_argument(
+        "--target", "-t",
+        choices=["localhost", "remote"],
+        default=os.getenv("DEPLOY_TARGET", "localhost"),
+        help="Deployment topology target (localhost or remote)"
+    )
+    parser.add_argument(
+        "--base-host", "--base-cse-host",
+        dest="base_host",
+        default=None,
+        help="Base CSE host or IP address"
+    )
+    parser.add_argument(
         "--host",
-        default=os.getenv("ACME_HOST", os.getenv("CSE_HOST", os.getenv("GATEWAY_IP", "127.0.0.1"))),
+        default=os.getenv("BASE_CSE_HOST", os.getenv("ACME_HOST", os.getenv("CSE_HOST", os.getenv("GATEWAY_IP", "127.0.0.1")))),
         help="ACME CSE hostname or IP address"
     )
     parser.add_argument(
@@ -134,7 +147,7 @@ def parse_arguments():
     )
     parser.add_argument(
         "--cse-rn",
-        default="cse-in",
+        default=os.getenv("ONEM2M_CSE_NAME", os.getenv("CSE_RN", "sdv-cse")),
         help="Root CSEBase Resource Name"
     )
     parser.add_argument(
@@ -199,7 +212,25 @@ def main():
     args = parse_arguments()
     vehicle_id = args.vehicle_id
     vin = args.vin or f"VIN-WAUZZZ-SDV-2026-{vehicle_id.split('-')[-1].zfill(4)}"
-    base_url = f"http://{args.host}:{args.port}"
+
+    target_host = args.base_host or args.host
+    if args.target == "localhost" and not args.base_host and not os.getenv("ACME_HOST"):
+        target_host = "localhost"
+
+    # Reachability detection with graceful localhost fallback
+    def _is_host_reachable(host: str, port: int) -> bool:
+        try:
+            with socket.create_connection((host, port), timeout=0.8):
+                return True
+        except (socket.timeout, OSError):
+            return False
+
+    if not _is_host_reachable(target_host, args.port):
+        if target_host not in ("localhost", "127.0.0.1") and _is_host_reachable("localhost", args.port):
+            log("NOTICE", f"Host '{target_host}' unreachable. Falling back to localhost.", "33")
+            target_host = "localhost"
+
+    base_url = f"http://{target_host}:{args.port}"
     cse_rn = args.cse_rn
     originator = args.originator
     notif_base = args.notification_host or base_url

@@ -35,10 +35,27 @@ def _load_env_file():
                             os.environ[k] = v
 
 
+import socket
 _load_env_file()
 
-CSE_HOST = os.getenv("ACME_HOST", os.getenv("CSE_HOST", os.getenv("GATEWAY_IP", "127.0.0.1")))
 CSE_PORT = os.getenv("ACME_PORT", os.getenv("ONEM2M_PORT", "8080"))
+DEPLOY_TARGET = os.getenv("DEPLOY_TARGET", "localhost")
+_configured_host = "localhost" if DEPLOY_TARGET == "localhost" else os.getenv("BASE_CSE_HOST", os.getenv("ACME_HOST", os.getenv("CSE_HOST", os.getenv("GATEWAY_IP", "127.0.0.1"))))
+
+def _is_host_reachable(host: str, port: int) -> bool:
+    try:
+        with socket.create_connection((host, int(port)), timeout=0.8):
+            return True
+    except (socket.timeout, OSError):
+        return False
+
+if _is_host_reachable(_configured_host, int(CSE_PORT)):
+    CSE_HOST = _configured_host
+elif _is_host_reachable("127.0.0.1", int(CSE_PORT)):
+    CSE_HOST = "127.0.0.1"
+else:
+    CSE_HOST = _configured_host
+
 BASE_URL = os.getenv("BASE_URL", f"http://{CSE_HOST}:{CSE_PORT}").rstrip("/")
 CSE_RN = os.getenv("CSE_RN", os.getenv("ONEM2M_CSE_NAME", "cse-in"))
 ORIGINATOR = os.getenv("ORIGINATOR", os.getenv("ONEM2M_ADMIN_ORIGIN", "CAdmin"))

@@ -273,47 +273,188 @@ When a vehicle is decommissioned or retired from the fleet:
 
 ---
 
-## 8. Environment and Configuration Contracts
+## 8. Deployment Topology Options: Localhost and Distributed Remote Hosts
 
-### 8.1 Base CSE Server / VM Environment (`deploy/.env`)
-The Base CSE host maintains infrastructure-wide variables:
-```dotenv
-# Infrastructure & Gateway Addressing
-GATEWAY_IP=192.168.122.91
-ONEM2M_PORT=8080
-ONEM2M_CSE_ID=id-in
-ONEM2M_CSE_NAME=cse-in
+To address diverse operational environments across the vehicle engineering lifecycle—ranging from local workstation software development and continuous integration to in-vehicle road testing and cloud-hosted fleet management—the platform explicitly specifies and supports two operational deployment topologies.
 
-# Security & Governance
-BASE_CSE_ADMIN_ORIGINATOR=CAdmin
-FLEET_ACP_NAME=acp_fleet_manager
-FLEET_GROUP_NAME=grp_fleet_telemetry
+### 8.1 Topology Option A: Co-Located Localhost Topology (`DEPLOY_TARGET=localhost`)
 
-# Service Endpoints
-MOSQUITTO_PORT=8883
-INFLUXDB_HOST_PORT=8087
-GRAFANA_PORT=3000
+The **Localhost Deployment Topology** co-locates Module 1 (Base CSE Infrastructure) and Module 2 (Vehicle Application Entity) upon a single physical or virtual developer workstation.
+
+```mermaid
+flowchart LR
+    subgraph Localhost_Environment ["Single-Host Workstation Environment (localhost / 127.0.0.1)"]
+        direction TB
+        subgraph Mod1_Local ["Module 1: Base CSE Infrastructure"]
+            direction TB
+            CSE_L["ACME oneM2M IN-CSE (:8080)"]
+            MOSQ_L["Mosquitto Broker (:8883 / :1883)"]
+            DB_L["InfluxDB 2.x (:8087)"]
+            DASH_L["Grafana Cockpit (:3000)"]
+            PORTAL_L["Web Portal (:8000)"]
+        end
+        
+        subgraph Mod2_Local ["Module 2: Vehicle AE Instance"]
+            direction TB
+            AE_L["Vehicle AE Daemon / Simulation"]
+            CLIENT_CERT_L["Local mTLS Keys & Certs"]
+        end
+        
+        AE_L == "mTLS 1.3 loopback:8883" ==> MOSQ_L
+        AE_L -.->|REST loopback:8080| CSE_L
+        MOSQ_L <== "Internal mesh:1883" ==> CSE_L
+    end
 ```
 
-### 8.2 In-Vehicle Raspberry Pi 5 Environment (`vehicle/.env` per vehicle)
-Each physical vehicle host maintains its local instance parameters:
+#### Characteristics and Operational Objectives
+1. **Target Environment:** Developer laptops, continuous integration (CI) runners, and offline simulation nodes.
+2. **Network Demarcation:** All inter-module communication is strictly contained within the loopback adapter (`127.0.0.1` / `localhost`). Zero wide-area network routing or external IP connectivity is required.
+3. **Automated Reachability Fallback:** All deployment and verification scripts (`deploy_gateway.sh`, `init_base_cse.sh`, `validate_base_cse.py`, `deploy_acme_fleet_single_vehicle_ae.py`) automatically detect when `DEPLOY_TARGET=localhost` and bind to local endpoints without waiting for external network timeouts.
+4. **Execution Command:**
+   ```bash
+   make deploy-localhost
+   # Equivalent to: bash deploy/deploy_gateway.sh --localhost --lean
+   ```
+
+---
+
+<div style="page-break-before: always;"></div>
+
+### 8.2 Topology Option B: Distributed Remote Hosts Topology (`DEPLOY_TARGET=remote`)
+
+The **Distributed Remote Hosts Topology** implements the physical and operational demarcation between the central fleet infrastructure and distributed vehicular edge computing nodes deployed across two distinct remote hosts:
+* **Remote Host 1 (Base CSE Host):** Dedicated central physical server or virtual machine identified by `BASE_CSE_HOST` (e.g. `192.168.122.91` or `base-cse.sdv.cluster.local`).
+* **Remote Host 2 (Vehicle AE Host):** In-vehicle Raspberry Pi 5 single-board computer identified by `VEHICLE_AE_HOST` (e.g. `192.168.122.105` or `rpi5-car01.sdv.vehicle.local`).
+
+#### Detailed Host Characteristics and Separation of Concerns
+
+| Attribute | Remote Host 1: Base CSE Platform | Remote Host 2: Vehicle AE Platform |
+| :--- | :--- | :--- |
+| **Physical Hardware** | High-performance enterprise server or virtual machine (x86_64 / aarch64, $\ge 8$ cores, $\ge 16\,\text{GB}$ RAM). | In-vehicle Raspberry Pi 5 single-board computer (Broadcom BCM2712 quad-core Cortex-A76 @ 2.4 GHz, 8 GB LPDDR4X). |
+| **Host Identification** | Configured via `BASE_CSE_HOST` (IP address e.g. `192.168.122.91` or FQDN e.g. `base-cse.sdv.cluster.local`). | Configured via `VEHICLE_AE_HOST` (IP address e.g. `192.168.122.105` or mDNS hostname e.g. `rpi5-car01.sdv.vehicle.local`). |
+| **Operating System** | Ubuntu Server 22.04 / 24.04 LTS (kernel 6.x). | Raspberry Pi OS (Debian 12 Bookworm 64-bit aarch64). |
+| **Service Cardinality** | **Strict singleton ($C = 1$)** across the fleet. | **Multi-instance ($N$ physical vehicles)**, one per vehicle. |
+| **Microservice Stack** | Containerised: `sdv_onem2m_cse`, `sdv_mosquitto_broker`, `sdv_bridge_ae`, `sdv_influxdb`, `sdv_grafana`, `sdv_web_portal`. | Edge daemon: vehicular AE client, sensor pre-processor, serial bridge, and hardware fail-safe watchdog. |
+| **Physical Interfaces** | Gigabit / 10G Ethernet NIC to datacenter or cloud VPC. | GPIO, I2C, SPI, UART/USB connected to in-cabin ESP32-S3 and transducers. |
+| **Ingress Firewall** | TCP 8883 (mTLS), 8080 (REST), 3000 (Grafana), 8000 (Portal), 8087 (TSDB). | **Zero ingress ports required**. All connections are outbound from vehicle to central server. |
+| **Deployment Command** | `make deploy-base-cse BASE_HOST=192.168.122.91` | `make deploy-vehicle-ae BASE_HOST=192.168.122.91 VEHICLE_ID=vehicle-001` |
+
+```mermaid
+flowchart TB
+    subgraph Remote_Host_1 ["Remote Host 1: Base CSE Server / VM (Hostname: base-cse.sdv.local / IP: 192.168.122.91)"]
+        direction TB
+        CSE_R["ACME oneM2M IN-CSE<br/>(Ports: 8080 HTTP REST, 1883 TS-0010 MQTT)"]
+        MOSQ_R["Mosquitto Secure Broker<br/>(Port 8883 mTLS 1.3 Perimeter Termination)"]
+        TSDB_R["InfluxDB 2.x Time-Series DB<br/>(Port 8087 Host Ingestion)"]
+        DASH_R["Grafana Enterprise Cockpit<br/>(Port 3000 Fleet Monitoring)"]
+        PORTAL_R["Web Management Portal<br/>(Port 8000 Vehicle Commissioning)"]
+        
+        MOSQ_R <== "Native oneM2M TS-0010<br/>Port 1883" ==> CSE_R
+        CSE_R -.-> TSDB_R --> DASH_R
+    end
+
+    subgraph Remote_Host_2 ["Remote Host 2: Vehicle AE Host (Raspberry Pi 5 — Hostname: rpi5-car01.local / IP: 192.168.122.105)"]
+        direction TB
+        INSTR["In-Cabin Physical Transducers & Actuators<br/>(SCD30 CO2, DHT22, CO, IAQ, 4x LEDs, Fan PWM)"]
+        MCU["ESP32-S3 Micro-ECU<br/>(FreeRTOS Deterministic Control & Fail-Safe)"]
+        RPI["Raspberry Pi 5 Vehicular Edge Computer<br/>(Debian 12 Bookworm aarch64 MEC Host)"]
+        AE_DAEMON["oneM2M Vehicular AE Client Daemon<br/>(Deterministic AE-ID: ae_vin_...0042)"]
+        
+        INSTR <--> MCU <== "USB/UART Serial (/dev/ttyACM0)" ==> RPI <--> AE_DAEMON
+    end
+
+    AE_DAEMON == "WAN / Cellular mTLS 1.3 Encrypted Session (TCP Port 8883)" ==> MOSQ_R
+    AE_DAEMON -.->|"Mca REST HTTP Provisioning Port 8080"| CSE_R
+```
+
+---
+
+### 8.3 Network Routing, Security Demarcation, and Firewall Rules
+
+The distributed topology implements a strict **unidirectional session initiation model**: the vehicular Raspberry Pi 5 node (Host 2) initiates all network sessions towards the central Base CSE server (Host 1). No inbound ports are opened on the vehicular gateway, eliminating external network attack surfaces on the vehicle CAN/LIN bus or in-cabin compute infrastructure.
+
+| Flow Identifier | Source Host | Destination Host | Target Port | Protocol & Security | Functional Purpose |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **F-01: Ingress Mca** | Vehicle Host 2 | Base CSE Host 1 | TCP 8080 | HTTP REST (oneM2M TS-0004) | Initial `<m2m:ae>` registration, container reconciliation, and audit. |
+| **F-02: Telemetry Stream** | Vehicle Host 2 | Base CSE Host 1 | TCP 8883 | oneM2M TS-0010 over mTLS 1.3 | Continuous publishing of telemetry ContentInstances to `/oneM2M/req/...`. |
+| **F-03: Downlink Actuation**| Base CSE Host 1 | Vehicle Host 2 | Established TCP 8883 | oneM2M TS-0010 over mTLS 1.3 | Push notification of closed-loop HVAC regulation commands via MQTT subscription. |
+| **F-04: Operations UI** | Administrator | Base CSE Host 1 | TCP 3000 | HTTPS / HTTP Web | Grafana operational telemetry dashboard access. |
+| **F-05: Commissioning UI** | Fleet Engineer | Base CSE Host 1 | TCP 8000 | HTTPS / HTTP Web | Web Portal single-vehicle commissioning and dynamic decommissioning. |
+| **F-06: Database Storage** | Internal Mesh | Base CSE Host 1 | TCP 8087 (host) / 8086 (int) | HTTP REST API | Bridge AE persisting normalised sensor frames to InfluxDB. |
+
+---
+
+### 8.4 Environment and Configuration Contracts
+
+#### 8.4.1 Base CSE Infrastructure Host Environment (`deploy/.env`)
+Configured on Remote Host 1 (Server / VM):
 ```dotenv
+# ==============================================================================
+# Base CSE Infrastructure Platform Configuration
+# Host 1: Central Server / VM (Singleton Instance)
+# ==============================================================================
+
+DEPLOY_TARGET=remote
+BASE_CSE_HOST=192.168.122.91
+VEHICLE_AE_HOST=192.168.122.105
+
+# Service Addressing
+GATEWAY_IP=192.168.122.91
+CSE_HOST=192.168.122.91
+MQTT_HOST=192.168.122.91
+INFLUXDB_HOST=192.168.122.91
+
+# Service Port Allocations
+ONEM2M_PORT=8080
+MOSQUITTO_PORT=8883
+MOSQUITTO_PLAIN_PORT=1883
+INFLUXDB_HOST_PORT=8087
+INFLUXDB_INTERNAL_PORT=8086
+GRAFANA_PORT=3000
+BRIDGE_AE_PORT=5000
+WEB_PORTAL_PORT=8000
+
+# oneM2M Core Parameters
+ONEM2M_CSE_ID=id-sdv
+ONEM2M_CSE_NAME=sdv-cse
+ONEM2M_ADMIN_ORIGIN=CAdmin
+ONEM2M_RVI=3
+
+# Target oneM2M Endpoints
+BASE_URL=http://192.168.122.91:8080
+NOTIFICATION_BASE_URL=http://192.168.122.91:8080
+DOWNLINK_NOTIFICATION_URL=http://192.168.122.91:8080/downlink
+```
+
+#### 8.4.2 In-Vehicle Raspberry Pi 5 Environment (`vehicle/.env` per vehicle)
+Configured on Remote Host 2 (In-Vehicle Raspberry Pi 5):
+```dotenv
+# ==============================================================================
+# In-Vehicle Application Entity (AE) Configuration
+# Host 2: In-Vehicle Raspberry Pi 5 (Instance Car01)
+# ==============================================================================
+
+DEPLOY_TARGET=remote
+BASE_CSE_HOST=192.168.122.91
+VEHICLE_AE_HOST=192.168.122.105
+
 # Vehicle Hardware & Cryptographic Identity
 VEHICLE_VIN=VIN-WAUZZZ-SDV-2026-0042
 VEHICLE_NODE_ID=sdv-car-0042
-CLIENT_CERT_PATH=/etc/sdv/certs/client.crt
-CLIENT_KEY_PATH=/etc/sdv/certs/client.key
+CLIENT_CERT_PATH=/etc/sdv/certs/client_esp32.crt
+CLIENT_KEY_PATH=/etc/sdv/certs/client_esp32.key
+CA_CERT_PATH=/etc/sdv/certs/ca.crt
 
 # Target Central Base CSE Server / VM Connection
 BASE_URL=http://192.168.122.91:8080
-CSE_RN=cse-in
+CSE_RN=sdv-cse
 ORIGINATOR=CAdmin
 APP_ID=N.org.fhtw.sdv.cabin
 RVI=3
 
 # Local In-Vehicle Instrumentation Configuration
 LOCAL_ESP32_PORT=/dev/serial/by-id/usb-Espressif_ESP32-S3_001
-DOWNLINK_NOTIFICATION_URL=mqtt://192.168.122.91:8883/oneM2M/req/id-in/C_ae_vin_wauzzz_0042/json
+DOWNLINK_NOTIFICATION_URL=mqtt://192.168.122.91:8883/oneM2M/req/id-sdv/C_ae_vin_wauzzz_0042/json
 ```
 
 ---

@@ -25,6 +25,14 @@ openssl ecparam -name prime256v1 -genkey -noout -out server.key
 openssl req -new -key server.key -out server.csr \
     -subj "/C=AT/ST=Vienna/L=Vienna/O=FH Technikum Wien/OU=MEC-Gateway/CN=mosquitto.sdv.local"
 
+# Source environment to discover configured remote hosts
+ENV_FILE="${SCRIPT_DIR}/../../deploy/.env"
+if [ -f "${ENV_FILE}" ]; then
+    set -a
+    source <(grep -v '^#' "${ENV_FILE}" | grep -v '^[[:space:]]*$' || true)
+    set +a
+fi
+
 cat > server_ext.cnf <<EOF
 authorityKeyIdentifier=keyid,issuer
 basicConstraints=CA:FALSE
@@ -37,7 +45,17 @@ DNS.2 = localhost
 DNS.3 = mosquitto
 DNS.4 = sdv_mosquitto_broker
 IP.1 = 127.0.0.1
+IP.2 = 192.168.122.91
 EOF
+
+# Append configured BASE_CSE_HOST if present and unique
+if [ -n "${BASE_CSE_HOST:-}" ] && [ "${BASE_CSE_HOST}" != "localhost" ] && [ "${BASE_CSE_HOST}" != "127.0.0.1" ] && [ "${BASE_CSE_HOST}" != "192.168.122.91" ]; then
+    if [[ "${BASE_CSE_HOST}" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+        echo "IP.3 = ${BASE_CSE_HOST}" >> server_ext.cnf
+    else
+        echo "DNS.5 = ${BASE_CSE_HOST}" >> server_ext.cnf
+    fi
+fi
 
 openssl x509 -req -in server.csr -CA ca.crt -CAkey ca.key -CAcreateserial \
     -out server.crt -days 730 -extfile server_ext.cnf

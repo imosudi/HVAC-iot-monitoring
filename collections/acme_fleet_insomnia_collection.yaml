@@ -1286,11 +1286,11 @@ environments:
     modified: 1791360000000
     isPrivate: false
   data:
-    gateway_ip: 192.168.122.91
+    gateway_ip: localhost
     port: '8080'
-    base_url: http://192.168.122.91:8080
-    cse_rn: cse-in
-    cse_id: id-in
+    base_url: http://localhost:8080
+    cse_rn: sdv-cse
+    cse_id: id-sdv
     originator: CAdmin
     api: N.org.fhtw.sdv.cabin
     rvi: '3'
@@ -1304,7 +1304,7 @@ environments:
       - 2a
       - '3'
       - '4'
-    notification_base_url: http://192.168.122.91:8080
+    notification_base_url: http://localhost:8080
     fleet_acp_rn: acp_fleet_manager
     fleet_grp_rn: grp_fleet_telemetry
     vehicle_identity_input: VIN-WAUZZZ-SDV-2026-0042
@@ -1345,4 +1345,33 @@ environments:
       location: vehicle
       unit: mixed
     target_container_mia: 86400
-    downlink_notification_url: http://192.168.122.91:8080/downlink
+    downlink_notification_url: http://localhost:8080/downlink
+  subEnvironments:
+  - name: Localhost (Default / CI)
+    meta:
+      id: env_sub_localhost_001
+      created: 1791360000000
+      modified: 1791360000000
+      isPrivate: false
+    data:
+      gateway_ip: localhost
+      port: '8080'
+      base_url: http://localhost:8080
+      cse_rn: sdv-cse
+      cse_id: id-sdv
+      notification_base_url: http://localhost:8080
+      downlink_notification_url: http://localhost:8080/downlink
+  - name: Remote Base CSE (Server/VM 192.168.122.91)
+    meta:
+      id: env_sub_remote_001
+      created: 1791360000000
+      modified: 1791360000000
+      isPrivate: false
+    data:
+      gateway_ip: 192.168.122.91
+      port: '8080'
+      base_url: http://192.168.122.91:8080
+      cse_rn: sdv-cse
+      cse_id: id-sdv
+      notification_base_url: http://192.168.122.91:8080
+      downlink_notification_url: http://192.168.122.91:8080/downlink
