@@ -10,3 +10,4 @@ requests>=2.31.0
 flask>=3.0.0
 influxdb-client>=1.40.0
 pydantic>=2.8.0
+pyserial>=3.5

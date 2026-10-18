@@ -124,7 +124,7 @@ if [ "${SKIP_TELEMETRY}" = "true" ]; then
     EXTRA_ARGS+=("--skip-telemetry")
 fi
 
-echo -e "\n[STEP 1/2] Onboarding and registering Vehicle AE (with 8 oneM2M <container> resources) on Base CSE..."
+echo -e "\n[STEP 1/3] Onboarding and registering Vehicle AE (with 8 oneM2M <container> resources) on Base CSE..."
 ${PYTHON_CMD} "${ROOT_DIR}/scripts/deploy_acme_fleet_single_vehicle_ae.py" \
     --base-host "${RESOLVED_BASE_HOST}" \
     --host "${RESOLVED_BASE_HOST}" \
@@ -133,7 +133,33 @@ ${PYTHON_CMD} "${ROOT_DIR}/scripts/deploy_acme_fleet_single_vehicle_ae.py" \
     --vehicle-id "${VEHICLE_ID}" \
     "${EXTRA_ARGS[@]}"
 
-echo -e "\n[STEP 2/2] Validating vehicular mTLS 1.3 telemetry pipeline..."
+echo -e "\n[STEP 2/3] Deploying containerised Vehicle AE microservices (Edge Serial Client & Actuator Module)..."
+VEHICLE_COMPOSE="${DEPLOY_DIR}/docker-compose.vehicle-ae.yml"
+if [ -f "${VEHICLE_COMPOSE}" ] && (docker compose version >/dev/null 2>&1 || command -v docker-compose >/dev/null 2>&1); then
+    export VEHICLE_ID="${VEHICLE_ID}"
+    export BASE_CSE_HOST="${RESOLVED_BASE_HOST}"
+    export ONEM2M_PORT="${RESOLVED_PORT}"
+    export MOSQUITTO_PORT="${MOSQUITTO_PORT:-8883}"
+
+    COMPOSE_CMD="docker compose -f ${VEHICLE_COMPOSE}"
+    if ! docker compose version >/dev/null 2>&1; then
+        COMPOSE_CMD="docker-compose -f ${VEHICLE_COMPOSE}"
+    fi
+
+    echo "[INFO] Building and starting sdv_edge_serial_client and sdv_actuator_module containers..."
+    if ! docker info >/dev/null 2>&1 && command -v sg >/dev/null 2>&1 && getent group docker | grep -qw "${USER}"; then
+        sg docker -c "${COMPOSE_CMD} build"
+        sg docker -c "${COMPOSE_CMD} up -d --remove-orphans"
+    else
+        ${COMPOSE_CMD} build
+        ${COMPOSE_CMD} up -d --remove-orphans
+    fi
+    echo "[OK] Vehicle AE containers active: sdv_edge_serial_client, sdv_actuator_module."
+else
+    echo "[INFO] Docker runtime not available on this host. Edge daemon can be run natively via Python."
+fi
+
+echo -e "\n[STEP 3/3] Validating vehicular mTLS 1.3 telemetry pipeline..."
 MQTT_PORT="${MOSQUITTO_PORT:-8883}"
 CA_CERT="${DEPLOY_DIR}/mosquitto/certs/ca.crt"
 CLIENT_CERT="${DEPLOY_DIR}/mosquitto/certs/client_esp32.crt"
@@ -175,7 +201,7 @@ fi
 echo -e "\n================================================================================"
 echo "  [SUCCESS] Module 2 (Vehicle AE: ${VEHICLE_ID}) successfully commissioned!"
 echo "  Target Base CSE: http://${RESOLVED_BASE_HOST}:${RESOLVED_PORT}/sdv-cse"
+echo "  Containerised Edge Stack: sdv_edge_serial_client, sdv_actuator_module (active in docker ps)"
 echo "  Registered oneM2M Resources: 8 semantic <container> nodes (Type 3) under /${VEHICLE_ID}"
 echo "  Observability: View live resource tree at http://${RESOLVED_BASE_HOST}:${RESOLVED_PORT}/webui"
-echo "  Note: oneM2M <container> resources reside inside Base CSE (not local Docker ps)."
 echo "================================================================================"

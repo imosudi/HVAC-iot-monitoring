@@ -354,15 +354,10 @@ deploy_remote_vehicle_ae() {
     ${ssh_cmd} "mkdir -p ${VEHICLE_DIR} ${VEHICLE_DIR}/deploy"
 
     if [ "${SKIP_SYNC}" = "false" ]; then
-        echo "[INFO] Synchronising Vehicle AE scripts and certificates to ${VEHICLE_HOST}:${VEHICLE_DIR}..."
+        echo "[INFO] Synchronising Vehicle AE services, scripts, and configuration to ${VEHICLE_HOST}:${VEHICLE_DIR}..."
+        sync_directory "${VEHICLE_HOST}" "${VEHICLE_USER}" "${VEHICLE_PORT}" "${VEHICLE_KEY}" "${DEPLOY_DIR}" "${VEHICLE_DIR}/deploy"
         sync_directory "${VEHICLE_HOST}" "${VEHICLE_USER}" "${VEHICLE_PORT}" "${VEHICLE_KEY}" "${ROOT_DIR}/scripts" "${VEHICLE_DIR}/scripts"
-
-        sync_file "${VEHICLE_HOST}" "${VEHICLE_USER}" "${VEHICLE_PORT}" "${VEHICLE_KEY}" "${DEPLOY_DIR}/deploy_vehicle_ae.sh" "${VEHICLE_DIR}/deploy/deploy_vehicle_ae.sh"
-
-        # Sync PKI certificates (client keys and CA cert)
-        if [ -d "${DEPLOY_DIR}/mosquitto/certs" ]; then
-            sync_directory "${VEHICLE_HOST}" "${VEHICLE_USER}" "${VEHICLE_PORT}" "${VEHICLE_KEY}" "${DEPLOY_DIR}/mosquitto/certs" "${VEHICLE_DIR}/deploy/mosquitto/certs"
-        fi
+        sync_directory "${VEHICLE_HOST}" "${VEHICLE_USER}" "${VEHICLE_PORT}" "${VEHICLE_KEY}" "${ROOT_DIR}/services" "${VEHICLE_DIR}/services"
 
         if [ -f "${ROOT_DIR}/.env" ]; then
             sync_file "${VEHICLE_HOST}" "${VEHICLE_USER}" "${VEHICLE_PORT}" "${VEHICLE_KEY}" "${ROOT_DIR}/.env" "${VEHICLE_DIR}/.env"

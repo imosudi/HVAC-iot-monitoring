@@ -1,0 +1,49 @@
+# ==============================================================================
+# SDV Automotive IoT: Module 2 Vehicle Application Entity (In-Vehicle Raspberry Pi 5)
+# Microservices Manifest:
+#   - sdv_edge_serial_client : Ingests sensor frames from ESP32-S3 over serial and publishes to Base CSE
+#   - sdv_actuator_module    : Listens for downlink actuation directives and controls cabin actuators / ESP32-S3
+# ==============================================================================
+
+services:
+  edge_serial_client:
+    build:
+      context: ../services/edge_client
+      dockerfile: Dockerfile
+    container_name: sdv_edge_serial_client
+    restart: unless-stopped
+    privileged: true
+    environment:
+      - VEHICLE_ID=${VEHICLE_ID:-vehicle-001}
+      - BASE_CSE_HOST=${BASE_CSE_HOST:-192.168.122.140}
+      - ONEM2M_PORT=${ONEM2M_PORT:-8080}
+      - MOSQUITTO_PORT=${MOSQUITTO_PORT:-8883}
+      - SERIAL_DEVICE=${SERIAL_DEVICE:-/dev/ttyACM0}
+      - SERIAL_BAUDRATE=${SERIAL_BAUDRATE:-115200}
+      - SIMULATION_FALLBACK=${SIMULATION_FALLBACK:-true}
+      - TELEMETRY_INTERVAL=${TELEMETRY_INTERVAL:-1.0}
+    volumes:
+      - /dev:/dev
+      - ./mosquitto/certs:/certs:ro
+    network_mode: host
+
+  actuator_module:
+    build:
+      context: ../services/actuator_module
+      dockerfile: Dockerfile
+    container_name: sdv_actuator_module
+    restart: unless-stopped
+    privileged: true
+    environment:
+      - VEHICLE_ID=${VEHICLE_ID:-vehicle-001}
+      - BASE_CSE_HOST=${BASE_CSE_HOST:-192.168.122.140}
+      - ONEM2M_PORT=${ONEM2M_PORT:-8080}
+      - MOSQUITTO_PORT=${MOSQUITTO_PORT:-8883}
+      - SERIAL_DEVICE=${SERIAL_DEVICE:-/dev/ttyACM0}
+      - SERIAL_BAUDRATE=${SERIAL_BAUDRATE:-115200}
+      - SIMULATION_FALLBACK=${SIMULATION_FALLBACK:-true}
+      - POLL_INTERVAL=${POLL_INTERVAL:-2.0}
+    volumes:
+      - /dev:/dev
+      - ./mosquitto/certs:/certs:ro
+    network_mode: host

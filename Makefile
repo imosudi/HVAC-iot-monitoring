@@ -94,6 +94,14 @@ deploy-vehicle-ae:
 		bash deploy/deploy_vehicle_ae.sh $(if $(TARGET),--target $(TARGET),) $(if $(BASE_HOST),--base-host $(BASE_HOST),) $(if $(VEHICLE_ID),--vehicle-id $(VEHICLE_ID),); \
 	fi
 
+deploy-vehicle-containers:
+	@echo "Deploying Module 2 Vehicle AE containerised microservices..."
+	@cd deploy && docker compose -f docker-compose.vehicle-ae.yml up -d --build
+
+stop-vehicle-ae:
+	@echo "Stopping Vehicle AE containerised microservices..."
+	@cd deploy && docker compose -f docker-compose.vehicle-ae.yml down
+
 stop-gateway:
 	@echo "Stopping vehicular MEC gateway container mesh..."
 	@cd deploy && docker compose down

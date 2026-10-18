@@ -334,7 +334,7 @@ The **Distributed Remote Hosts Topology** implements the physical and operationa
 | **Host Identification** | Configured via `BASE_CSE_HOST` (IP address e.g. `192.168.122.91` or FQDN e.g. `base-cse.sdv.cluster.local`). | Configured via `VEHICLE_AE_HOST` (IP address e.g. `192.168.122.105` or mDNS hostname e.g. `rpi5-car01.sdv.vehicle.local`). |
 | **Operating System** | Ubuntu Server 22.04 / 24.04 LTS (kernel 6.x). | Raspberry Pi OS (Debian 12 Bookworm 64-bit aarch64). |
 | **Service Cardinality** | **Strict singleton ($C = 1$)** across the fleet. | **Multi-instance ($N$ physical vehicles)**, one per vehicle. |
-| **Microservice Stack** | Containerised: `sdv_onem2m_cse`, `sdv_mosquitto_broker`, `sdv_bridge_ae`, `sdv_influxdb`, `sdv_grafana`, `sdv_web_portal`. | Edge daemon: vehicular AE client, sensor pre-processor, serial bridge, and hardware fail-safe watchdog. |
+| **Microservice Stack** | Containerised: `sdv_onem2m_cse`, `sdv_mosquitto_broker`, `sdv_bridge_ae`, `sdv_influxdb`, `sdv_grafana`, `sdv_web_portal`. | Containerised edge stack: `sdv_edge_serial_client` (serial ingress to Base CSE) and `sdv_actuator_module` (downlink command listener & actuator controller). |
 | **Physical Interfaces** | Gigabit / 10G Ethernet NIC to datacenter or cloud VPC. | GPIO, I2C, SPI, UART/USB connected to in-cabin ESP32-S3 and transducers. |
 | **Ingress Firewall** | TCP 8883 (mTLS), 8080 (REST), 3000 (Grafana), 8000 (Portal), 8087 (TSDB). | **Zero ingress ports required**. All connections are outbound from vehicle to central server. |
 | **Deployment Command** | `make deploy-base-cse BASE_HOST=192.168.122.91` | `make deploy-vehicle-ae BASE_HOST=192.168.122.91 VEHICLE_ID=vehicle-001` |

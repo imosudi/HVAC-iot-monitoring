@@ -204,8 +204,8 @@ action_base_cse() {
 # ------------------------------------------------------------------------------
 action_vehicle_ae() {
     echo -e "\n${CYAN}===> Standalone Vehicle Application Entity (AE) Deployment${RESET}"
-    echo -e "${GRAY}Onboards an individual vehicle AE with its 8 oneM2M semantic <container> resources onto Base CSE.${RESET}"
-    echo -e "${GRAY}Note: oneM2M <container> resources reside inside the central ACME CSE (Port 8080), not in local 'docker ps'.${RESET}\n"
+    echo -e "${GRAY}Onboards Vehicle AE to Base CSE and deploys containerised microservices (sdv_edge_serial_client, sdv_actuator_module).${RESET}"
+    echo -e "${GRAY}Hosts: Ingests serial bus from ESP32-S3 and dispatches downlink actuation directives to cabin actuators.${RESET}\n"
 
     prompt_input "Enter target Base CSE host or IP [default: ${DEF_BASE_HOST}]: " "${DEF_BASE_HOST}" target_base
     prompt_input "Enter Vehicle Identifier [default: ${DEF_VEHICLE_ID}]: " "${DEF_VEHICLE_ID}" v_id
