@@ -9,17 +9,20 @@ set -euo pipefail
 DEPLOY_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="${DEPLOY_DIR}/.."
 
-# Parse deployment mode options (--lean / --base-only)
-LEAN_MODE=false
+# Deployment mode defaults to lean (vanilla Base CSE with strictly zero Application Entities)
+LEAN_MODE=true
 for arg in "$@"; do
     case "$arg" in
+        --full|--with-demo-ae|-f)
+            LEAN_MODE=false
+            ;;
         --lean|--base-only|-l)
             LEAN_MODE=true
             ;;
     esac
 done
-if [ "${DEPLOY_LEAN:-false}" = "true" ] || [ "${DEPLOY_MODE:-}" = "base" ]; then
-    LEAN_MODE=true
+if [ "${DEPLOY_MODE:-}" = "full" ] || [ "${DEPLOY_FULL:-false}" = "true" ]; then
+    LEAN_MODE=false
 fi
 
 echo "[STEP 1/4] Verifying cryptographic certificates..."

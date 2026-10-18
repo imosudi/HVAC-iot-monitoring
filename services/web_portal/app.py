@@ -193,9 +193,7 @@ def api_vehicles():
         vehicles = onem2m_client.get_known_vehicles()
     except Exception as exc:
         logger.debug("Failed retrieving vehicles from oneM2M: %s", exc)
-        vehicles = [
-            {"id": "vehicle_01", "ae_rn": "AE_CabinNode_Car01", "name": "VEHICLE 01", "originator": "C_CabinNode_Car01"}
-        ]
+        vehicles = []
     return jsonify({"vehicles": vehicles, "count": len(vehicles)}), 200
 
 
