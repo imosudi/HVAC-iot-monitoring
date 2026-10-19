@@ -551,7 +551,7 @@ docker_installed() {
   command -v docker >/dev/null 2>&1 && dpkg -s docker-ce >/dev/null 2>&1
 }
 
-candidate_pkgs=(build-essential git zip unzip curl ca-certificates tar python3-paho-mqtt python3-venv python3-serial)
+candidate_pkgs=(build-essential make git zip unzip curl ca-certificates tar python3-paho-mqtt python3-venv python3-serial jq iputils-ping)
 missing_pkgs=()
 for pkg in "${candidate_pkgs[@]}"; do
   if ! dpkg -s "$pkg" >/dev/null 2>&1; then

@@ -92,7 +92,7 @@ print_banner() {
  \___ \| | | |\ V /   | |__| (_| | |_) | | | | | | |  | | (_) | | | | | || (_) | |   
  |_____/____/  \_/     \____\__,_|_.__/|_|_| |_| |_|  |_|\___/|_| |_|_|\__\___/|_|   
 EOF
-    echo -e "${BLUE}             Raspberry Pi 5 + Central Server/VM • oneM2M In-CSE Platform${RESET}"
+    echo -e "${BLUE}             Raspberry Pi 5 + Central Server/VM • oneM2M IN-CSE & Vehicle AE Platform${RESET}"
     echo ""
 }
 
@@ -252,7 +252,110 @@ action_localhost_stack() {
 }
 
 # ------------------------------------------------------------------------------
-# Action 5: systemd Host Service Management (Install, Status, Logs, Restart)
+# Action 5: Container Mesh Lifecycle & Status Management
+# ------------------------------------------------------------------------------
+action_container_management() {
+    echo -e "\n${CYAN}===> Container Mesh Lifecycle & Status Management${RESET}"
+    echo -e "${GRAY}Inspect running containers, view real-time logs, and control Module 1 & Module 2 service meshes.${RESET}\n"
+
+    prompt_host_type "Container Management Target"
+    local is_remote=false
+    local ssh_cmd=""
+    local target_label="Localhost"
+    if [ "${HOST_CHOICE}" = "2" ]; then
+        is_remote=true
+        prompt_remote_credentials "Target Host" "${DEF_BASE_HOST}" "${DEF_BASE_USER}" "${DEF_BASE_PORT}" "${DEF_BASE_KEY}"
+        target_label="${RET_USER}@${RET_HOST}"
+        local key_opt=""
+        if [ -n "${RET_KEY}" ] && [ -f "${RET_KEY}" ]; then
+            key_opt="-i ${RET_KEY} -o IdentitiesOnly=yes"
+        fi
+        ssh_cmd="ssh -p ${RET_PORT} ${key_opt} ${RET_USER}@${RET_HOST}"
+    fi
+
+    while true; do
+        echo -e "\n${CYAN}Container Mesh Operations [Target: ${target_label}]:${RESET}"
+        echo -e "  ${CYAN}[1]${RESET} Process Status (docker ps -a)"
+        echo -e "  ${CYAN}[2]${RESET} Tail Logs: Vehicle Edge Serial Client (sdv_edge_serial_client)"
+        echo -e "  ${CYAN}[3]${RESET} Tail Logs: Vehicle Actuator Module (sdv_actuator_module)"
+        echo -e "  ${CYAN}[4]${RESET} Tail Logs: Base CSE Infrastructure Microservice"
+        echo -e "  ${CYAN}[5]${RESET} Restart Container Mesh"
+        echo -e "  ${CYAN}[6]${RESET} Stop Vehicle AE Microservices (docker compose -f docker-compose.vehicle-ae.yml down)"
+        echo -e "  ${CYAN}[7]${RESET} Stop Base CSE Microservices Mesh (docker compose down)"
+        echo -e "  ${RED}[0]${RESET} Return to Main Menu\n"
+
+        prompt_input "Enter choice [1-7, 0 to return] (default: 1): " "1" C_ACTION
+
+        case "${C_ACTION}" in
+            1)
+                echo -e "\n${CYAN}[INFO] Querying active container processes...${RESET}"
+                if [ "${is_remote}" = true ]; then
+                    ${ssh_cmd} "docker ps -a --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}\t{{.Image}}'" || true
+                else
+                    docker ps -a --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}\t{{.Image}}' || true
+                fi
+                ;;
+            2)
+                echo -e "\n${CYAN}[INFO] Retrieving last 40 lines of sdv_edge_serial_client logs...${RESET}"
+                if [ "${is_remote}" = true ]; then
+                    ${ssh_cmd} "docker logs --tail 40 sdv_edge_serial_client" || true
+                else
+                    docker logs --tail 40 sdv_edge_serial_client || true
+                fi
+                ;;
+            3)
+                echo -e "\n${CYAN}[INFO] Retrieving last 40 lines of sdv_actuator_module logs...${RESET}"
+                if [ "${is_remote}" = true ]; then
+                    ${ssh_cmd} "docker logs --tail 40 sdv_actuator_module" || true
+                else
+                    docker logs --tail 40 sdv_actuator_module || true
+                fi
+                ;;
+            4)
+                prompt_input "Enter microservice container name (sdv_onem2m_cse, sdv_bridge_ae, sdv_mosquitto_broker, sdv_influxdb, sdv_grafana, sdv_web_portal) [default: sdv_onem2m_cse]: " "sdv_onem2m_cse" c_name
+                echo -e "\n${CYAN}[INFO] Retrieving last 40 lines of ${c_name}...${RESET}"
+                if [ "${is_remote}" = true ]; then
+                    ${ssh_cmd} "docker logs --tail 40 ${c_name}" || true
+                else
+                    docker logs --tail 40 "${c_name}" || true
+                fi
+                ;;
+            5)
+                echo -e "\n${CYAN}[INFO] Restarting container mesh...${RESET}"
+                if [ "${is_remote}" = true ]; then
+                    ${ssh_cmd} "cd ~/HVAC-iot-monitoring/deploy 2>/dev/null || cd deploy; docker compose restart" || true
+                else
+                    (cd "${DEPLOY_DIR}" && docker compose restart) || true
+                fi
+                ;;
+            6)
+                echo -e "\n${CYAN}[INFO] Stopping Vehicle AE containerised microservices...${RESET}"
+                if [ "${is_remote}" = true ]; then
+                    ${ssh_cmd} "cd ~/HVAC-iot-monitoring/deploy 2>/dev/null || cd deploy; docker compose -f docker-compose.vehicle-ae.yml down" || true
+                else
+                    (cd "${DEPLOY_DIR}" && docker compose -f docker-compose.vehicle-ae.yml down) || true
+                fi
+                ;;
+            7)
+                echo -e "\n${CYAN}[INFO] Stopping Base CSE container mesh...${RESET}"
+                if [ "${is_remote}" = true ]; then
+                    ${ssh_cmd} "cd ~/HVAC-iot-monitoring/deploy 2>/dev/null || cd deploy; docker compose down" || true
+                else
+                    (cd "${DEPLOY_DIR}" && docker compose down) || true
+                fi
+                ;;
+            0)
+                break
+                ;;
+            *)
+                echo -e "${RED}[WARN] Invalid selection.${RESET}"
+                ;;
+        esac
+    done
+}
+
+# ------------------------------------------------------------------------------
+# Action 6: systemd Host Service Management (Install, Status, Logs, Restart)
 # ------------------------------------------------------------------------------
 action_systemd_management() {
     echo -e "\n${CYAN}===> systemd Host Service Management (sdv-acme-cse.service)${RESET}"
@@ -345,7 +448,7 @@ action_systemd_management() {
 }
 
 # ------------------------------------------------------------------------------
-# Action 6: Pre-flight Software & Hardware Diagnostics Check
+# Action 7: Pre-Flight Software & Hardware Diagnostics Suite
 # ------------------------------------------------------------------------------
 run_local_hardware_diagnostics() {
     echo -e "\n${CYAN}===> Local Peripheral, Hardware & Network Diagnostics Suite${RESET}"
@@ -524,7 +627,7 @@ action_diagnostics() {
 }
 
 # ------------------------------------------------------------------------------
-# Action 7: Telemetry Pipeline Simulation & Ingestion Validation
+# Action 8: Telemetry Pipeline Simulation & Ingestion Validation
 # ------------------------------------------------------------------------------
 action_telemetry_simulation() {
     echo -e "\n${CYAN}===> Vehicular Telemetry Simulation & Validation Pipeline${RESET}"
@@ -582,7 +685,7 @@ action_telemetry_simulation() {
 }
 
 # ------------------------------------------------------------------------------
-# Action 8: Display Least-Privilege Service Comparison Matrix
+# Action 9: Display Least-Privilege Service Comparison Matrix
 # ------------------------------------------------------------------------------
 action_comparison_matrix() {
     echo -e "\n${CYAN}===> SDV Platform Least-Privilege & Security Isolation Matrix${RESET}"
@@ -597,7 +700,8 @@ action_comparison_matrix() {
     echo -e "| ${CYAN}Grafana Enterprise Dashboard${RESET}| Server / VM | 472:472   | 3000        | Unprivileged user, R/O conf | Cockpit Visualiser  |"
     echo -e "| ${CYAN}Web Management Portal${RESET}     | Server / VM   | 1000:1000 | 8000        | Gunicorn unprivileged worker| Fleet Admin / Mca   |"
     echo -e "| ${CYAN}Bridge AE Ingestion Node${RESET}  | Server / VM   | 1000:1000 | Internal    | Non-root, TS-0010 Interwork | Bridge AE Protocol  |"
-    echo -e "| ${GREEN}Vehicular AE Client Daemon${RESET}| Pi 5 in-cabin | 1000:1000 | Outbound 0  | CAP_DAC_OVERRIDE dropped    | Vehicular Edge AE   |"
+    echo -e "| ${GREEN}sdv_edge_serial_client${RESET}    | Pi 5 in-cabin | 1000:1000 | Outbound 0  | Serial device passthrough   | ESP32-S3 Telemetry  |"
+    echo -e "| ${GREEN}sdv_actuator_module${RESET}       | Pi 5 in-cabin | 1000:1000 | Outbound 0  | Closed-loop RPM modulation  | Actuator Controller |"
     echo -e "| ${GREEN}ESP32-S3 Micro-ECU${RESET}        | Hardware Bus  | Bare-Metal| UART / I2C  | FreeRTOS deterministic task | Physical Sensor Hub |"
     echo -e "${BOLD}+---------------------------+---------------+-----------+-------------+-----------------------------+---------------------+${RESET}"
 
@@ -615,19 +719,20 @@ main() {
     while true; do
         print_banner
 
-        echo -e "${CYAN}===> ${WHITE}Interactive Deployment Selection${RESET}\n"
-        echo -e "${GRAY}Please choose an execution or deployment option:${RESET}\n"
+        echo -e "${CYAN}===> ${WHITE}Interactive Deployment and Operations Dashboard${RESET}\n"
+        echo -e "${GRAY}Please choose an execution, deployment, or diagnostic option:${RESET}\n"
         echo -e "  ${CYAN}[1]${RESET} Distributed Multi-Host Deployment (Module 1 Base CSE on Server + Module 2 Vehicle AE on Pi 5)"
-        echo -e "  ${CYAN}[2]${RESET} Standalone Base CSE Infrastructure (ACME IN-CSE, Zero AEs, Baseline Governance)"
-        echo -e "  ${CYAN}[3]${RESET} Standalone Vehicle Application Entity (Raspberry Pi 5 AE Onboarding to Base CSE)"
-        echo -e "  ${CYAN}[4]${RESET} Complete Localhost Development Stack (Local Base CSE + InfluxDB + Grafana + Web Portal)"
-        echo -e "  ${CYAN}[5]${RESET} systemd Host Service Management (Install, Status, Logs, Restart)"
-        echo -e "  ${CYAN}[6]${RESET} Pre-flight Software & Hardware Diagnostics Check (Docker, SSH passwordless, build tools, sysfs, TCP)"
-        echo -e "  ${CYAN}[7]${RESET} Telemetry Ingestion & Simulation Pipeline (mTLS 1.3, Native TS-0010 MQTT, Fan-Out)"
-        echo -e "  ${CYAN}[8]${RESET} Display Least-Privilege Service Comparison Matrix"
+        echo -e "  ${CYAN}[2]${RESET} Standalone Base CSE Infrastructure (Module 1: ACME IN-CSE, Zero AEs, Baseline Governance)"
+        echo -e "  ${CYAN}[3]${RESET} Standalone Vehicle Application Entity (Module 2: Raspberry Pi 5 Onboarding & Containerised Services)"
+        echo -e "  ${CYAN}[4]${RESET} Complete Localhost Development Stack (Co-located Base CSE + InfluxDB + Grafana + Web Portal)"
+        echo -e "  ${CYAN}[5]${RESET} Container Mesh Lifecycle & Status (Inspect Containers, View Logs, Stop/Restart Mesh)"
+        echo -e "  ${CYAN}[6]${RESET} systemd Host Service Management (sdv-acme-cse.service: Status, Start, Stop, Logs, Lingering)"
+        echo -e "  ${CYAN}[7]${RESET} Pre-Flight Software & Hardware Diagnostics Suite (Docker, SSH, Build Tools, sysfs, Endpoints)"
+        echo -e "  ${CYAN}[8]${RESET} Telemetry Ingestion & Simulation Pipeline (mTLS 1.3, Native TS-0010 MQTT, Fleet Group Fan-Out)"
+        echo -e "  ${CYAN}[9]${RESET} Display Least-Privilege Service Comparison Matrix"
         echo -e "  ${RED}[0]${RESET} Exit\n"
 
-        prompt_input "Enter selection [1-8, 0 to exit] (default: 1): " "1" SELECTION
+        prompt_input "Enter selection [1-9, 0 to exit] (default: 1): " "1" SELECTION
 
         case "${SELECTION}" in
             1)
@@ -647,17 +752,20 @@ main() {
                 pause_to_continue
                 ;;
             5)
-                action_systemd_management
+                action_container_management
                 ;;
             6)
+                action_systemd_management
+                ;;
+            7)
                 action_diagnostics
                 pause_to_continue
                 ;;
-            7)
+            8)
                 action_telemetry_simulation
                 pause_to_continue
                 ;;
-            8)
+            9)
                 action_comparison_matrix
                 pause_to_continue
                 ;;
@@ -666,7 +774,7 @@ main() {
                 exit 0
                 ;;
             *)
-                echo -e "\n${RED}[WARN] Invalid option: '${SELECTION}'. Please enter a number between 0 and 8.${RESET}"
+                echo -e "\n${RED}[WARN] Invalid option: '${SELECTION}'. Please enter a number between 0 and 9.${RESET}"
                 sleep 1.5
                 ;;
         esac

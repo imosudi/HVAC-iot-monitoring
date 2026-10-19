@@ -312,8 +312,9 @@ flowchart LR
 3. **Automated Reachability Fallback:** All deployment and verification scripts (`deploy_gateway.sh`, `init_base_cse.sh`, `validate_base_cse.py`, `deploy_acme_fleet_single_vehicle_ae.py`) automatically detect when `DEPLOY_TARGET=localhost` and bind to local endpoints without waiting for external network timeouts.
 4. **Execution Command:**
    ```bash
-   make deploy-localhost
-   # Equivalent to: bash deploy/deploy_gateway.sh --localhost --lean
+   make menu               # Interactive terminal dashboard (Option [4])
+   # Or direct CLI invocation:
+   make deploy-localhost   # Equivalent to: bash deploy/deploy_gateway.sh --localhost --lean
    ```
 
 ---
@@ -337,7 +338,7 @@ The **Distributed Remote Hosts Topology** implements the physical and operationa
 | **Microservice Stack** | Containerised: `sdv_onem2m_cse`, `sdv_mosquitto_broker`, `sdv_bridge_ae`, `sdv_influxdb`, `sdv_grafana`, `sdv_web_portal`. | Containerised edge stack: `sdv_edge_serial_client` (serial ingress to Base CSE) and `sdv_actuator_module` (downlink command listener & actuator controller). |
 | **Physical Interfaces** | Gigabit / 10G Ethernet NIC to datacenter or cloud VPC. | GPIO, I2C, SPI, UART/USB connected to in-cabin ESP32-S3 and transducers. |
 | **Ingress Firewall** | TCP 8883 (mTLS), 8080 (REST), 3000 (Grafana), 8000 (Portal), 8087 (TSDB). | **Zero ingress ports required**. All connections are outbound from vehicle to central server. |
-| **Deployment Command** | `make deploy-base-cse BASE_HOST=192.168.122.91` | `make deploy-vehicle-ae BASE_HOST=192.168.122.91 VEHICLE_ID=vehicle-001` |
+| **Deployment Command** | `make deploy-base-cse BASE_HOST=192.168.122.91` (or `make menu` Option `[2]`) | `make deploy-vehicle-ae BASE_HOST=192.168.122.91 VEHICLE_ID=vehicle-001` (or `make menu` Option `[3]`) |
 
 #### 8.2.1 Remote Host SSH Management and Login Credential Contracts
 
@@ -377,13 +378,17 @@ flowchart TB
         INSTR["In-Cabin Physical Transducers & Actuators<br/>(SCD30 CO2, DHT22, CO, IAQ, 4x LEDs, Fan PWM)"]
         MCU["ESP32-S3 Micro-ECU<br/>(FreeRTOS Deterministic Control & Fail-Safe)"]
         RPI["Raspberry Pi 5 Vehicular Edge Computer<br/>(Debian 12 Bookworm aarch64 MEC Host)"]
-        AE_DAEMON["oneM2M Vehicular AE Client Daemon<br/>(Deterministic AE-ID: ae_vin_...0042)"]
+        subgraph V_CONTAINERS ["Containerised Microservices (docker-compose.vehicle-ae.yml)"]
+            EDGE_CLIENT["sdv_edge_serial_client<br/>(Serial Transducer Ingress Daemon)"]
+            ACT_MODULE["sdv_actuator_module<br/>(Downlink Command Controller)"]
+        end
         
-        INSTR <--> MCU <== "USB/UART Serial (/dev/ttyACM0)" ==> RPI <--> AE_DAEMON
+        INSTR <--> MCU <== "USB/UART Serial (/dev/ttyACM0)" ==> RPI <--> V_CONTAINERS
     end
 
-    AE_DAEMON == "WAN / Cellular mTLS 1.3 Encrypted Session (TCP Port 8883)" ==> MOSQ_R
-    AE_DAEMON -.->|"Mca REST HTTP Provisioning Port 8080"| CSE_R
+    EDGE_CLIENT == "WAN / Cellular mTLS 1.3 Encrypted Session (TCP Port 8883)" ==> MOSQ_R
+    EDGE_CLIENT -.->|"Mca REST HTTP Provisioning Port 8080"| CSE_R
+    MOSQ_R -.->|"Sub_Downlink Push Notification"| ACT_MODULE
 ```
 
 ---

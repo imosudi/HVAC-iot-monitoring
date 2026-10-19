@@ -37,25 +37,31 @@ This work details the design, implementation, and empirical evaluation of an ope
 3. [System Architecture and Component Topologies](#3-system-architecture-and-component-topologies)
    - [End-to-End Architectural Topology](#end-to-end-architectural-topology)
    - [Closed-Loop Cyber-Physical Feedback Loop](#closed-loop-cyber-physical-feedback-loop)
-   - [Structural Service Mesh Decomposition](#structural-service-mesh-decomposition)
+   - [Modular Structural Service Mesh Decomposition](#modular-structural-service-mesh-decomposition)
 4. [Edge Sensing and Actuation Node Specification](#4-edge-sensing-and-actuation-node-specification)
    - [Microcontroller Architecture and Operating Environment](#microcontroller-architecture-and-operating-environment)
    - [Transducer Suite and Electrical Interfacing](#transducer-suite-and-electrical-interfacing)
    - [Acoustic Mitigation and High-Frequency PWM Blower Control](#acoustic-mitigation-and-high-frequency-pwm-blower-control)
    - [Optical Telemetry and Health Signalling](#optical-telemetry-and-health-signalling)
-5. [Edge Compute Gateway and Containerised Service Mesh](#5-edge-compute-gateway-and-containerised-service-mesh)
-6. [oneM2M Semantic Resource Tree and Information Model](#6-onem2m-semantic-resource-tree-and-information-model)
-7. [Empirical Data Health Model and Fault Classification](#7-empirical-data-health-model-and-fault-classification)
+5. [Modular Service Mesh and Distributed Deployment Topologies](#5-modular-service-mesh-and-distributed-deployment-topologies)
+   - [Module 1: Base CSE Infrastructure Platform (Central Server / VM)](#module-1-base-cse-infrastructure-platform-central-server--vm)
+   - [Module 2: Vehicle AE Microservices Stack (In-Vehicle Raspberry Pi 5)](#module-2-vehicle-ae-microservices-stack-in-vehicle-raspberry-pi-5)
+6. [Interactive Terminal Dashboard & Deployment Menu (`make menu`)](#6-interactive-terminal-dashboard--deployment-menu-make-menu)
+   - [Dashboard Architecture and Capabilities](#dashboard-architecture-and-capabilities)
+   - [Standardised Deployment and Diagnostics Workflows](#standardised-deployment-and-diagnostics-workflows)
+   - [Quickstart Guide: From Zero to Verified Closed-Loop](#quickstart-guide-from-zero-to-verified-closed-loop)
+7. [oneM2M Semantic Resource Tree and Information Model](#7-onem2m-semantic-resource-tree-and-information-model)
+8. [Empirical Data Health Model and Fault Classification](#8-empirical-data-health-model-and-fault-classification)
    - [Formal State Machine Formulation](#formal-state-machine-formulation)
    - [Telemetry Integrity and Non-Coercion Model](#telemetry-integrity-and-non-coercion-model)
-8. [Bidirectional Data Pipeline and Control Semantics](#8-bidirectional-data-pipeline-and-control-semantics)
+9. [Bidirectional Data Pipeline and Control Semantics](#9-bidirectional-data-pipeline-and-control-semantics)
    - [Uplink Telemetry Flow](#uplink-telemetry-flow)
    - [Downlink Actuation Flow](#downlink-actuation-flow)
-9. [Zero-Trust Cryptographic Transport and PKI Model](#9-zero-trust-cryptographic-transport-and-pki-model)
-10. [Empirical Evaluation and Test Matrix](#10-empirical-evaluation-and-test-matrix)
-11. [Repository Topology and Artefact Organisation](#11-repository-topology-and-artefact-organisation)
-12. [Research Personnel and Contributor Attribution (CRediT)](#12-research-personnel-and-contributor-attribution-credit)
-13. [Licensing and Academic Provenance](#13-licensing-and-academic-provenance)
+10. [Zero-Trust Cryptographic Transport and PKI Model](#10-zero-trust-cryptographic-transport-and-pki-model)
+11. [Empirical Evaluation and Test Matrix](#11-empirical-evaluation-and-test-matrix)
+12. [Repository Topology and Artefact Organisation](#12-repository-topology-and-artefact-organisation)
+13. [Research Personnel and Contributor Attribution (CRediT)](#13-research-personnel-and-contributor-attribution-credit)
+14. [Licensing and Academic Provenance](#14-licensing-and-academic-provenance)
 
 ---
 
@@ -152,18 +158,18 @@ The control system operates as a closed-loop discrete-time feedback architecture
   <p><i>Figure 2: Systematic closed-loop data pipeline illustrating environmental sensing, secure transit, oneM2M middleware harmonisation, time-series storage, control decision logic, and physical fan modulation.</i></p>
 </div>
 
-### Structural Service Mesh Decomposition
-To ensure deterministic execution and isolation, the edge computing node implements a containerised microservice mesh deployed via rootless **Podman / Docker** engines on ARM64 Linux:
+### Modular Structural Service Mesh Decomposition
+To ensure deterministic execution, least-privilege security isolation, and hardware failure containment, the software architecture decomposes into two loosely coupled tiers deployed via containerised service meshes on Linux:
 
 ```mermaid
 graph TB
-    subgraph EdgeNode["ESP32-S3 Cabin Sensing and Actuation Node"]
+    subgraph EdgeNode["ESP32-S3 Physical Sensing and Actuation Node"]
         SCD30["Sensirion SCD30 Transducer<br/>NDIR CO2, Temp, RH"]
         DHT22["DHT22 Transducer<br/>Redundant Temp and RH"]
         LEDC["LEDC Hardware Timer<br/>25 kHz Ultrasonic PWM"]
         PCNT["Pulse Counter Unit<br/>Hall-Effect Tachometer"]
         LED["WS2812B Status Indicator<br/>Multi-colour Health Signalling"]
-        Firmware["FreeRTOS Firmware Core<br/>mTLS Client and Validation"]
+        Firmware["FreeRTOS Firmware Core<br/>Deterministic Loop & Fail-Safe"]
 
         SCD30 -->|I2C Master Read| Firmware
         DHT22 -->|1-Wire Protocol| Firmware
@@ -172,27 +178,32 @@ graph TB
         Firmware -->|Status Signalling| LED
     end
 
-    subgraph ServiceMesh["Raspberry Pi 5 Edge Gateway Service Mesh"]
-        Mosquitto["Eclipse Mosquitto MQTT Broker<br/>Port 8883 with TLS 1.3 mTLS"]
-        NodeRED["Node-RED Ingress IPE<br/>Schema Validation and REST Mapping"]
-        CSE["oneM2M Common Services Entity<br/>Resource Root: /sdv-cse"]
-        BridgeAE["Bridge AE Data Health Engine<br/>Freshness and Cross-Check Classifier"]
-        InfluxDB["InfluxDB 2.x TSDB Engine<br/>Bucket: cabin_telemetry"]
-        Grafana["Grafana Operations Cockpit<br/>Observability, Analytics and Overrides"]
-
-        Mosquitto -->|Decoded JSON Telemetry| NodeRED
-        NodeRED -->|HTTP POST cin Primitives| CSE
-        CSE -->|Sub_BridgeAE Notification| BridgeAE
-        BridgeAE -->|Classified Nanosecond Points| InfluxDB
-        InfluxDB -->|Flux Query Telemetry| Grafana
-        
-        Grafana -.->|Actuation Rule or Override| CSE
-        CSE -.->|Sub_Downlink Notification| NodeRED
-        NodeRED -.->|MQTT Downlink Dispatch| Mosquitto
+    subgraph Module2["Module 2: In-Vehicle Raspberry Pi 5 Host (Vehicle AE)"]
+        EdgeClient["sdv_edge_serial_client<br/>Serial Reader & Synthetic Fallback<br/>Native oneM2M TS-0010 Publisher"]
+        Actuator["sdv_actuator_module<br/>Downlink Command Listener<br/>Closed-Loop RPM Modulation"]
     end
 
-    Firmware ==>|mTLS Ingress Port 8883| Mosquitto
-    Mosquitto -.->|mTLS Downlink Egress| Firmware
+    subgraph Module1["Module 1: Central Server / VM Host (Base CSE Platform)"]
+        Mosquitto["sdv_mosquitto_broker<br/>Eclipse Mosquitto MQTT<br/>mTLS 1.3 WAN Termination (:8883)"]
+        CSE["sdv_onem2m_cse<br/>ACME oneM2M IN-CSE Base<br/>Semantic Tree: /sdv-cse (:8080)"]
+        BridgeAE["sdv_bridge_ae<br/>Data Health Classifier<br/>FRESH/STALE/DEG/FAULT (:5000)"]
+        InfluxDB["sdv_influxdb<br/>InfluxDB 2.x TSDB Engine<br/>Bucket: cabin_telemetry (:8087)"]
+        Grafana["sdv_grafana<br/>Grafana Operations Cockpit<br/>Observability & Control (:3000)"]
+        WebPortal["sdv_web_portal<br/>Fleet Management Operations<br/>Vehicle Commissioning (:8000)"]
+
+        Mosquitto <== "Internal TS-0010 MQTT (:1883)" ==> CSE
+        CSE -->|Sub_BridgeAE Notification| BridgeAE
+        BridgeAE -->|Classified Nanosecond Points| InfluxDB
+        InfluxDB -->|Flux Queries| Grafana
+        Grafana -.->|Actuator Directives| CSE
+        WebPortal -.->|Mca Admin Operations| CSE
+    end
+
+    Firmware <== "USB/UART Serial Bus (/dev/ttyACM0 @ 115200)" ==> EdgeClient
+    Actuator == "Serial Directives / Closed-Loop Tachometer" ==> Firmware
+
+    EdgeClient ==>|mTLS 1.3 TS-0010 Ingress Port 8883| Mosquitto
+    Mosquitto -.->|Downlink Sub_Downlink Egress| Actuator
 ```
 
 ---
@@ -263,52 +274,167 @@ Local optical state reporting is driven by an addressable RGB LED indicating cur
 
 ---
 
-## 5. Edge Compute Gateway and Containerised Service Mesh
+## 5. Modular Service Mesh and Distributed Deployment Topologies
 
-Hosted upon an automotive-grade **Raspberry Pi 5** platform (Broadcom BCM2712 quad-core Arm Cortex-A76 at 2.4 GHz, 8 GB LPDDR4X SDRAM), the gateway executes an integrated microservice mesh managed via **Podman / Docker** containers:
+To resolve the physical and operational separation between automotive fleet infrastructure and mobile edge compute nodes, the system implements a decoupled, two-module microservice architecture. Conforming strictly to **ETSI TS 118 101 Release 4** and **oneM2M TS-0004 / TS-0010**, services are segregated into a central singleton base platform and multi-instance in-vehicle edge nodes.
+
+### Module 1: Base CSE Infrastructure Platform (Central Server / VM)
+
+Hosted on an enterprise server or virtual machine running Ubuntu Server (x86_64 or aarch64), Module 1 serves as the central administrative, semantic, and analytical authority across the entire vehicular fleet:
 
 ```
 +-----------------------------------------------------------------------------------+
-|               RASPBERRY PI 5 EDGE GATEWAY (ARM64 LINUX / PODMAN)                  |
+|               BASE CSE INFRASTRUCTURE PLATFORM (CENTRAL SERVER / VM)             |
 |                                                                                   |
 |  +---------------------+   +---------------------+   +-------------------------+  |
-|  |  Eclipse Mosquitto  |   |    Node-RED IPE     |   |   oneM2M IN-CSE Base    |  |
-|  |  Port 8883 (mTLS)   |──>| (Interworking Proxy)|──>|       (/sdv-cse)        |  |
-|  |  TLS 1.3 Term.      |   | Schema Validation   |   | Semantic Resource Tree  |  |
+|  | sdv_mosquitto_broker|   |   sdv_onem2m_cse    |   |     sdv_web_portal      |  |
+|  | Ports: 8883 (mTLS)  |──>| (ACME oneM2M IN-CSE)|<──| Flask Management Portal |  |
+|  |        1883 (Mesh)  |   | Port: 8080 (Mca/Mcc)|   | Port: 8000 (Operations) |  |
 |  +---------------------+   +---------------------+   +-------------------------+  |
-|                                                                   │               |
-|                                                                   │ Notification  |
-|                                                                   ▼ Dispatch      |
+|                                       │                                           |
+|                                       │ Asynchronous Subscription                 |
+|                                       ▼ Notification Dispatch                     |
 |  +---------------------+   +---------------------+   +-------------------------+  |
-|  |   Grafana Cockpit   |   |    InfluxDB 2.x     |   |   Bridge AE Consumer    |  |
-|  | Flux Dashboard      |<──| Time-Series TSDB    |<──| Data Health Classifier  |  |
-|  | Rule Engine         |   | Bucket: cabin_telem |   | (FRESH/STALE/DEG/FAULT) |  |
+|  |     sdv_grafana     |   |    sdv_influxdb     |   |      sdv_bridge_ae      |  |
+|  | Operations Cockpit  |<──| Time-Series TSDB    |<──| Data Health Classifier  |  |
+|  | Port: 3000 (UI/Act) |   | Port: 8087 (Bucket) |   | Port: 5000 (Webhook)    |  |
 |  +---------------------+   +---------------------+   +-------------------------+  |
 +-----------------------------------------------------------------------------------+
 ```
 
-1. **Eclipse Mosquitto Container:**
-   * Bound to TCP port `8883` enforcing exclusively TLS 1.3 with cryptographic client certificate authentication (`require_certificate true`).
-   * Configured with strict topic-level Access Control Lists (ACLs) isolating each physical cabin zone into discrete publication (`sdv/vehicle_01/telemetry`) and subscription (`sdv/vehicle_01/control/cmd`) channels.
-2. **Node-RED Ingress IPE (Interworking Proxy Entity):**
-   * Operates as an ETSI oneM2M Interworking Proxy Entity over the Mca reference point.
-   * Intercepts raw MQTT JSON payloads, validates structural syntax against JSON Schema specifications, and maps key-value observations to standard oneM2M REST representations.
-   * Serves as the bidirectional downlink command dispatcher, translating oneM2M `<subscription>` event notifications into targeted MQTT control packets.
-3. **oneM2M Common Services Entity (IN-CSE):**
-   * Standardised IoT middleware layer hosting the `/sdv-cse` resource tree.
-   * Manages resource lifecycle, access control rules, and event triggers.
-4. **Bridge AE / Consumer:**
-   * Autonomous Application Entity subscribing to telemetry container events.
-   * Executes algorithmic data health classification and evaluates cross-sensor validation metrics before persistence.
-5. **InfluxDB 2.x Time-Series Database:**
-   * Ingests high-throughput nanosecond-precision records into the `cabin_telemetry` bucket under a 30-day retention policy.
-   * Indexed across categorical tags: `car_id`, `cabin_zone`, `sensor_modality`, and `data_health`.
-6. **Grafana Operations Cockpit:**
-   * Delivers operational visibility, alerting watermarks, real-time Flux queries, and closed-loop rule evaluation.
+1. **`sdv_onem2m_cse` (ACME oneM2M IN-CSE):**
+   * Acts as the standardised IoT middleware authority hosting the `/sdv-cse` resource tree.
+   * Exposes port `8080` for Mca and Mcc HTTP REST transactions and binds to port `1883` for internal oneM2M TS-0010 MQTT protocol bindings.
+   * Bootstraps in a strictly vanilla state (zero registered vehicle AEs), guaranteeing idempotent runtime onboarding governed by `acp_fleet_manager` and fleet aggregation group `grp_fleet_telemetry`.
+2. **`sdv_mosquitto_broker` (Eclipse Mosquitto Broker):**
+   * Acts as the public perimeter gateway bound to TCP port `8883`, enforcing TLS 1.3 with mandatory bidirectional hardware certificate verification (`require_certificate true`).
+   * Implements strict per-vehicle topic Access Control Lists (ACLs) isolating telemetry ingress (`sdv/{vehicle_id}/telemetry`), oneM2M request primitives (`/oneM2M/req/+/id-sdv/json`), and downlink actuation channels (`sdv/{vehicle_id}/control/cmd`).
+3. **`sdv_bridge_ae` (Bridge Application Entity):**
+   * Autonomous Python Application Entity binding to port `5000`.
+   * Subscribes to oneM2M ContentInstance creation events via `<subscription>` (`Sub_BridgeAE`).
+   * Evaluates the empirical four-state data health model (`FRESH`, `STALE`, `DEGRADED`, `FAULT`) and computes inter-sensor divergence ($\Delta T = |T_{\text{SCD30}} - T_{\text{DHT22}}|$).
+4. **`sdv_influxdb` (InfluxDB 2.x Time-Series TSDB):**
+   * Ingests nanosecond-precision classified observations into the `cabin_telemetry` bucket over port `8087`.
+   * Enforces 30-day retention policies with categorical indexing across `car_id`, `cabin_zone`, `sensor_modality`, and `data_health`.
+5. **`sdv_grafana` (Grafana Enterprise Operations Cockpit):**
+   * Bound to port `3000`, delivering real-time Flux visualisations, threshold watermarks, and direct closed-loop actuation override triggers back to the Base CSE.
+6. **`sdv_web_portal` (Management Operations Portal):**
+   * Gunicorn/Flask web portal bound to port `8000`. Enables operational single-vehicle commissioning, fleet inventory discovery, and runtime decommissioning without direct database intervention.
+
+### Module 2: Vehicle AE Microservices Stack (In-Vehicle Raspberry Pi 5)
+
+Deployed upon the vehicular single-board computer (Raspberry Pi 5 running Debian 12 Bookworm aarch64), Module 2 executes with **strictly zero inbound firewall ports**, initiating all sessions outbound to the Base CSE:
+
+```
++-----------------------------------------------------------------------------------+
+|               VEHICLE AE MICROSERVICES MESH (IN-VEHICLE RASPBERRY PI 5)           |
+|                                                                                   |
+|  +-------------------------------------+   +-----------------------------------+  |
+|  |       sdv_edge_serial_client        |   |        sdv_actuator_module        |  |
+|  | Serial Transducer Bus Reader        |   | Downlink Actuation Controller     |  |
+|  | Ingests /dev/ttyACM0 @ 115200 baud  |   | Subscribes to sdv/+/control/cmd   |  |
+|  | Native oneM2M TS-0010 MQTT / REST   |   | Closed-loop tachometer modulation |  |
+|  +-------------------------------------+   +-----------------------------------+  |
+|                     ▲                                         │                   |
+|       Telemetry Raw │ Frames               Actuation Feedback │                   |
+|                     │                                         ▼                   |
+|  +-----------------------------------------------------------------------------+  |
+|  | Physical Sensor & Blower Node: ESP32-S3 Micro-ECU (FreeRTOS Core 0 / Core 1)|  |
+|  +-----------------------------------------------------------------------------+  |
++-----------------------------------------------------------------------------------+
+```
+
+1. **`sdv_edge_serial_client` (Edge Serial Ingress Daemon):**
+   * Containerised microservice executing with `network_mode: host` and `/dev:/dev` device passthrough.
+   * Auto-discovers attached physical serial devices (`/dev/ttyACM*`, `/dev/ttyUSB*`, `/dev/serial/by-id/*`) at 115200 baud to read structured telemetry from the ESP32-S3.
+   * Embeds an autonomous high-fidelity synthetic fallback generator conforming strictly to [telemetry_schema.json](docs/schemas/telemetry_schema.json) when physical hardware is unplugged.
+   * Formats native oneM2M TS-0010 request primitives (`/oneM2M/req/C_{vehicle_id}/id-sdv/json`) over mTLS 1.3 to Mosquitto (port 8883) with automated fallback to HTTP REST (port 8080).
+2. **`sdv_actuator_module` (Downlink Actuator Controller):**
+   * Subscribes over MQTT to `sdv/{vehicle_id}/control/cmd` and oneM2M notification primitives, with periodic polling on `/sdv-cse/{vehicle_id}/commands/la`.
+   * Enforces runtime validation against [actuator_command_schema.json](docs/schemas/actuator_command_schema.json).
+   * Modulates closed-loop blower RPM ($RPM = PWM \times 30$), dispatches serial directives (`CMD:PWM=75,MODE=AUTOMATIC\n`) to the physical ESP32-S3, and transmits acknowledged execution state back to the Base CSE.
 
 ---
 
-## 6. oneM2M Semantic Resource Tree and Information Model
+## 6. Interactive Terminal Dashboard & Deployment Menu (`make menu`)
+
+To provide deterministic, reproducible orchestration across development workstations, remote servers, and in-vehicle edge nodes, the repository provides an interactive terminal control dashboard:
+
+```bash
+make menu
+# or equivalently:
+bash deploy/menu.sh
+```
+
+```text
+  _____ ______     __   ____      _     _         __  __             _ _             
+ / ____|  _ \ \   / /  / ___|__ _| |__ (_)_ __   |  \/  | ___  _ __ (_) |_ ___  _ __ 
+| (___ | | | \ \ / /  | |   / _` | '_ \| | '_ \  | |\/| |/ _ \| '_ \| | __/ _ \| '__|
+ \___ \| | | |\ V /   | |__| (_| | |_) | | | | | | |  | | (_) | | | | | || (_) | |   
+ |_____/____/  \_/     \____\__,_|_.__/|_|_| |_| |_|  |_|\___/|_| |_|_|\__\___/|_|   
+             Raspberry Pi 5 + Central Server/VM • oneM2M IN-CSE & Vehicle AE Platform
+
+===> Interactive Deployment and Operations Dashboard
+
+Please choose an execution, deployment, or diagnostic option:
+
+  [1] Distributed Multi-Host Deployment (Module 1 Base CSE on Server + Module 2 Vehicle AE on Pi 5)
+  [2] Standalone Base CSE Infrastructure (Module 1: ACME IN-CSE, Zero AEs, Baseline Governance)
+  [3] Standalone Vehicle Application Entity (Module 2: Raspberry Pi 5 Onboarding & Containerised Services)
+  [4] Complete Localhost Development Stack (Co-located Base CSE + InfluxDB + Grafana + Web Portal)
+  [5] Container Mesh Lifecycle & Status (Inspect Containers, View Logs, Stop/Restart Mesh)
+  [6] systemd Host Service Management (sdv-acme-cse.service: Status, Start, Stop, Logs, Lingering)
+  [7] Pre-Flight Software & Hardware Diagnostics Suite (Docker, SSH, Build Tools, sysfs, Endpoints)
+  [8] Telemetry Ingestion & Simulation Pipeline (mTLS 1.3, Native TS-0010 MQTT, Fleet Group Fan-Out)
+  [9] Display Least-Privilege Service Comparison Matrix
+  [0] Exit
+```
+
+### Dashboard Architecture and Capabilities
+
+| Option | Functional Workflow | Target Environment | Key Artefacts & Operations |
+| :---: | :--- | :--- | :--- |
+| **`[1]`** | **Distributed Multi-Host Deployment** | Remote Server/VM + Remote Raspberry Pi 5 | Coordinates end-to-end SSH provisioning of Module 1 on `BASE_CSE_HOST` and Module 2 on `VEHICLE_AE_HOST` via `deploy/deploy_remote.sh`. |
+| **`[2]`** | **Standalone Base CSE Infrastructure** | Central Server / VM (or Localhost) | Deploys all 6 co-located microservices (`sdv_onem2m_cse`, `sdv_mosquitto_broker`, `sdv_bridge_ae`, `sdv_influxdb`, `sdv_grafana`, `sdv_web_portal`) with baseline governance. |
+| **`[3]`** | **Standalone Vehicle AE Commissioning** | In-Vehicle Raspberry Pi 5 (or Localhost) | Proactively onboards `<m2m:ae>` with 8 standard containers to Base CSE and builds/deploys `sdv_edge_serial_client` and `sdv_actuator_module` containers. |
+| **`[4]`** | **Complete Localhost Development Stack** | Developer Workstation (`localhost`) | Launches the full container mesh in lean mode for offline testing, code development, and rapid unit/integration cycles. |
+| **`[5]`** | **Container Mesh Lifecycle & Status** | Local or Remote Host | Inspects active container processes (`docker ps -a`), tails real-time service logs, restarts microservices, or terminates meshes without manual CLI commands. |
+| **`[6]`** | **systemd Host Service Management** | Local or Remote Host | Complete lifecycle management for the native `sdv-acme-cse.service` daemon (status, start, stop, restart, journal logs, and user lingering via `loginctl`). |
+| **`[7]`** | **Pre-Flight Diagnostics Suite** | Local and Remote Hosts | Runs automated diagnostics via `scripts/check_install-docker_ssh.sh` (supporting `--preflight`, `--check-only`, `--enable-password-auth`, `--disable-password-auth`) and local hardware probes. |
+| **`[8]`** | **Telemetry Ingestion & Simulation** | Base CSE Host (:8883 / :8080) | Streams synthetic sensor frames under nominal, CO₂ alert, or CO hazard modes via native TS-0010 MQTT or REST, verifying fleet fan-out aggregation (`/fopt/la`). |
+| **`[9]`** | **Least-Privilege Security Matrix** | Terminal Visualiser | Displays the comprehensive security matrix detailing non-root UID:GID pairs, bound ports, Linux capabilities, and security boundaries. |
+
+### Quickstart Guide: From Zero to Verified Closed-Loop
+
+1. **Clone the Repository & Configure Secrets:**
+   ```bash
+   git clone https://github.com/FH-Technikum-Wien/HVAC-iot-monitoring.git
+   cd HVAC-iot-monitoring
+   cp deploy/.env.example .env
+   # Edit .env with target host IPs and credentials
+   ```
+2. **Execute Pre-Flight Diagnostics & Setup Prerequisites:**
+   ```bash
+   # Automated check & installation on target host:
+   ./scripts/check_install-docker_ssh.sh --preflight user@192.168.122.91
+   # Generate cryptographic PKI certificates:
+   make setup-pki
+   ```
+3. **Launch the Interactive Dashboard:**
+   ```bash
+   make menu
+   ```
+   * Select **`[2]`** to deploy the Base CSE Infrastructure on your server.
+   * Select **`[3]`** to commission the Vehicle AE and deploy the containerised edge services on your Raspberry Pi 5.
+   * Select **`[5]`** to verify that both `sdv_edge_serial_client` and `sdv_actuator_module` are healthy and logging telemetry.
+4. **Access Operations Dashboards:**
+   * **ACME oneM2M Web UI:** `http://<SERVER_IP>:8080/webui`
+   * **Grafana Operations Cockpit:** `http://<SERVER_IP>:3000` (User: `admin`, Pass: `sdv_secure_pass`)
+   * **Fleet Web Portal:** `http://<SERVER_IP>:8000`
+
+---
+
+## 7. oneM2M Semantic Resource Tree and Information Model
 
 Conforming to **ETSI TS 118 101 (oneM2M Functional Architecture)**, the system models the vehicle cabin as a structured hierarchical tree under the CSEBase:
 
@@ -321,23 +447,23 @@ Conforming to **ETSI TS 118 101 (oneM2M Functional Architecture)**, the system m
 │
 ├── AE_CabinNode_Car01 (Application Entity - Vehicle 01 Zone)
 │   │
-│   ├── cnt_raw_telemetry (Container: Unvalidated Ingress Payloads)
+├── cnt_raw_telemetry (Container: Unvalidated Ingress Payloads)
 │   │   ├── cin_seq001 (ContentInstance: Raw JSON)
 │   │   └── sub_bridge_consumer (Subscription: Target -> Bridge AE URI)
 │   │
-│   ├── cnt_co2 (Container: Validated Carbon Dioxide Concentration)
+├── cnt_co2 (Container: Validated Carbon Dioxide Concentration)
 │   │   └── cin_val001 (ContentInstance: {"val": 742.0, "unit": "ppm"})
 │   │
-│   ├── cnt_temperature (Container: Primary Cabin Dry-Bulb Temperature)
+├── cnt_temperature (Container: Primary Cabin Dry-Bulb Temperature)
 │   │   └── cin_val001 (ContentInstance: {"val": 22.4, "unit": "degC"})
 │   │
-│   ├── cnt_humidity (Container: Validated Relative Humidity)
+├── cnt_humidity (Container: Validated Relative Humidity)
 │   │   └── cin_val001 (ContentInstance: {"val": 46.8, "unit": "pct"})
 │   │
-│   ├── cnt_data_health (Container: Transducer State & Integrity Metric)
+├── cnt_data_health (Container: Transducer State & Integrity Metric)
 │   │   └── cin_val001 (ContentInstance: {"state": "FRESH", "delta_t": 0.28, "age_s": 1.12})
 │   │
-│   └── cnt_actuator_commands (Container: Downlink Actuation Directives)
+└── cnt_actuator_commands (Container: Downlink Actuation Directives)
 │       ├── cin_cmd001 (ContentInstance: {"duty_pwm": 75, "override": false})
 │       └── sub_downlink_dispatcher (Subscription: Target -> Native oneM2M TS-0010 MQTT Bus)
 │
@@ -347,7 +473,7 @@ Conforming to **ETSI TS 118 101 (oneM2M Functional Architecture)**, the system m
 
 ---
 
-## 7. Empirical Data Health Model and Fault Classification
+## 8. Empirical Data Health Model and Fault Classification
 
 ### Formal State Machine Formulation
 To maintain rigorous data fidelity, every telemetry frame received at evaluation timestamp $t_{\mathrm{eval}}$ is evaluated by the Bridge AE classifier against a deterministic state function $\mathcal{H}(t) \in \{\mathrm{FRESH}, \mathrm{STALE}, \mathrm{DEGRADED}, \mathrm{FAULT}\}$:
@@ -406,7 +532,7 @@ In vehicular closed-loop automation, substituting default zero values for missin
 
 ---
 
-## 8. Bidirectional Data Pipeline and Control Semantics
+## 9. Bidirectional Data Pipeline and Control Semantics
 
 ```
 [ Cabin Physical Space ]        [ Cryptographic Transport ]      [ oneM2M & Analytics ]
@@ -418,14 +544,14 @@ ESP32-S3 Firmware Core   ──────────────────�
         ▲                                                                      │
         │ PWM Actuation (25 kHz)                                               │ Validated Write
         │                                                                      ▼
-HVAC Fan Centrifugal Blower <──── Node-RED IPE <──── oneM2M <cin> <──── InfluxDB 2.x & Grafana
+HVAC Actuators & Blower <──── sdv_actuator_module <──── oneM2M <cin> <──── InfluxDB 2.x & Grafana
 ```
 
 ### Uplink Telemetry Flow
 1. **Transducer Interrogation:** The ESP32-S3 periodically (1.0 Hz) interrogates the Sensirion SCD30 via I²C and the DHT22 via 1-Wire.
 2. **Local Frame Formulation:** Firmware calculates local metrics, evaluates the CRC checksum, timestamps the reading, and serialises the structured JSON payload.
-3. **Cryptographic Ingress:** The payload is transmitted across TCP port `8883` under TLS 1.3 mutual authentication to topic `sdv/vehicle_01/telemetry`.
-4. **IPE Semantic Translation:** Node-RED verifies schema validity and performs an HTTP POST creating a ContentInstance `<cin>` within `/sdv-cse/AE_CabinNode_Car01/cnt_raw_telemetry`.
+3. **Cryptographic Ingress:** The payload is transmitted across TCP port `8883` under TLS 1.3 mutual authentication to topic `sdv/vehicle_01/telemetry` or ingested via `sdv_edge_serial_client`.
+4. **Middleware Semantic Ingestion:** The edge client or broker bridges payload observations into standard oneM2M REST representations, posting a ContentInstance `<cin>` within `/sdv-cse/AE_CabinNode_Car01/cnt_raw_telemetry`.
 5. **Subscription Notification:** The oneM2M CSE executes subscription `sub_bridge_consumer`, issuing an asynchronous notification to the Bridge AE.
 6. **Classification & Ingestion:** The Bridge AE computes $\tau_{\mathrm{age}}$ and $\Delta T$, attaches the Data Health tag, and commits the metric to InfluxDB 2.x.
 7. **Cockpit Visualisation:** Grafana evaluates Flux queries against InfluxDB, rendering live psychrometric trends.
@@ -447,11 +573,11 @@ $$
    ```
 3. **oneM2M Event Trigger:** The IN-CSE triggers subscription `sub_downlink_dispatcher` via native oneM2M TS-0010 MQTT binding.
 4. **Direct Actuation Delivery:** The IN-CSE publishes a native `m2m:sgn` notification directly to the vehicular broker topic `sdv/vehicle_01/control/cmd` without intermediate HTTP hops.
-5. **Actuator Execution:** The ESP32-S3 receives the instruction, modulates its LEDC hardware timer to 75% duty cycle (1,850 RPM), measures rotor velocity via the PCNT Hall-effect counter, and adjusts the WS2812B optical indicator.
+5. **Actuator Execution:** `sdv_actuator_module` receives the instruction, modulates closed-loop blower RPM, dispatches serial directives to the ESP32-S3, and confirms actuation state back to the Base CSE.
 
 ---
 
-## 9. Zero-Trust Cryptographic Transport and PKI Model
+## 10. Zero-Trust Cryptographic Transport and PKI Model
 
 Transport security is established via a dedicated **Public Key Infrastructure (PKI)** enforcing complete mutual authentication (mTLS) across all endpoints:
 
@@ -466,7 +592,7 @@ Transport security is established via a dedicated **Public Key Infrastructure (P
      ┌─────────────────────────────┐       ┌─────────────────────────────┐
      │  Mosquitto Broker Server    │       │     Edge Node Client        │
      │      Certificate            │       │       Certificates          │
-     │ (TLS Termination: Port 8883)│       │ (ESP32-S3, Node-RED, Bridge)│
+     │ (TLS Termination: Port 8883)│       │ (ESP32-S3, Edge Daemon)     │
      └─────────────────────────────┘       └─────────────────────────────┘
 ```
 
@@ -479,15 +605,15 @@ Transport security is established via a dedicated **Public Key Infrastructure (P
   topic read sdv/vehicle_01/control/cmd
   topic write sdv/vehicle_01/telemetry
 
-  user nodered_ipe_gateway
-  topic readwrite sdv/+/telemetry
+  user bridge_ae_consumer
+  topic read sdv/+/telemetry
   topic readwrite sdv/+/control/cmd
   ```
 * **Repository Hygiene Invariant:** All cryptographic private keys (`.key`), certificate signing requests (`.csr`), and InfluxDB operational API tokens are injected via external deployment secrets and strictly excluded from version control via `.gitignore`.
 
 ---
 
-## 10. Empirical Evaluation and Test Matrix
+## 11. Empirical Evaluation and Test Matrix
 
 System verification is structured across three rigorous testing tiers designed to validate deterministic convergence under both nominal and adversarial states:
 
@@ -517,11 +643,11 @@ System verification is structured across three rigorous testing tiers designed t
 
 ---
 
-## 11. Repository Topology and Artefact Organisation
+## 12. Repository Topology and Artefact Organisation
 
 ```text
 HVAC-iot-monitoring/
-├── deploy/                               # Edge gateway container mesh and provisioning
+├── deploy/                               # Multi-host deployment manifests and orchestration
 │   ├── grafana/                          # Observability cockpit configuration
 │   │   ├── dashboards/
 │   │   │   └── cabin_operations.json     # Provisioned Grafana operations dashboard
@@ -533,20 +659,23 @@ HVAC-iot-monitoring/
 │   ├── mosquitto/                        # MQTT broker configuration and ACL policies
 │   │   ├── acl.conf                      # Per-vehicle topic access control rules
 │   │   └── mosquitto.conf                # Port 8883, TLS 1.3, client certificate verification
-│   ├── nodered/                          # oneM2M Ingress and Downlink Interworking Proxy
-│   │   └── flows.json                    # Flow definitions for MQTT-to-oneM2M mapping
 │   ├── onem2m/                           # oneM2M IN-CSE configuration profile
 │   │   └── acme.ini                      # ACME CSE initialisation and protocol bindings
 │   ├── .env.example                      # Decoupled runtime secret configuration template
-│   ├── deploy_gateway.sh                 # Executable gateway bootstrap orchestration script
-│   └── docker-compose.yml                # Podman and Docker Compose service mesh definition
+│   ├── deploy_base_cse.sh                # Module 1 Base CSE bootstrap script (all 6 microservices)
+│   ├── deploy_gateway.sh                 # Localhost decomposed container mesh deployment
+│   ├── deploy_remote.sh                  # Distributed remote multi-host SSH orchestrator
+│   ├── deploy_vehicle_ae.sh              # Module 2 Vehicle AE registration and container launcher
+│   ├── docker-compose.vehicle-ae.yml     # Module 2 container mesh (edge client & actuator module)
+│   ├── docker-compose.yml                # Module 1 container mesh (Base CSE, Mosquitto, InfluxDB, etc.)
+│   └── menu.sh                           # Master interactive terminal deployment & diagnostics dashboard
 │
 ├── docs/                                 # Technical documentation, specifications, and schematics
 │   ├── architecture/                     # Architectural specifications and hardware notes
 │   │   ├── hardware_schematic.md         # Circuit topology, pinouts, and electrical schematics
 │   │   ├── led_actuator_circuit_specification.md # Detailed LED actuator electrical calculations and pinout
+│   │   ├── modular_system_design_specification.md # Formal modular Base CSE and Vehicle AE specification
 │   │   └── system_architecture.md        # Comprehensive cyber-physical architecture document
-
 │   ├── assets/                           # Engineering diagrams and institutional branding
 │   │   ├── architecture_detailed.png     # Detailed multi-tier cyber-physical topology diagram
 │   │   ├── fhtw_logo.jpg                 # Insignia of FH Technikum Wien
@@ -581,16 +710,32 @@ HVAC-iot-monitoring/
 │       └── sdkconfig.defaults            # Platform configuration: 240 MHz, FreeRTOS, mbedTLS
 │
 ├── scripts/                              # Utility and operational automation scripts
+│   ├── check_install-docker_ssh.sh       # Automated remote diagnostics & SSH credential configurator
+│   ├── deploy_acme_fleet_cse_base.py     # Base CSE governance bootstrap script (zero AEs)
+│   ├── deploy_acme_fleet_single_vehicle_ae.py # Vehicle AE dynamic onboarding & container provisioning
+│   ├── install_prerequisites.sh          # Symlink to setup/install_ubuntu_prerequisites.sh
 │   ├── onem2m/                           # Semantic middleware provisioning utilities
+│   │   ├── init_base_cse.sh              # Vanilla Base CSE initialiser
 │   │   └── init_tree.sh                  # Automated script creating /sdv-cse hierarchy
 │   ├── pki/                              # Cryptographic certificate lifecycle tools
 │   │   └── generate_certs.sh             # Automated OpenSSL script generating private Root CA
+│   ├── setup/                            # Host provisioning utilities
+│   │   └── install_ubuntu_prerequisites.sh # System packages, container engine, and build toolchain
 │   └── testing/                          # Edge testing and simulation tools
 │       ├── inject_faults.py              # Adversarial fault-injection utility
-│       └── simulate_telemetry.py         # Synthetic telemetry streaming tool
+│       ├── simulate_telemetry.py         # Synthetic telemetry streaming tool
+│       └── validate_base_cse.py          # Automated Base CSE validation test suite
 │
 ├── services/                             # Vehicular microservices and background daemons
-│   ├── bridge_ae/                        # Python Bridge Application Entity (AE)
+│   ├── actuator_module/                  # Module 2: In-Vehicle Actuation Controller Daemon
+│   │   ├── src/                          # Actuator module application source code
+│   │   │   ├── actuator_controller.py    # Closed-loop RPM modulation & serial directive dispatcher
+│   │   │   ├── downlink_listener.py      # MQTT & oneM2M subscription notification listener
+│   │   │   ├── __init__.py               # Python package initialisation
+│   │   │   └── main.py                   # Service entry point and signal handler
+│   │   ├── Dockerfile                    # Container build recipe
+│   │   └── requirements.txt              # Python runtime dependencies
+│   ├── bridge_ae/                        # Module 1: Bridge Application Entity (AE)
 │   │   ├── src/                          # Bridge AE application source code
 │   │   │   ├── config.py                 # Environment configuration loader
 │   │   │   ├── health_classifier.py      # Four-state empirical data health classification engine
@@ -599,9 +744,17 @@ HVAC-iot-monitoring/
 │   │   │   └── main.py                   # Flask HTTP subscription notification webhook
 │   │   ├── Dockerfile                    # Container build recipe
 │   │   └── requirements.txt              # Python runtime dependencies
-│   └── web_portal/                       # Public-facing Web portal interface
+│   ├── edge_client/                      # Module 2: In-Vehicle Serial Ingress Client Daemon
+│   │   ├── src/                          # Edge client application source code
+│   │   │   ├── serial_reader.py          # Hardware serial discovery & synthetic fallback generator
+│   │   │   ├── telemetry_publisher.py    # Native oneM2M TS-0010 MQTT / REST primitive publisher
+│   │   │   ├── __init__.py               # Python package initialisation
+│   │   │   └── main.py                   # Service entry point and signal handler
+│   │   ├── Dockerfile                    # Container build recipe
+│   │   └── requirements.txt              # Python runtime dependencies
+│   └── web_portal/                       # Module 1: Fleet Management Operations Web Portal
 │       ├── static/                       # Static web assets (CSS, JavaScript, images)
-│       ├── templates/                    # Jinja2 HTML templates (blank index baseline)
+│       ├── templates/                    # Jinja2 HTML templates
 │       ├── app.py                        # Directly instantiated Flask web server and endpoints
 │       ├── config.py                     # Configuration loader alias
 │       ├── portal_config.py              # Web portal environment configuration dataclass
@@ -615,6 +768,7 @@ HVAC-iot-monitoring/
 │   │   └── test_e2e_pipeline.py          # End-to-end telemetry and actuation loop test
 │   ├── unit/                             # Tier 1: Unit tests
 │   │   ├── __init__.py                   # Package initialisation
+│   │   ├── test_edge_services.py         # Unit tests for containerised edge client & actuator
 │   │   ├── test_health_classifier.py     # Health state transition and boundary tests
 │   │   ├── test_json_schema.py           # JSON Schema contract validation tests
 │   │   └── test_web_portal.py            # Public web portal constraints and route tests
@@ -627,10 +781,9 @@ HVAC-iot-monitoring/
 └── README.md                             # Primary technical repository specification
 ```
 
-
 ---
 
-## 12. Research Personnel and Contributor Attribution (CRediT)
+## 13. Research Personnel and Contributor Attribution (CRediT)
 
 The conceptualisation, engineering implementation, and formal verification of this project were conducted by research team **FHTW-AIOT (Group MIO3B)** at **University of Applied Sciences Technikum Wien**:
 
@@ -651,7 +804,7 @@ The conceptualisation, engineering implementation, and formal verification of th
 
 ---
 
-## 13. Licensing and Academic Provenance
+## 14. Licensing and Academic Provenance
 
 This research software and associated architectural artefacts are published under the open-source **BSD 3-Clause Licence**. Refer to the [LICENSE](LICENSE) file for comprehensive legal terms.
 
