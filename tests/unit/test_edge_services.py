@@ -80,6 +80,11 @@ class TestEdgeSerialClient:
         jsonschema.validate(instance=frame, schema=telemetry_schema)
         reader.close()
 
+    def test_serial_reader_default_device(self):
+        reader = SerialReader(simulation_fallback=True)
+        assert reader.requested_device == "/dev/ttyUSB0"
+        reader.close()
+
     def test_telemetry_publisher_native_primitive_formulation(self):
         publisher = TelemetryPublisher(
             base_host="localhost",
@@ -122,6 +127,11 @@ class TestActuatorModule:
         assert feedback["carrier_freq_hz"] == 25000
         assert feedback["eco_vent_state"] == "STANDBY"
         assert feedback["recirculation_flap"] == "FRESH_AIR"
+        controller.close()
+
+    def test_actuator_controller_default_device(self):
+        controller = ActuatorController(simulation_fallback=True)
+        assert controller.requested_device == "/dev/ttyUSB0"
         controller.close()
 
     def test_downlink_listener_processes_onem2m_notification_primitive(self, actuator_schema):

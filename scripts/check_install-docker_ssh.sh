@@ -811,6 +811,11 @@ ok "Remote host provisioning and pre-flight configuration complete."
 echo "  Docker Engine:  $(docker --version)"
 echo "  Docker Compose: $(docker compose version 2>/dev/null || echo 'n/a')"
 echo "  Build Tools:    build-essential, git ($(git --version 2>/dev/null || true)), zip, curl"
+local s_devs
+s_devs=$(ls -1 /dev/ttyUSB* /dev/ttyACM* 2>/dev/null | tr '\n' ' ' || true)
+if [[ -n "$s_devs" ]]; then
+  echo "  Serial Bus:     $s_devs"
+fi
 if [[ $ENABLE_PW -eq 1 ]]; then
   echo "  SSH Password:   ENABLED (PasswordAuthentication yes)"
 elif [[ $DISABLE_PW -eq 1 ]]; then

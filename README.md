@@ -211,9 +211,23 @@ graph TB
 ## 4. Edge Sensing and Actuation Node Specification
 
 ### Microcontroller Architecture and Operating Environment
-The cabin node leverages an **Espressif ESP32-S3** System-on-Chip (SoC) incorporating dual-core 32-bit Xtensa LX7 microprocessors operating at an internal clock frequency of 240 MHz, accompanied by 512 KB SRAM and 8 MB quad-SPI flash memory. The execution environment is governed by **FreeRTOS**, segregating real-time tasks across symmetric cores:
-* **Core 0:** Protocol execution, TLS 1.3 cryptographic engine, TCP/IP stack management, and mutual authentication handshake processing.
-* **Core 1:** Deterministic sensor sampling, cyclic redundancy check (CRC) verification, cross-validation differential calculation, and high-frequency pulse generation.
+The cabin node leverages a high-performance **Espressif ESP32-S3** System-on-Chip (SoC) micro-ECU interfaced directly to the in-vehicle Raspberry Pi 5 over a physical USB-to-UART bridge on `/dev/ttyUSB0` (115200 bps, 8N1).
+
+| Hardware Attribute | Physical Microcontroller Specification |
+| :--- | :--- |
+| **Silicon Package & Revision** | **Espressif ESP32-S3 (QFN56)** (silicon revision v0.2) |
+| **Processing Architecture** | Dual-core 32-bit Xtensa LX7 + Ultra-Low-Power (LP) Core @ 240 MHz |
+| **Volatile Memory (RAM)** | **8 MB Embedded Octal PSRAM** (`AP_3v3` @ 3.3V) + 512 KB Internal SRAM + 16 KB RTC SRAM |
+| **Non-Volatile Memory** | 8 MB Quad-SPI Flash (NVS storage for network state and calibration offsets) |
+| **Main Crystal Frequency** | **40.0 MHz** High-Stability Crystal Oscillator |
+| **Hardware MAC Address** | **`94:a9:90:1c:78:14`** (factory programmed in write-once eFuse BLK1) |
+| **Wireless Transceivers** | Wi-Fi 802.11 b/g/n (2.4 GHz) + Bluetooth 5.0 (LE) |
+| **Physical Host Interconnect** | Dedicated USB-to-UART bridge enumerated as **`/dev/ttyUSB0`** on Raspberry Pi 5 |
+| **Serial Bus Protocol** | 115200 baud, 8 data bits, no parity, 1 stop bit (8N1) |
+
+The execution environment is governed by **FreeRTOS**, segregating real-time tasks across symmetric cores:
+* **Core 0:** Protocol execution, TLS 1.3 cryptographic engine, TCP/IP stack management, mutual authentication handshake processing, and serial downlink directive ingestion (`CMD:PWM=%d,MODE=%s\n`).
+* **Core 1:** Deterministic sensor sampling (SCD30 I²C, DHT22 1-Wire), cyclic redundancy check (CRC) verification, cross-validation differential calculation, high-frequency 25 kHz PWM blower modulation, and newline-delimited JSON serial streaming to `/dev/ttyUSB0`.
 
 ### Transducer Suite and Electrical Interfacing
 Environmental telemetry is acquired through two complementary, physically distinct transducers to provide analytical redundancy:

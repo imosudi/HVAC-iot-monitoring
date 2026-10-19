@@ -471,6 +471,15 @@ run_local_hardware_diagnostics() {
     serial_devs=$(ls -1 /dev/ttyUSB* /dev/ttyACM* /dev/ttyAMA* 2>/dev/null || true)
     if [ -n "${serial_devs}" ]; then
         echo -e "  [OK] Serial Transducer / Micro-ECU interfaces found: $(echo "${serial_devs}" | tr '\n' ' ')"
+        for sdev in ${serial_devs}; do
+            if [ -c "${sdev}" ]; then
+                local uinfo
+                uinfo=$(udevadm info --query=property --name="${sdev}" 2>/dev/null | grep -E 'ID_MODEL=|ID_VENDOR=' | tr '\n' ' ' || true)
+                if [ -n "${uinfo}" ]; then
+                    echo -e "       ${GRAY}└─ ${sdev}: ${uinfo}${RESET}"
+                fi
+            fi
+        done
     else
         echo -e "  [INFO] Zero USB/UART serial interfaces detected locally (simulation/native mode)."
     fi
@@ -565,6 +574,11 @@ run_local_hardware_diagnostics() {
     if [ -f "${DEF_VEHICLE_KEY}" ]; then
         if ssh -p "${DEF_VEHICLE_PORT}" -o ConnectTimeout=2 -o BatchMode=yes -i "${DEF_VEHICLE_KEY}" -o IdentitiesOnly=yes "${DEF_VEHICLE_USER}@${DEF_VEHICLE_HOST}" "id -u" >/dev/null 2>&1; then
             echo -e "  [OK] Passwordless SSH key authentication to Vehicle AE (${DEF_VEHICLE_USER}@${DEF_VEHICLE_HOST}) ${GREEN}VERIFIED${RESET}."
+            local r_serial
+            r_serial=$(ssh -p "${DEF_VEHICLE_PORT}" -o ConnectTimeout=2 -o BatchMode=yes -i "${DEF_VEHICLE_KEY}" -o IdentitiesOnly=yes "${DEF_VEHICLE_USER}@${DEF_VEHICLE_HOST}" "ls -1 /dev/ttyUSB* /dev/ttyACM* 2>/dev/null | tr '\n' ' ' || true")
+            if [ -n "${r_serial}" ]; then
+                echo -e "       ${GRAY}└─ Remote Vehicle Serial Interfaces: ${r_serial}${RESET}"
+            fi
         else
             echo -e "  [WARN] Passwordless SSH key authentication to Vehicle AE (${DEF_VEHICLE_USER}@${DEF_VEHICLE_HOST}) failed."
         fi

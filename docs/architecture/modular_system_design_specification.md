@@ -152,7 +152,8 @@ Upon initial bootstrap, the Base CSE module **must contain zero vehicular Applic
 Each in-vehicle Raspberry Pi 5 orchestrates two physical and computational tiers:
 
 #### Tier A: Physical Sensing & Actuation Node (ESP32-S3 Micro-ECU)
-* **Hardware Interface to Raspberry Pi 5:** Directly connected via a dedicated physical serial bus (USB-CDC on `/dev/serial/by-id/usb-Espressif_ESP32-S3_...` or hardware GPIO UART) with parity checking.
+* **Silicon Architecture & Hardware Profile:** Espressif ESP32-S3 (QFN56 package, silicon revision v0.2), Dual-Core 32-bit Xtensa LX7 + Ultra-Low-Power (LP) Core @ 240 MHz, 8 MB Embedded Octal PSRAM (`AP_3v3` @ 3.3V), 512 KB SRAM, 40.0 MHz crystal oscillator, hardware MAC `94:a9:90:1c:78:14`.
+* **Hardware Interface to Raspberry Pi 5:** Directly connected via a dedicated physical USB-to-UART bridge enumerated as `/dev/ttyUSB0` (115200 bps, 8N1) or native USB-CDC with dynamic port discovery (`/dev/ttyUSB*`, `/dev/ttyACM*`, `/dev/serial/by-id/*`).
 * **Transducers (7 Environmental Channels):**
   * Sensirion SCD30: NDIR $\text{CO}_2$ (0–10,000 ppm), dry-bulb temperature, relative humidity over $\text{I}^2\text{C}$ Fast-Mode (400 kHz) with hardware CRC-8 verification.
   * DHT22: Redundant temperature and relative humidity over 1-Wire bus with parity checksum.
@@ -166,8 +167,10 @@ Each in-vehicle Raspberry Pi 5 orchestrates two physical and computational tiers
   * Amber LED (GPIO 15): Dehumidification and warning alert driven by digital output ($RH > 65\%$ or degraded data health).
   * WS2812B RGB LED (GPIO 38): Optical state annunciator indicating network, sensor, and safety status.
   * Hall-Effect Tachometer Feedback (GPIO 19): Interfaced via Pulse Counter (PCNT) Unit 0 for closed-loop blower stall detection.
-* **Firmware Runtime:** FreeRTOS with strict core affinity (Core 1: Sensor/PWM loop; Core 0: mTLS/Network loop).
-* **Hardware Identity:** Immutable 48-bit MAC address and 128-bit UID read from write-once eFuse registers.
+* **Firmware Runtime:** FreeRTOS with strict core affinity:
+  * **Core 1:** Sensor sampling, CRC calculation, and newline-delimited JSON serial streaming to `/dev/ttyUSB0`.
+  * **Core 0:** Protocol transport (mTLS/MQTT) and serial downlink command ingestion (`CMD:PWM=%d,MODE=%s\n`).
+* **Hardware Identity:** Immutable 48-bit MAC address (`94:a9:90:1c:78:14`) and 128-bit UID read from write-once eFuse registers.
 
 #### Tier B: Vehicular MEC Host (Raspberry Pi 5)
 * **Compute Platform:** Quad-core ARM Cortex-A76 vehicular edge host running vehicular Linux.
@@ -486,7 +489,9 @@ APP_ID=N.org.fhtw.sdv.cabin
 RVI=3
 
 # Local In-Vehicle Instrumentation Configuration
-LOCAL_ESP32_PORT=/dev/serial/by-id/usb-Espressif_ESP32-S3_001
+LOCAL_ESP32_PORT=/dev/ttyUSB0
+SERIAL_DEVICE=/dev/ttyUSB0
+SERIAL_BAUDRATE=115200
 DOWNLINK_NOTIFICATION_URL=mqtt://192.168.122.91:8883/oneM2M/req/id-sdv/C_ae_vin_wauzzz_0042/json
 ```
 

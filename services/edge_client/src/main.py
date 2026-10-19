@@ -46,7 +46,7 @@ def main() -> None:
     base_host = os.environ.get("BASE_CSE_HOST", "localhost")
     onem2m_port = int(os.environ.get("ONEM2M_PORT", "8080"))
     mqtt_port = int(os.environ.get("MOSQUITTO_PORT", "8883"))
-    serial_device = os.environ.get("SERIAL_DEVICE", "/dev/ttyACM0")
+    serial_device = os.environ.get("SERIAL_DEVICE", "/dev/ttyUSB0")
     baudrate = int(os.environ.get("SERIAL_BAUDRATE", "115200"))
     simulation_fallback = os.environ.get("SIMULATION_FALLBACK", "true").lower() in ("true", "1", "yes")
     interval = float(os.environ.get("TELEMETRY_INTERVAL", "1.0"))

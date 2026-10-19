@@ -31,7 +31,7 @@ class SerialReader:
         self,
         car_id: str = "vehicle_01",
         zone: str = "cabin_front",
-        device: str = "/dev/ttyACM0",
+        device: str = "/dev/ttyUSB0",
         baudrate: int = 115200,
         simulation_fallback: bool = True,
     ) -> None:
@@ -51,9 +51,9 @@ class SerialReader:
             return self.requested_device
 
         candidates = (
-            glob.glob("/dev/serial/by-id/*")
+            glob.glob("/dev/ttyUSB*")
             + glob.glob("/dev/ttyACM*")
-            + glob.glob("/dev/ttyUSB*")
+            + glob.glob("/dev/serial/by-id/*")
         )
         if candidates:
             return sorted(candidates)[0]

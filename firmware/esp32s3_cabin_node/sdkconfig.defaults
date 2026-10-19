@@ -1,16 +1,37 @@
 # ==============================================================================
 # ESP32-S3 FreeRTOS Configuration Defaults
+# Silicon Profile: ESP32-S3 (QFN56) revision v0.2
+# Features: Dual Core + LP Core, 240MHz, 8MB Embedded PSRAM (AP_3v3), 40MHz Crystal
+# MAC: 94:a9:90:1c:78:14 | Target Serial Port: /dev/ttyUSB0 @ 115200 baud
 # ==============================================================================
 
 # Target SoC
 CONFIG_IDF_TARGET="esp32s3"
 
-# CPU Frequency: 240 MHz
+# CPU Frequency: 240 MHz (Dual Core Xtensa LX7)
 CONFIG_ESP32S3_DEFAULT_CPU_FREQ_240=y
 CONFIG_ESP32S3_DEFAULT_CPU_FREQ_MHZ=240
 
+# Main Crystal Frequency: 40 MHz
+CONFIG_XTAL_FREQ_40=y
+CONFIG_XTAL_FREQ=40
+
+# Embedded Octal PSRAM: 8MB (AP_3v3 3.3V)
+CONFIG_SPIRAM=y
+CONFIG_SPIRAM_MODE_OCT=y
+CONFIG_SPIRAM_TYPE_AUTO=y
+CONFIG_SPIRAM_SIZE=8388608
+CONFIG_SPIRAM_SPEED_80M=y
+CONFIG_SPIRAM_BOOT_INIT=y
+CONFIG_SPIRAM_USE_MALLOC=y
+CONFIG_SPIRAM_MEMTEST=y
+
 # FreeRTOS Dual-Core Tick Rate: 1000 Hz
 CONFIG_FREERTOS_HZ=1000
+
+# Console UART Configuration (115200 bps, 8N1)
+CONFIG_ESP_CONSOLE_UART_DEFAULT=y
+CONFIG_ESP_CONSOLE_UART_BAUDRATE=115200
 
 # mbedTLS Configuration: Hardware Acceleration & TLS 1.3
 CONFIG_MBEDTLS_TLS_VERSION_1_3=y

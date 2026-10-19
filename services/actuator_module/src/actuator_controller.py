@@ -32,7 +32,7 @@ class ActuatorController:
         vehicle_id: str = "vehicle-001",
         base_host: str = "localhost",
         http_port: int = 8080,
-        device: str = "/dev/ttyACM0",
+        device: str = "/dev/ttyUSB0",
         baudrate: int = 115200,
         simulation_fallback: bool = True,
     ) -> None:
@@ -65,9 +65,9 @@ class ActuatorController:
             return self.requested_device
 
         candidates = (
-            glob.glob("/dev/serial/by-id/*")
+            glob.glob("/dev/ttyUSB*")
             + glob.glob("/dev/ttyACM*")
-            + glob.glob("/dev/ttyUSB*")
+            + glob.glob("/dev/serial/by-id/*")
         )
         if candidates:
             return sorted(candidates)[0]
