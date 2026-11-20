@@ -17,7 +17,6 @@
 
 #include "app_config.h"
 #include "scd30_driver.h"
-#include "dht22_driver.h"
 #include "pwm_fan_control.h"
 #include "tachometer.h"
 #include "ws2812b_indicator.h"
@@ -53,7 +52,6 @@ static void sensor_acquisition_task(void *pvParameters)
     ESP_LOGI(TAG, "Sensor acquisition task running on Core %d", xPortGetCoreID());
 
     scd30_measurement_t scd30_data;
-    dht22_measurement_t dht22_data;
     telemetry_record_t record;
 
     while (1) {
@@ -66,10 +64,7 @@ static void sensor_acquisition_task(void *pvParameters)
             scd30_data.is_valid = false;
         }
 
-        /* 2. Sample DHT22 */
-        dht22_read_measurement(&dht22_data);
-
-        /* 3. Read Actuator Feedback */
+        /* 2. Read Actuator Feedback */
         uint16_t current_rpm = tachometer_get_rpm(TACHO_SAMPLE_WINDOW_MS, TACHO_PULSES_PER_REV);
         uint8_t current_duty = pwm_fan_get_duty();
 
@@ -99,12 +94,11 @@ static void sensor_acquisition_task(void *pvParameters)
         }
 
 
-        /* 5. Pack structured telemetry frame */
+        /* 4. Pack structured telemetry frame */
         record.car_id = SDV_CAR_ID;
         record.zone = SDV_CABIN_ZONE;
         record.timestamp_unix_s = (uint32_t)time(NULL);
         record.scd30 = scd30_data;
-        record.dht22 = dht22_data;
         record.fan_duty_pct = current_duty;
         record.fan_rpm = current_rpm;
 
@@ -202,9 +196,6 @@ void app_main(void)
     ESP_ERROR_CHECK(tachometer_init(GPIO_FAN_TACHOMETER));
     ESP_ERROR_CHECK(scd30_init(GPIO_SCD30_SDA, GPIO_SCD30_SCL));
     scd30_start_continuous_measurement(0);
-
-    ESP_ERROR_CHECK(dht22_init(GPIO_DHT22_DATA));
-
 
     /* Create Telemetry Queue */
     s_telemetry_queue = xQueueCreate(1, sizeof(telemetry_record_t));

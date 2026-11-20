@@ -23,7 +23,6 @@ extern "C" {
 /* --- GPIO Pin Assignments --- */
 #define GPIO_SCD30_SDA             (8)
 #define GPIO_SCD30_SCL             (9)
-#define GPIO_DHT22_DATA            (4)
 
 /* Coloured LED Actuators (Driven as physical actuators for MVP bench testing) */
 #define GPIO_ACTUATOR_BLUE_PURGE   (18)      /* LEDC PWM driven: luminous intensity emulates purge speed */
