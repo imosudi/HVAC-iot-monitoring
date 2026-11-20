@@ -47,13 +47,47 @@ RESET="\033[0m"
 DEF_BASE_HOST="${BASE_CSE_HOST:-192.168.122.91}"
 DEF_BASE_USER="${BASE_CSE_USER:-${USER}}"
 DEF_BASE_PORT="${BASE_CSE_SSH_PORT:-22}"
+DEF_BASE_AUTH="1"
 DEF_BASE_KEY="${BASE_CSE_SSH_KEY:-${HOME}/.ssh/id_ed25519}"
 
 DEF_VEHICLE_HOST="${VEHICLE_AE_HOST:-192.168.122.145}"
 DEF_VEHICLE_USER="${VEHICLE_AE_USER:-${USER}}"
 DEF_VEHICLE_PORT="${VEHICLE_AE_SSH_PORT:-22}"
+DEF_VEHICLE_AUTH="1"
 DEF_VEHICLE_KEY="${VEHICLE_AE_SSH_KEY:-${HOME}/.ssh/id_ed25519}"
 DEF_VEHICLE_ID="vehicle-001"
+
+DEF_MENU_SELECTION="1"
+DEF_SIM_MODE="1"
+DEF_SIM_COUNT="5"
+DEF_LOG_CONTAINER="sdv_onem2m_cse"
+
+# Persist and restore last-used menu defaults
+MENU_STATE_FILE="${DEPLOY_DIR}/.menu_defaults.env"
+if [ -f "${MENU_STATE_FILE}" ]; then
+    # shellcheck disable=SC1090
+    source "${MENU_STATE_FILE}" || true
+fi
+
+save_menu_defaults() {
+    {
+        printf 'DEF_BASE_HOST=%q\n' "${DEF_BASE_HOST}"
+        printf 'DEF_BASE_USER=%q\n' "${DEF_BASE_USER}"
+        printf 'DEF_BASE_PORT=%q\n' "${DEF_BASE_PORT}"
+        printf 'DEF_BASE_AUTH=%q\n' "${DEF_BASE_AUTH}"
+        printf 'DEF_BASE_KEY=%q\n' "${DEF_BASE_KEY}"
+        printf 'DEF_VEHICLE_HOST=%q\n' "${DEF_VEHICLE_HOST}"
+        printf 'DEF_VEHICLE_USER=%q\n' "${DEF_VEHICLE_USER}"
+        printf 'DEF_VEHICLE_PORT=%q\n' "${DEF_VEHICLE_PORT}"
+        printf 'DEF_VEHICLE_AUTH=%q\n' "${DEF_VEHICLE_AUTH}"
+        printf 'DEF_VEHICLE_KEY=%q\n' "${DEF_VEHICLE_KEY}"
+        printf 'DEF_VEHICLE_ID=%q\n' "${DEF_VEHICLE_ID}"
+        printf 'DEF_MENU_SELECTION=%q\n' "${DEF_MENU_SELECTION}"
+        printf 'DEF_SIM_MODE=%q\n' "${DEF_SIM_MODE}"
+        printf 'DEF_SIM_COUNT=%q\n' "${DEF_SIM_COUNT}"
+        printf 'DEF_LOG_CONTAINER=%q\n' "${DEF_LOG_CONTAINER}"
+    } > "${MENU_STATE_FILE}"
+}
 
 # ------------------------------------------------------------------------------
 # Universal Prompt Helper (Safe for stdout, stdin, defaults, and EOF)
@@ -105,6 +139,7 @@ prompt_remote_credentials() {
     local default_user="$3"
     local default_port="$4"
     local default_key="$5"
+    local default_auth="${6:-1}"
 
     echo ""
     prompt_input "Enter remote host IP address or hostname [default: ${default_host}]: " "${default_host}" RET_HOST
@@ -112,9 +147,10 @@ prompt_remote_credentials() {
     prompt_input "Enter remote SSH port [default: ${default_port}]: " "${default_port}" RET_PORT
 
     echo -e "${GRAY}Select SSH authentication method:${RESET}"
-    echo -e "  ${CYAN}[1]${RESET} SSH identity key / agent [default]"
+    echo -e "  ${CYAN}[1]${RESET} SSH identity key / agent"
     echo -e "  ${CYAN}[2]${RESET} Password authentication"
-    prompt_input "Enter choice [1-2] (default: 1): " "1" AUTH_CHOICE
+    prompt_input "Enter choice [1-2] (default: ${default_auth}): " "${default_auth}" AUTH_CHOICE
+    RET_AUTH="${AUTH_CHOICE}"
 
     if [ "${AUTH_CHOICE}" = "1" ]; then
         prompt_input "Enter SSH identity key path [default: ${default_key}]: " "${default_key}" RET_KEY
@@ -140,21 +176,33 @@ action_distributed_deployment() {
     echo -e "${GRAY}Orchestrates Module 1 (Base CSE Platform) on Server/VM and Module 2 (Vehicle AE) on Raspberry Pi 5.${RESET}"
 
     echo -e "\n${BOLD}[1/2] Configure Module 1 (Base CSE Server / VM Host):${RESET}"
-    prompt_remote_credentials "Base CSE" "${DEF_BASE_HOST}" "${DEF_BASE_USER}" "${DEF_BASE_PORT}" "${DEF_BASE_KEY}"
+    prompt_remote_credentials "Base CSE" "${DEF_BASE_HOST}" "${DEF_BASE_USER}" "${DEF_BASE_PORT}" "${DEF_BASE_KEY}" "${DEF_BASE_AUTH}"
     local b_host="${RET_HOST}"
     local b_user="${RET_USER}"
     local b_port="${RET_PORT}"
     local b_key="${RET_KEY}"
+    DEF_BASE_HOST="${b_host}"
+    DEF_BASE_USER="${b_user}"
+    DEF_BASE_PORT="${b_port}"
+    DEF_BASE_AUTH="${RET_AUTH}"
+    [ -n "${b_key}" ] && DEF_BASE_KEY="${b_key}"
 
     echo -e "\n${BOLD}[2/2] Configure Module 2 (Vehicle AE Host — Raspberry Pi 5):${RESET}"
-    prompt_remote_credentials "Vehicle AE" "${DEF_VEHICLE_HOST}" "${DEF_VEHICLE_USER}" "${DEF_VEHICLE_PORT}" "${DEF_VEHICLE_KEY}"
+    prompt_remote_credentials "Vehicle AE" "${DEF_VEHICLE_HOST}" "${DEF_VEHICLE_USER}" "${DEF_VEHICLE_PORT}" "${DEF_VEHICLE_KEY}" "${DEF_VEHICLE_AUTH}"
     local v_host="${RET_HOST}"
     local v_user="${RET_USER}"
     local v_port="${RET_PORT}"
     local v_key="${RET_KEY}"
+    DEF_VEHICLE_HOST="${v_host}"
+    DEF_VEHICLE_USER="${v_user}"
+    DEF_VEHICLE_PORT="${v_port}"
+    DEF_VEHICLE_AUTH="${RET_AUTH}"
+    [ -n "${v_key}" ] && DEF_VEHICLE_KEY="${v_key}"
 
     echo ""
     prompt_input "Enter Vehicle Identifier for AE registration [default: ${DEF_VEHICLE_ID}]: " "${DEF_VEHICLE_ID}" v_id
+    DEF_VEHICLE_ID="${v_id}"
+    save_menu_defaults
 
     echo -e "\n${CYAN}[INFO] Launching Distributed Remote Modular Orchestrator...${RESET}"
     bash "${DEPLOY_DIR}/deploy_remote.sh" \
@@ -188,7 +236,13 @@ action_base_cse() {
         echo -e "\n${CYAN}[INFO] Commissioning Base CSE locally on current host (all 6 co-located microservices)...${RESET}"
         bash "${DEPLOY_DIR}/deploy_base_cse.sh" --localhost --port 8080
     else
-        prompt_remote_credentials "Base CSE Host" "${DEF_BASE_HOST}" "${DEF_BASE_USER}" "${DEF_BASE_PORT}" "${DEF_BASE_KEY}"
+        prompt_remote_credentials "Base CSE Host" "${DEF_BASE_HOST}" "${DEF_BASE_USER}" "${DEF_BASE_PORT}" "${DEF_BASE_KEY}" "${DEF_BASE_AUTH}"
+        DEF_BASE_HOST="${RET_HOST}"
+        DEF_BASE_USER="${RET_USER}"
+        DEF_BASE_PORT="${RET_PORT}"
+        DEF_BASE_AUTH="${RET_AUTH}"
+        [ -n "${RET_KEY}" ] && DEF_BASE_KEY="${RET_KEY}"
+        save_menu_defaults
         echo -e "\n${CYAN}[INFO] Commissioning Base CSE on remote host ${RET_HOST} (all 6 co-located microservices)...${RESET}"
         bash "${DEPLOY_DIR}/deploy_remote.sh" \
             --base-host "${RET_HOST}" \
@@ -209,13 +263,22 @@ action_vehicle_ae() {
 
     prompt_input "Enter target Base CSE host or IP [default: ${DEF_BASE_HOST}]: " "${DEF_BASE_HOST}" target_base
     prompt_input "Enter Vehicle Identifier [default: ${DEF_VEHICLE_ID}]: " "${DEF_VEHICLE_ID}" v_id
+    DEF_BASE_HOST="${target_base}"
+    DEF_VEHICLE_ID="${v_id}"
 
     prompt_host_type "Vehicle AE Runtime"
     if [ "${HOST_CHOICE}" = "1" ]; then
+        save_menu_defaults
         echo -e "\n${CYAN}[INFO] Executing Vehicle AE onboarding locally targeting Base CSE at ${target_base}:8080...${RESET}"
         bash "${DEPLOY_DIR}/deploy_vehicle_ae.sh" --base-host "${target_base}" --vehicle-id "${v_id}"
     else
-        prompt_remote_credentials "Vehicle AE Host" "${DEF_VEHICLE_HOST}" "${DEF_VEHICLE_USER}" "${DEF_VEHICLE_PORT}" "${DEF_VEHICLE_KEY}"
+        prompt_remote_credentials "Vehicle AE Host" "${DEF_VEHICLE_HOST}" "${DEF_VEHICLE_USER}" "${DEF_VEHICLE_PORT}" "${DEF_VEHICLE_KEY}" "${DEF_VEHICLE_AUTH}"
+        DEF_VEHICLE_HOST="${RET_HOST}"
+        DEF_VEHICLE_USER="${RET_USER}"
+        DEF_VEHICLE_PORT="${RET_PORT}"
+        DEF_VEHICLE_AUTH="${RET_AUTH}"
+        [ -n "${RET_KEY}" ] && DEF_VEHICLE_KEY="${RET_KEY}"
+        save_menu_defaults
         echo -e "\n${CYAN}[INFO] Commissioning Vehicle AE on remote host ${RET_HOST} targeting Base CSE at ${target_base}...${RESET}"
         bash "${DEPLOY_DIR}/deploy_remote.sh" \
             --base-host "${target_base}" \
@@ -608,6 +671,11 @@ action_diagnostics() {
             prompt_input "Enter target remote hostname or IP address [default: ${DEF_BASE_HOST}]: " "${DEF_BASE_HOST}" diag_host
             prompt_input "Enter target remote SSH port [default: ${DEF_BASE_PORT}]: " "${DEF_BASE_PORT}" diag_port
             prompt_input "Enter path to SSH private key [default: ${DEF_BASE_KEY}]: " "${DEF_BASE_KEY}" diag_key
+            DEF_BASE_USER="${diag_user}"
+            DEF_BASE_HOST="${diag_host}"
+            DEF_BASE_PORT="${diag_port}"
+            [ -n "${diag_key}" ] && DEF_BASE_KEY="${diag_key}"
+            save_menu_defaults
 
             local script_path="${ROOT_DIR}/scripts/check_install-docker_ssh.sh"
             local flag="--preflight"
@@ -653,16 +721,21 @@ action_telemetry_simulation() {
     prompt_input "Enter Vehicle Identifier [default: ${DEF_VEHICLE_ID}]: " "${DEF_VEHICLE_ID}" sim_vid
 
     echo -e "${GRAY}Select operating simulation mode:${RESET}"
-    echo -e "  ${CYAN}[1]${RESET} Normal nominal operation (CO2: ~480-530 ppm, CO: ~0.1 ppm) [default]"
+    echo -e "  ${CYAN}[1]${RESET} Normal nominal operation (CO2: ~480-530 ppm, CO: ~0.1 ppm)"
     echo -e "  ${CYAN}[2]${RESET} Elevated CO2 alert condition (CO2: 850+ ppm, Fresh air demand)"
     echo -e "  ${CYAN}[3]${RESET} Life-safety CO hazard (CO: 45 ppm, Immediate ventilation purging)"
-    prompt_input "Enter choice [1-3] (default: 1): " "1" m_choice
+    prompt_input "Enter choice [1-3] (default: ${DEF_SIM_MODE}): " "${DEF_SIM_MODE}" m_choice
 
     local s_mode="normal"
     [ "${m_choice}" = "2" ] && s_mode="co2_alert"
     [ "${m_choice}" = "3" ] && s_mode="co_hazard"
 
-    prompt_input "Enter number of sample telemetry frames to transmit [default: 5]: " "5" s_count
+    prompt_input "Enter number of sample telemetry frames to transmit [default: ${DEF_SIM_COUNT}]: " "${DEF_SIM_COUNT}" s_count
+    DEF_BASE_HOST="${sim_host}"
+    DEF_VEHICLE_ID="${sim_vid}"
+    DEF_SIM_MODE="${m_choice}"
+    DEF_SIM_COUNT="${s_count}"
+    save_menu_defaults
 
     # Verify python runtime
     local py_cmd="python3"
@@ -748,7 +821,11 @@ main() {
         echo -e "  ${CYAN}[9]${RESET} Display Least-Privilege Service Comparison Matrix"
         echo -e "  ${RED}[0]${RESET} Exit\n"
 
-        prompt_input "Enter selection [1-9, 0 to exit] (default: 1): " "1" SELECTION
+        prompt_input "Enter selection [1-9, 0 to exit] (default: ${DEF_MENU_SELECTION}): " "${DEF_MENU_SELECTION}" SELECTION
+        if [[ "${SELECTION}" =~ ^[1-9]$ ]]; then
+            DEF_MENU_SELECTION="${SELECTION}"
+            save_menu_defaults
+        fi
 
         case "${SELECTION}" in
             1)

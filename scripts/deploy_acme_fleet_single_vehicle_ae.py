@@ -92,20 +92,24 @@ def request_m2m(url: str, method: str = "GET", payload: dict = None, ty: int = N
             ct += f";ty={ty}"
         headers["Content-Type"] = ct
 
-    req = urllib.request.Request(url, data=data, headers=headers, method=method)
-    try:
-        with urllib.request.urlopen(req, timeout=10) as resp:
-            body = resp.read().decode("utf-8")
-            return resp.status, json.loads(body) if body else {}
-    except urllib.error.HTTPError as e:
-        body = e.read().decode("utf-8")
+    for attempt in range(1, 5):
+        req = urllib.request.Request(url, data=data, headers=headers, method=method)
         try:
-            parsed = json.loads(body)
-        except Exception:
-            parsed = {"raw": body}
-        return e.code, parsed
-    except Exception as e:
-        return 0, {"error": str(e)}
+            with urllib.request.urlopen(req, timeout=15) as resp:
+                body = resp.read().decode("utf-8")
+                return resp.status, json.loads(body) if body else {}
+        except urllib.error.HTTPError as e:
+            body = e.read().decode("utf-8")
+            try:
+                parsed = json.loads(body)
+            except Exception:
+                parsed = {"raw": body}
+            return e.code, parsed
+        except Exception as e:
+            if attempt < 4:
+                time.sleep(1.5)
+                continue
+            return 0, {"error": str(e)}
 
 def parse_arguments():
     parser = argparse.ArgumentParser(

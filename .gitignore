@@ -78,6 +78,9 @@ target/
 # Jupyter Notebook
 .ipynb_checkpoints
 
+# Interactive menu persisted defaults
+deploy/.menu_defaults.env
+
 # IPython
 profile_default/
 ipython_config.py
