@@ -47,12 +47,42 @@ class TestEdgeSerialClient:
         assert frame is not None
         assert frame["car_id"] == "vehicle_01"
         assert frame["zone"] == "cabin_front"
+        assert frame["sensor_profile"] == "scd30_only"
         assert "scd30" in frame
-        assert "dht22" in frame
+        assert "alerts" in frame
+        assert "dht22" not in frame
         assert "actuator_state" in frame
 
         # Strict validation against official schema
         jsonschema.validate(instance=frame, schema=telemetry_schema)
+        reader.close()
+
+    def test_serial_reader_reads_scd30_only_and_rejects_errors(self, telemetry_schema):
+        reader = SerialReader(
+            car_id="vehicle-001",
+            device="/dev/nonexistent_test",
+            simulation_fallback=True,
+        )
+        mock_serial = MagicMock()
+        reader.serial_conn = mock_serial
+        reader.is_simulated = False
+
+        # Valid scd30_only sample (with extra "type": "sample" key from MCU)
+        sample = {
+            "type": "sample",
+            "car_id": "vehicle-001",
+            "scd30": {"co2_ppm": 910.0, "temperature_c": 22.0, "humidity_pct": 48.0},
+        }
+        mock_serial.readline.return_value = json.dumps(sample).encode("utf-8") + b"\n"
+        frame = reader.read_frame()
+        assert frame is not None
+        assert frame["sensor_profile"] == "scd30_only"
+        assert frame["alerts"]["co2"] is True
+        jsonschema.validate(instance=frame, schema=telemetry_schema)
+
+        # Error frame should be dropped (returns None)
+        mock_serial.readline.return_value = json.dumps({"type": "error", "message": "SCD30 read failed"}).encode("utf-8") + b"\n"
+        assert reader.read_frame() is None
         reader.close()
 
     def test_serial_reader_reads_valid_hardware_serial_line(self, telemetry_schema):

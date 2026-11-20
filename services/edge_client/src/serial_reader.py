@@ -23,6 +23,28 @@ except ImportError:
 
 logger = logging.getLogger("sdv.edge_client.serial")
 
+CO2_ALERT_PPM = 800.0
+TEMPERATURE_MIN_C = 18.0
+TEMPERATURE_MAX_C = 30.0
+HUMIDITY_MIN_PCT = 30.0
+HUMIDITY_MAX_PCT = 60.0
+
+
+def evaluate_scd30_alerts(co2_ppm: float, temperature_c: float, humidity_pct: float) -> Dict[str, bool]:
+    """Return threshold alert flags for unified SCD30 measurements."""
+    return {
+        "co2": co2_ppm >= CO2_ALERT_PPM,
+        "temperature": not (TEMPERATURE_MIN_C <= temperature_c <= TEMPERATURE_MAX_C),
+        "humidity": not (HUMIDITY_MIN_PCT <= humidity_pct <= HUMIDITY_MAX_PCT),
+    }
+
+
+def _extract_finite_float(mapping: Dict[str, Any], key: str, alias: str) -> float:
+    val = mapping.get(key, mapping.get(alias))
+    if isinstance(val, bool) or not isinstance(val, (int, float)) or not math.isfinite(val):
+        raise ValueError(f"Invalid or missing SCD30 measurement: {key}")
+    return float(val)
+
 
 class SerialReader:
     """Reads structured telemetry frames from ESP32-S3 over serial bus or simulation."""
@@ -120,21 +142,14 @@ class SerialReader:
                 if not line_str or not (line_str.startswith("{") and line_str.endswith("}")):
                     return None
                 data = json.loads(line_str)
-                # Enforce car_id and timestamp integrity
-                if "car_id" not in data:
-                    data["car_id"] = self.car_id
-                if "zone" not in data:
-                    data["zone"] = self.zone
-                if "timestamp_unix_s" not in data:
-                    data["timestamp_unix_s"] = int(time.time())
-                return data
+                return self.normalize_serial_payload(data)
             except Exception as exc:
                 logger.warning("Serial read error: %s. Re-evaluating bus connection.", exc)
                 self.serial_conn = None
                 self.is_simulated = True
                 return None
 
-        # Simulation fallback generation conforming to telemetry_schema.json
+        # Simulation fallback generation conforming to scd30_only telemetry_schema.json
         self._iteration += 1
         now_ts = int(time.time())
         co2_base = 650.0 + 150.0 * math.sin(self._iteration / 10.0) + random.uniform(-15.0, 15.0)
@@ -152,30 +167,69 @@ class SerialReader:
 
         rpm = int(pwm * 30 + random.uniform(-20, 20)) if pwm > 0 else 0
 
-        # Normalise car_id for strict schema pattern conformity (^vehicle_[0-9]{2,}$)
-        norm_car_id = self.car_id.replace("-", "_")
-        if not norm_car_id.startswith("vehicle_"):
-            norm_car_id = f"vehicle_{norm_car_id}"
+        norm_car_id = self.car_id if self.car_id.startswith("vehicle") else f"vehicle_{self.car_id}"
+        co2_val = round(max(400.0, min(10000.0, co2_base)), 1)
+        temp_val = round(t_base, 2)
+        rh_val = round(max(0.0, min(100.0, rh_base)), 1)
 
         return {
             "car_id": norm_car_id,
             "zone": self.zone,
             "timestamp_unix_s": now_ts,
+            "sensor_profile": "scd30_only",
             "scd30": {
-                "co2_ppm": round(max(400.0, min(10000.0, co2_base)), 1),
-                "temperature_c": round(t_base, 2),
-                "humidity_pct": round(max(0.0, min(100.0, rh_base)), 1),
+                "co2_ppm": co2_val,
+                "temperature_c": temp_val,
+                "humidity_pct": rh_val,
             },
-            "dht22": {
-                "temperature_c": round(t_base + random.uniform(-0.3, 0.3), 2),
-                "humidity_pct": round(max(0.0, min(100.0, rh_base - 0.5 + random.uniform(-0.4, 0.4))), 1),
-            },
+            "alerts": evaluate_scd30_alerts(co2_val, temp_val, rh_val),
             "actuator_state": {
                 "pwm_duty_pct": pwm,
                 "tachometer_rpm": max(0, rpm),
                 "carrier_freq_hz": 25000,
             },
         }
+
+    def normalize_serial_payload(self, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """Validates and normalises an incoming ESP32-S3 serial JSON frame."""
+        if not isinstance(data, dict):
+            return None
+
+        if data.get("type") == "error":
+            logger.warning("ESP32-S3 reported sensor error: %s", data.get("message", "unknown"))
+            return None
+
+        raw_scd30 = data.get("scd30")
+        src = raw_scd30 if isinstance(raw_scd30, dict) else data
+        try:
+            co2_ppm = _extract_finite_float(src, "co2_ppm", "co2")
+            temp_c = _extract_finite_float(src, "temperature_c", "temp")
+            rh_pct = _extract_finite_float(src, "humidity_pct", "hum")
+        except ValueError as exc:
+            logger.warning("Dropping malformed SCD30 frame: %s", exc)
+            return None
+
+        if not (0.0 <= co2_ppm <= 10000.0 and -40.0 <= temp_c <= 70.0 and 0.0 <= rh_pct <= 100.0):
+            logger.warning("Dropping out-of-bounds SCD30 frame: co2=%.1f t=%.2f rh=%.1f", co2_ppm, temp_c, rh_pct)
+            return None
+
+        norm: Dict[str, Any] = {
+            "car_id": data.get("car_id", self.car_id),
+            "zone": data.get("zone", self.zone),
+            "timestamp_unix_s": data.get("timestamp_unix_s", int(time.time())),
+            "sensor_profile": data.get("sensor_profile", "scd30_dht22" if "dht22" in data else "scd30_only"),
+            "scd30": {
+                "co2_ppm": round(co2_ppm, 1),
+                "temperature_c": round(temp_c, 2),
+                "humidity_pct": round(rh_pct, 2),
+            },
+            "alerts": data.get("alerts") or evaluate_scd30_alerts(co2_ppm, temp_c, rh_pct),
+        }
+        if "dht22" in data:
+            norm["dht22"] = data["dht22"]
+        if "actuator_state" in data:
+            norm["actuator_state"] = data["actuator_state"]
+        return norm
 
     def close(self) -> None:
         """Closes active serial connection."""
