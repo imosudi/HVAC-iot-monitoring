@@ -68,13 +68,13 @@ openssl req -new -key client_esp32.key -out client_esp32.csr \
 openssl x509 -req -in client_esp32.csr -CA ca.crt -CAkey ca.key -CAcreateserial \
     -out client_esp32.crt -days 730
 
-echo "[INFO] Generating Node-RED Ingress IPE client certificate..."
-openssl ecparam -name prime256v1 -genkey -noout -out client_nodered.key
-openssl req -new -key client_nodered.key -out client_nodered.csr \
-    -subj "/C=AT/ST=Vienna/L=Vienna/O=FH Technikum Wien/OU=MEC-IPE/CN=nodered_ipe_gateway"
+echo "[INFO] Generating ACME IN-CSE / ACMEScripts client certificate..."
+openssl ecparam -name prime256v1 -genkey -noout -out client_acme_cse.key
+openssl req -new -key client_acme_cse.key -out client_acme_cse.csr \
+    -subj "/C=AT/ST=Vienna/L=Vienna/O=FH Technikum Wien/OU=MEC-ACMEScripts/CN=acme_cse_scripts"
 
-openssl x509 -req -in client_nodered.csr -CA ca.crt -CAkey ca.key -CAcreateserial \
-    -out client_nodered.crt -days 730
+openssl x509 -req -in client_acme_cse.csr -CA ca.crt -CAkey ca.key -CAcreateserial \
+    -out client_acme_cse.crt -days 730
 
 # Clean up CSRs and temporary files
 rm -f *.csr server_ext.cnf

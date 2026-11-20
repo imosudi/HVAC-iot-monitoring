@@ -46,6 +46,7 @@ services:
       - HTTP_PORT=8080
     volumes:
       - ./onem2m/acme.ini:/data/acme.ini:ro
+      - ./onem2m/scripts:/data/scripts:ro
     depends_on:
       - mosquitto
     networks:

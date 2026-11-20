@@ -112,7 +112,7 @@
             "type": "influxdb",
             "uid": "InfluxDB_Flux"
           },
-          "query": "from(bucket: \"cabin_telemetry\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"cabin_environment\")\n  |> filter(fn: (r) => r[\"_field\"] == \"temp_scd30_c\" or r[\"_field\"] == \"temp_dht22_c\")\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n  |> yield(name: \"temperatures\")",
+          "query": "from(bucket: \"cabin_telemetry\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"cabin_environment\")\n  |> filter(fn: (r) => r[\"_field\"] == \"temp_scd30_c\")\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n  |> yield(name: \"temperatures\")",
           "refId": "A"
         }
       ],
