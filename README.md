@@ -146,8 +146,13 @@ The monitoring and control architecture is governed by four primary operational 
 The end-to-end cyber-physical architecture partitions computation, communication, and actuation across an in-cabin physical tier and an edge gateway compute tier:
 
 <div align="center">
+  <img src="docs/assets/architecture_high_level.png" alt="High-Level SDV Cabin HVAC Architecture and Component Interconnects" width="96%">
+  <p><i>Figure 1a: High-level 3-tier physical separation showing Firmware (ESP32-S3), Vehicle-Based Components (Module 2: Pi 5 Vehicle AE), and Server / Network-Based Components (Module 1: Base CSE Infrastructure) with component interconnects.</i></p>
+</div>
+
+<div align="center">
   <img src="docs/assets/architecture_detailed.png" alt="Cabin Environment Monitoring and Closed-Loop HVAC Control Architecture" width="96%">
-  <p><i>Figure 1: Comprehensive architectural topology detailing the ESP32-S3 edge node, mTLS cryptographic transport, Raspberry Pi 5 containerised service mesh, oneM2M resource tree, InfluxDB 2.x persistence, and Grafana operations cockpit.</i></p>
+  <p><i>Figure 1b: Comprehensive detailed architectural topology detailing the ESP32-S3 edge node, Pi 5 Vehicle AE, mTLS 1.3 cryptographic transport, Base CSE oneM2M resource tree, ACMEScripts, InfluxDB 2.x persistence, and Grafana operations cockpit.</i></p>
 </div>
 
 ### Closed-Loop Cyber-Physical Feedback Loop

@@ -39,7 +39,9 @@ The platform implements an end-to-end, multi-tier cyber-physical topology with s
 2. **Vehicle-Based Components — Module 2: Standalone Vehicle AE (Raspberry Pi 5):** In-vehicle compute host running containerised Vehicle AE services (`sdv_edge_serial_client`, `sdv_actuator_module`) with **0 open ingress ports** and outbound-only WAN links.
 3. **Server / Network-Based Components — Module 1: Standalone Base CSE Infrastructure (Central Server / VM):** High-availability server hosting the **ACME oneM2M IN-CSE (`/sdv-cse`, Zero AEs at boot, Baseline Governance)**, built-in **ACMEScripts** engine (replacing Node-RED), Eclipse Mosquitto mTLS broker, `sdv_bridge_ae` data health service, InfluxDB 2.x time-series engine, Grafana operations cockpit, and `sdv_web_portal`.
 
-![Figure 2: SDV End-to-End Cyber-Physical Architecture & Service Topology](../assets/sdv_architecture_flowchart.png)
+![Figure 2: High-Level SDV Cabin HVAC Architecture & Component Interconnects](../assets/architecture_high_level.png)
+
+![Figure 2b: SDV End-to-End Cyber-Physical Architecture & Service Topology](../assets/sdv_architecture_flowchart.png)
 
 ---
 

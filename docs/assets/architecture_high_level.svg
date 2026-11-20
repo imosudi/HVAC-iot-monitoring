@@ -1,0 +1,360 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 980" width="1920" height="980">
+  <defs>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#f1f5f9" stroke-width="1.2"/>
+    </pattern>
+    <filter id="cardShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#0f172a" flood-opacity="0.06"/>
+    </filter>
+    <filter id="subtleShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#0f172a" flood-opacity="0.04"/>
+    </filter>
+    <marker id="arrowBlue" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#0284c7"/>
+    </marker>
+    <marker id="arrowGreen" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#16a34a"/>
+    </marker>
+    <marker id="arrowAmber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#d97706"/>
+    </marker>
+    <marker id="arrowPurple" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#7c3aed"/>
+    </marker>
+  </defs>
+
+  <style>
+    .title { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 20px; font-weight: 800; fill: #0f172a; }
+    .subtitle { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 12px; font-weight: 600; fill: #64748b; }
+    .badge-txt { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 9.5px; font-weight: 700; text-transform: uppercase; }
+    .card-title { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 14px; font-weight: 800; fill: #0f172a; }
+    .card-subtitle { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 10.5px; font-weight: 600; fill: #64748b; }
+    .comp-title { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 12px; font-weight: 800; fill: #0f172a; }
+    .comp-desc { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 10px; font-weight: 500; fill: #475569; }
+    .mono { font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace; font-size: 9.5px; fill: #334155; }
+    .link-lbl { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 9px; font-weight: 700; }
+  </style>
+
+  <!-- Background -->
+  <rect x="0" y="0" width="1920" height="980" fill="#f8fafc"/>
+  <rect x="0" y="0" width="1920" height="980" fill="url(#grid)"/>
+
+  <!-- Top Banner -->
+  <rect x="30" y="20" width="1860" height="72" rx="12" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.2" filter="url(#subtleShadow)"/>
+  <circle cx="65" cy="56" r="20" fill="#7c3aed"/>
+  <path d="M 56 56 L 62 62 L 74 50" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="98" y="47" class="title">HIGH-LEVEL SDV CABIN HVAC ARCHITECTURE &amp; COMPONENT INTERCONNECTS</text>
+  <text x="98" y="69" class="subtitle">3-Tier Physical Separation: Firmware (ESP32-S3) &#x2194; Vehicle-Based AE (Pi 5) &#x2194; Server / Network Base CSE (ACMEScripts &amp; TS-0010)</text>
+
+  <g transform="translate(1150, 41)">
+    <rect x="0" y="0" width="165" height="28" rx="6" fill="#e0f2fe" stroke="#7dd3fc"/>
+    <text x="82" y="18" text-anchor="middle" class="badge-txt" fill="#0369a1">SINGLE SCD30 SENSOR</text>
+    <rect x="175" y="0" width="175" height="28" rx="6" fill="#dcfce7" stroke="#86efac"/>
+    <text x="262" y="18" text-anchor="middle" class="badge-txt" fill="#15803d">0 OPEN INGRESS (PI 5)</text>
+    <rect x="360" y="0" width="175" height="28" rx="6" fill="#ede9fe" stroke="#c4b5fd"/>
+    <text x="447" y="18" text-anchor="middle" class="badge-txt" fill="#6d28d9">ACMESCRIPTS ENGINE</text>
+    <rect x="545" y="0" width="175" height="28" rx="6" fill="#fef3c7" stroke="#fde68a"/>
+    <text x="632" y="18" text-anchor="middle" class="badge-txt" fill="#b45309">ZERO AEs AT CSE BOOT</text>
+  </g>
+
+  <!-- ==================== SECTION 1: FIRMWARE TIER (ESP32-S3) ==================== -->
+  <g id="sec1_firmware">
+    <rect x="30" y="120" width="410" height="830" rx="14" fill="#ffffff" stroke="#0284c7" stroke-width="1.6" filter="url(#cardShadow)"/>
+    <path d="M 30 134 Q 30 120 44 120 L 426 120 Q 440 120 440 134 L 440 178 L 30 178 Z" fill="#f0f9ff"/>
+    <line x1="30" y1="178" x2="440" y2="178" stroke="#bae6fd" stroke-width="1"/>
+    <rect x="45" y="134" width="28" height="28" rx="6" fill="#0284c7"/>
+    <text x="59" y="153" text-anchor="middle" fill="#ffffff" font-family="monospace" font-size="11" font-weight="800">&#x03BC;C</text>
+    <text x="84" y="145" class="card-title">1. FIRMWARE TIER (ESP32-S3)</text>
+    <text x="84" y="164" class="card-subtitle">Smart Cabin Micro-ECU &#x2022; FreeRTOS Dual-Core</text>
+
+    <!-- Sensors -->
+    <g transform="translate(50, 198)">
+      <rect x="0" y="0" width="370" height="125" rx="8" fill="#f8fafc" stroke="#0284c7" stroke-width="1.2"/>
+      <text x="14" y="22" class="comp-title" fill="#0369a1">Sensirion SCD30 (Unified Sensor)</text>
+      <text x="14" y="40" class="comp-desc">&#x2022; NDIR CO&#x2082; (400&#x2013;10,000 ppm), Temp (-40..70&#x00B0;C), RH (0..100%)</text>
+      <text x="14" y="57" class="comp-desc">&#x2022; Hardware CRC-8 checksum validation per I&#x00B2;C word</text>
+      <text x="14" y="74" class="mono" fill="#0369a1">Bus: I&#x00B2;C 400 kHz &#x2022; GPIO 8 (SDA), GPIO 9 (SCL)</text>
+      <text x="14" y="95" class="comp-title" fill="#991b1b">+ Auxiliary Safety: CO &amp; IAQ / Exterior AQI</text>
+      <text x="14" y="112" class="comp-desc">&#x2022; CO &#x2265; 30 ppm emergency purge &#x2022; &#x0394;IAQ damper control</text>
+    </g>
+
+    <!-- Internal Link: I2C -->
+    <path d="M 235 323 L 235 373" fill="none" stroke="#0284c7" stroke-width="2" marker-end="url(#arrowBlue)"/>
+    <rect x="155" y="336" width="160" height="20" rx="4" fill="#e0f2fe"/>
+    <text x="235" y="350" text-anchor="middle" class="link-lbl" fill="#0369a1">I&#x00B2;C / ADC Acquisition (1.0 Hz)</text>
+
+    <!-- FreeRTOS Core -->
+    <g transform="translate(50, 375)">
+      <rect x="0" y="0" width="370" height="150" rx="8" fill="#eff6ff" stroke="#3b82f6" stroke-width="1.4"/>
+      <text x="14" y="24" class="comp-title" fill="#1e3a8a">FreeRTOS Firmware Scheduler</text>
+      <text x="14" y="44" class="comp-desc">&#x2022; Core 1: SCD30 polling, bounds check, 25 kHz PWM, PCNT</text>
+      <text x="14" y="62" class="comp-desc">&#x2022; Core 0: JSON framing, UART TX/RX, watchdog &amp; fail-safe</text>
+      <text x="14" y="82" class="mono" fill="#1d4ed8">Serial Frame: {"scd30":{"co2","t","rh"},"pwm","rpm"}</text>
+      <text x="14" y="102" class="mono" fill="#b45309">Fail-Safe: 50% baseline PWM if UART link lost &gt; 15s</text>
+      <text x="14" y="122" class="comp-desc">&#x2022; Parses downlink directives: CMD:PWM=&lt;0..100&gt;,MODE=...</text>
+      <text x="14" y="138" class="mono" fill="#0369a1">Interface: USB-UART Bridge (/dev/ttyUSB0 @ 115200 8N1)</text>
+    </g>
+
+    <!-- Internal Links: PWM & PCNT -->
+    <path d="M 165 525 L 165 585" fill="none" stroke="#d97706" stroke-width="2" marker-end="url(#arrowAmber)"/>
+    <rect x="65" y="544" width="195" height="20" rx="4" fill="#fef3c7"/>
+    <text x="162" y="558" text-anchor="middle" class="link-lbl" fill="#b45309">LEDC 25 kHz PWM &amp; GPIO / RMT</text>
+
+    <path d="M 325 585 L 325 525" fill="none" stroke="#b45309" stroke-width="2" stroke-dasharray="4,3" marker-end="url(#arrowAmber)"/>
+    <rect x="270" y="544" width="145" height="20" rx="4" fill="#fffbeb" stroke="#fde68a"/>
+    <text x="342" y="558" text-anchor="middle" class="link-lbl" fill="#92400e">PCNT RPM (GPIO 19)</text>
+
+    <!-- Actuators & Feedback -->
+    <g transform="translate(50, 587)">
+      <rect x="0" y="0" width="370" height="335" rx="8" fill="#f8fafc" stroke="#d97706" stroke-width="1.2"/>
+      <text x="14" y="24" class="comp-title" fill="#b45309">Actuation Matrix &amp; Closed-Loop Feedback</text>
+      <text x="14" y="48" class="comp-desc">&#x2022; <tspan font-weight="700" fill="#0284c7">Blue LED (GPIO 18):</tspan> 25 kHz PWM Purge Blower (0&#x2013;100%)</text>
+      <text x="14" y="70" class="comp-desc">&#x2022; <tspan font-weight="700" fill="#dc2626">Red LED (GPIO 17):</tspan> Auxiliary PTC Heater (T &lt; 19.0&#x00B0;C)</text>
+      <text x="14" y="92" class="comp-desc">&#x2022; <tspan font-weight="700" fill="#16a34a">Green LED (GPIO 16):</tspan> Baseline Eco-Ventilation</text>
+      <text x="14" y="114" class="comp-desc">&#x2022; <tspan font-weight="700" fill="#d97706">Amber LED (GPIO 15):</tspan> Dehumidification / Degraded Alert</text>
+      <text x="14" y="138" class="comp-desc">&#x2022; <tspan font-weight="700" fill="#7c3aed">WS2812B RGB (GPIO 38):</tspan> Node Health Optical Annunciator</text>
+      <rect x="14" y="158" width="342" height="72" rx="6" fill="#fffbeb" stroke="#fde68a"/>
+      <text x="24" y="178" class="comp-title" fill="#92400e">Hall-Effect Tachometer (PCNT Unit 0)</text>
+      <text x="24" y="196" class="mono">RPM = (pulses / 2) &#x00D7; 60 &#x2022; GPIO 19</text>
+      <text x="24" y="214" class="comp-desc">Detects mechanical stall (PWM &#x2265; 30% &amp; RPM &lt; 100)</text>
+      <rect x="14" y="242" width="342" height="72" rx="6" fill="#f0fdf4" stroke="#bbf7d0"/>
+      <text x="24" y="262" class="comp-title" fill="#14532d">Recirculation Damper Flap</text>
+      <text x="24" y="280" class="comp-desc">Driven by &#x0394;IAQ (Exterior AQI vs Cabin IAQ)</text>
+      <text x="24" y="298" class="mono" fill="#15803d">Fresh Air &#x2194; Recirculation Lock</text>
+    </g>
+  </g>
+
+  <!-- ==================== CONNECTIONS: FIRMWARE <-> VEHICLE AE ==================== -->
+  <path d="M 440 310 L 545 310" fill="none" stroke="#0284c7" stroke-width="3" marker-end="url(#arrowBlue)"/>
+  <rect x="446" y="255" width="94" height="46" rx="6" fill="#0284c7" filter="url(#subtleShadow)"/>
+  <text x="493" y="272" text-anchor="middle" font-size="8.5" font-weight="800" fill="#ffffff">UART UPLINK</text>
+  <text x="493" y="284" text-anchor="middle" font-size="7.5" font-family="monospace" fill="#e0f2fe">115200 8N1</text>
+  <text x="493" y="295" text-anchor="middle" font-size="7.5" fill="#bae6fd">JSON Frame</text>
+
+  <path d="M 545 550 L 440 550" fill="none" stroke="#d97706" stroke-width="3" stroke-dasharray="6,4" marker-end="url(#arrowAmber)"/>
+  <rect x="446" y="495" width="94" height="46" rx="6" fill="#d97706" filter="url(#subtleShadow)"/>
+  <text x="493" y="512" text-anchor="middle" font-size="8.5" font-weight="800" fill="#ffffff">UART CMD</text>
+  <text x="493" y="524" text-anchor="middle" font-size="7.5" font-family="monospace" fill="#fef3c7">CMD:PWM=...</text>
+  <text x="493" y="535" text-anchor="middle" font-size="7.5" fill="#fef3c7">Actuation</text>
+
+  <!-- ==================== SECTION 2: VEHICLE-BASED (MODULE 2: PI 5) ==================== -->
+  <g id="sec2_vehicle_ae">
+    <rect x="545" y="120" width="380" height="830" rx="14" fill="#ffffff" stroke="#16a34a" stroke-width="1.8" filter="url(#cardShadow)"/>
+    <path d="M 545 134 Q 545 120 559 120 L 911 120 Q 925 120 925 134 L 925 178 L 545 178 Z" fill="#f0fdf4"/>
+    <line x1="545" y1="178" x2="925" y2="178" stroke="#bbf7d0" stroke-width="1"/>
+    <rect x="560" y="134" width="28" height="28" rx="6" fill="#16a34a"/>
+    <text x="574" y="153" text-anchor="middle" fill="#ffffff" font-family="sans-serif" font-size="11" font-weight="900">AE</text>
+    <text x="598" y="145" class="card-title" fill="#14532d">2. VEHICLE-BASED (PI 5)</text>
+    <text x="598" y="164" class="card-subtitle" fill="#15803d">Module 2: Vehicle AE &#x2022; 0 Open Ingress Ports</text>
+
+    <!-- sdv_edge_serial_client -->
+    <g transform="translate(565, 198)">
+      <rect x="0" y="0" width="340" height="190" rx="8" fill="#f8fafc" stroke="#16a34a" stroke-width="1.2"/>
+      <rect x="12" y="10" width="135" height="18" rx="4" fill="#dcfce7"/>
+      <text x="79" y="23" text-anchor="middle" font-size="8" font-weight="800" fill="#15803d">INGESTION AE</text>
+      <text x="155" y="23" class="comp-title" fill="#14532d">sdv_edge_serial_client</text>
+      <text x="12" y="48" class="comp-desc">&#x2022; Reads UART JSON from /dev/ttyUSB0 (115200)</text>
+      <text x="12" y="66" class="comp-desc">&#x2022; Validates SCD30 schema &amp; CRC-8 integrity</text>
+      <text x="12" y="84" class="comp-desc">&#x2022; Onboards Vehicle AE (/sdv-cse/vehicle-001)</text>
+      <text x="12" y="102" class="comp-desc">&#x2022; Publishes TS-0010 MQTT via outbound mTLS 1.3</text>
+      <text x="12" y="124" class="mono" fill="#0369a1">Mca Reg: http://BASE_CSE_HOST:8080/sdv-cse</text>
+      <text x="12" y="142" class="mono" fill="#0369a1">MQTT Pub: mqtts://BASE_CSE_HOST:8883</text>
+      <text x="12" y="164" class="mono" fill="#15803d" font-weight="700">&#x2713; Outbound-Only WAN (0 Listening Ports)</text>
+    </g>
+
+    <!-- sdv_actuator_module -->
+    <g transform="translate(565, 405)">
+      <rect x="0" y="0" width="340" height="185" rx="8" fill="#f8fafc" stroke="#d97706" stroke-width="1.2"/>
+      <rect x="12" y="10" width="135" height="18" rx="4" fill="#fef3c7"/>
+      <text x="79" y="23" text-anchor="middle" font-size="8" font-weight="800" fill="#b45309">ACTUATION AE</text>
+      <text x="155" y="23" class="comp-title" fill="#92400e">sdv_actuator_module</text>
+      <text x="12" y="48" class="comp-desc">&#x2022; Outbound mTLS subscriber on Port 8883</text>
+      <text x="12" y="66" class="comp-desc">&#x2022; Topics: /sdv/+/control/cmd &amp; TS-0010 URI</text>
+      <text x="12" y="84" class="comp-desc">&#x2022; Clamps PWM (0..100%) &amp; checks AUTO/MANUAL</text>
+      <text x="12" y="102" class="comp-desc">&#x2022; Dispatches UART commands to ESP32-S3</text>
+      <text x="12" y="124" class="mono" fill="#b45309">Directive: CMD:PWM=75,MODE=AUTOMATIC</text>
+      <text x="12" y="142" class="mono" fill="#b45309">Local Fallback: 50% PWM if CSE unreachable</text>
+      <text x="12" y="164" class="mono" fill="#15803d" font-weight="700">&#x2713; Outbound-Only WAN (0 Listening Ports)</text>
+    </g>
+
+    <!-- Local PKI Trust Store -->
+    <g transform="translate(565, 608)">
+      <rect x="0" y="0" width="340" height="145" rx="8" fill="#eff6ff" stroke="#93c5fd" stroke-width="1.2"/>
+      <text x="14" y="24" class="comp-title" fill="#1e3a8a">Local PKI Trust Store (:ro Mount)</text>
+      <text x="14" y="46" class="mono">&#x2022; /certs/ca.crt (FHTW-Automotive-RootCA)</text>
+      <text x="14" y="64" class="mono">&#x2022; /certs/client_esp32.crt (ECDSA P-256)</text>
+      <text x="14" y="82" class="mono">&#x2022; /certs/client_esp32.key (Private Key)</text>
+      <text x="14" y="104" class="comp-desc">&#x2022; Shared read-only by both Module 2 containers</text>
+      <text x="14" y="122" class="comp-desc">&#x2022; Authenticates mutual TLS 1.3 handshake to Mosquitto</text>
+    </g>
+
+    <!-- Module 2 Deployment Modes -->
+    <g transform="translate(565, 770)">
+      <rect x="0" y="0" width="340" height="152" rx="8" fill="#f8fafc" stroke="#cbd5e1"/>
+      <text x="14" y="22" class="comp-title" fill="#0f172a">Module 2 Manifest &amp; Isolation</text>
+      <text x="14" y="42" class="mono">deploy/docker-compose.vehicle-ae.yml</text>
+      <text x="14" y="60" class="mono">deploy/deploy_vehicle_ae.sh --vehicle-id ...</text>
+      <text x="14" y="82" class="comp-desc">&#x2022; network_mode: host + /dev serial passthrough</text>
+      <text x="14" y="100" class="comp-desc">&#x2022; [Mode 1] Distributed (Pi 5 + Server Base CSE)</text>
+      <text x="14" y="118" class="comp-desc">&#x2022; [Mode 3] Standalone Vehicle AE Onboarding</text>
+      <text x="14" y="136" class="comp-desc">&#x2022; Fault isolation: Vehicle A cannot impact Vehicle B</text>
+    </g>
+  </g>
+
+  <!-- ==================== CONNECTIONS: VEHICLE AE <-> SERVER BASE CSE ==================== -->
+  <path d="M 925 270 L 1060 270" fill="none" stroke="#0284c7" stroke-width="3" marker-end="url(#arrowBlue)"/>
+  <rect x="932" y="212" width="122" height="50" rx="6" fill="#0284c7" filter="url(#subtleShadow)"/>
+  <text x="993" y="228" text-anchor="middle" font-size="8" font-weight="800" fill="#ffffff">OUTBOUND mTLS 1.3</text>
+  <text x="993" y="240" text-anchor="middle" font-size="7.5" font-family="monospace" fill="#e0f2fe">Port 8883 (TS-0010)</text>
+  <text x="993" y="252" text-anchor="middle" font-size="7.5" font-family="monospace" fill="#bae6fd">Mca REST :8080</text>
+
+  <path d="M 1060 495 L 925 495" fill="none" stroke="#d97706" stroke-width="3" stroke-dasharray="6,4" marker-end="url(#arrowAmber)"/>
+  <rect x="932" y="438" width="122" height="48" rx="6" fill="#d97706" filter="url(#subtleShadow)"/>
+  <text x="993" y="454" text-anchor="middle" font-size="8" font-weight="800" fill="#ffffff">DOWNLINK mTLS 1.3</text>
+  <text x="993" y="466" text-anchor="middle" font-size="7.5" font-family="monospace" fill="#fef3c7">Port 8883 (/cmd)</text>
+  <text x="993" y="478" text-anchor="middle" font-size="7.5" fill="#fef3c7">PWM / Heat / Flap</text>
+
+  <!-- ==================== SECTION 3: SERVER / NETWORK-BASED (MODULE 1) ==================== -->
+  <g id="sec3_server_base_cse">
+    <rect x="1050" y="106" width="840" height="856" rx="16" fill="#eff6ff" fill-opacity="0.4" stroke="#1d4ed8" stroke-width="2" stroke-dasharray="8,5"/>
+    <rect x="1075" y="96" width="540" height="22" rx="6" fill="#1d4ed8"/>
+    <text x="1345" y="111" text-anchor="middle" font-size="9.5" font-weight="800" fill="#ffffff">3. SERVER / NETWORK-BASED &#x2022; MODULE 1: BASE CSE INFRASTRUCTURE (SERVER / VM)</text>
+
+    <!-- Sub-column 3A: Broker + IN-CSE + ACMEScripts + Bridge AE -->
+    <rect x="1065" y="128" width="445" height="818" rx="12" fill="#ffffff" stroke="#7c3aed" stroke-width="1.5" filter="url(#cardShadow)"/>
+    <text x="1082" y="154" class="card-title" fill="#4c1d95">Middleware, Scripting &amp; Security</text>
+    <text x="1082" y="171" class="card-subtitle">deploy/docker-compose.yml &#x2022; [Mode 2] Standalone Base CSE</text>
+    <line x1="1065" y1="182" x2="1510" y2="182" stroke="#e2e8f0"/>
+
+    <!-- Mosquitto -->
+    <g transform="translate(1082, 196)">
+      <rect x="0" y="0" width="410" height="110" rx="8" fill="#f8fafc" stroke="#0284c7" stroke-width="1.2"/>
+      <text x="12" y="22" class="comp-title" fill="#0369a1">Eclipse Mosquitto Broker (sdv_mosquitto_broker)</text>
+      <text x="12" y="40" class="comp-desc">&#x2022; External Port 8883: Mutual TLS 1.3 termination (server.crt + ca.crt)</text>
+      <text x="12" y="57" class="comp-desc">&#x2022; Topic ACL enforcement (sdv/&lt;id&gt;/# &amp; /oneM2M/req/#)</text>
+      <text x="12" y="74" class="mono" fill="#0369a1">Internal Port 1883: Loopback TS-0010 bridge to ACME IN-CSE</text>
+      <text x="12" y="92" class="comp-desc">&#x2022; Isolates WAN TLS crypto from CSE Python threads</text>
+    </g>
+
+    <!-- Link Mosquitto <-> IN-CSE -->
+    <path d="M 1287 306 L 1287 346" fill="none" stroke="#7c3aed" stroke-width="2.2" marker-end="url(#arrowPurple)" marker-start="url(#arrowPurple)"/>
+    <rect x="1185" y="316" width="205" height="20" rx="4" fill="#ede9fe"/>
+    <text x="1287" y="330" text-anchor="middle" class="link-lbl" fill="#6d28d9">TS-0010 Native MQTT (:1883 /oneM2M)</text>
+
+    <!-- ACME IN-CSE + ACMEScripts -->
+    <g transform="translate(1082, 348)">
+      <rect x="0" y="0" width="410" height="250" rx="8" fill="#faf5ff" stroke="#7c3aed" stroke-width="1.4"/>
+      <text x="12" y="22" class="comp-title" fill="#4c1d95">ACME oneM2M IN-CSE (/sdv-cse, Port 8080)</text>
+      <text x="12" y="40" class="comp-desc">&#x2022; Starts with <tspan font-weight="700">Zero AEs at Boot</tspan> (dynamic on-demand onboarding)</text>
+      <text x="12" y="57" class="comp-desc">&#x2022; Baseline Governance: acp_fleet_manager &amp; grp_fleet_telemetry</text>
+      <text x="12" y="74" class="mono" fill="#581c87">Subtree: /sdv-cse/&lt;vehicle-id&gt;/&#x7B;temp,hum,co2,raw,commands&#x7D;</text>
+
+      <!-- ACMEScripts Inner Box -->
+      <rect x="12" y="88" width="386" height="148" rx="6" fill="#ffffff" stroke="#a855f7" stroke-width="1.2"/>
+      <rect x="20" y="96" width="140" height="18" rx="4" fill="#ede9fe"/>
+      <text x="90" y="109" text-anchor="middle" font-size="8" font-weight="800" fill="#6b21a8">IN-CSE SCRIPTING</text>
+      <text x="170" y="109" class="comp-title" fill="#581c87">ACMEScripts (Replaces Node-RED)</text>
+      <text x="20" y="130" class="comp-desc">&#x2022; Native [mqtt] binding decodes /oneM2M/req/ &#x2192; &lt;m2m:cin&gt;</text>
+      <text x="20" y="147" class="comp-desc">&#x2022; onCreate triggers evaluate SCD30 bounds, CRC-8 &amp; latency</text>
+      <text x="20" y="164" class="comp-desc">&#x2022; Multi-hazard rules (CO&#x2082; &gt; 800 ppm, CO &#x2265; 30 ppm, Stall)</text>
+      <text x="20" y="181" class="comp-desc">&#x2022; Direct downlink notifications via sub_downlink (nu: mqtt://...)</text>
+      <text x="20" y="200" class="mono" fill="#15803d" font-weight="700">&#x2713; Eliminates Node-RED IPE container &amp; HTTP proxy hops</text>
+      <text x="20" y="218" class="mono" fill="#6d28d9">Web UI: :8081 &#x2022; Mca HTTP REST: :8080</text>
+    </g>
+
+    <!-- Link IN-CSE -> Bridge AE -->
+    <path d="M 1287 598 L 1287 640" fill="none" stroke="#7c3aed" stroke-width="2.2" marker-end="url(#arrowPurple)"/>
+    <rect x="1185" y="608" width="205" height="20" rx="4" fill="#ede9fe"/>
+    <text x="1287" y="622" text-anchor="middle" class="link-lbl" fill="#6d28d9">HTTP POST /notify (Subscription)</text>
+
+    <!-- Bridge AE -->
+    <g transform="translate(1082, 642)">
+      <rect x="0" y="0" width="410" height="135" rx="8" fill="#f8fafc" stroke="#64748b" stroke-width="1.2"/>
+      <text x="12" y="22" class="comp-title">Bridge AE Classifier (sdv_bridge_ae, Port 5000)</text>
+      <text x="12" y="42" class="comp-desc">&#x2022; Evaluates 4-State Health: FRESH | STALE | DEGRADED | FAULT</text>
+      <text x="12" y="60" class="comp-desc">&#x2022; Checks &#x03C4;_age &#x2264; 2.5s, SCD30 CRC-8, |dT/dt| &amp; blower stall</text>
+      <text x="12" y="78" class="comp-desc">&#x2022; Non-coercion: preserves null on FAULT (never fabricates 0)</text>
+      <text x="12" y="98" class="mono" fill="#0369a1">Output: Influx Line Protocol &#x2192; http://influxdb:8086</text>
+      <text x="12" y="116" class="mono">Measurement: cabin_telemetry (car_id, health_state)</text>
+    </g>
+
+    <!-- Link Bridge AE -> InfluxDB (right column) -->
+    <path d="M 1492 710 L 1545 710 L 1545 315 L 1530 315" fill="none" stroke="#0284c7" stroke-width="0"/>
+    <path d="M 1492 710 L 1525 710 L 1525 265 L 1545 265" fill="none" stroke="#0284c7" stroke-width="2.2" marker-end="url(#arrowBlue)"/>
+    <rect x="1465" y="465" width="120" height="22" rx="4" fill="#e0f2fe" stroke="#7dd3fc"/>
+    <text x="1525" y="479" text-anchor="middle" class="link-lbl" fill="#0369a1">Line Protocol (:8086)</text>
+
+    <!-- Sub-column 3B: Storage + Observability + Fleet Portal -->
+    <rect x="1535" y="128" width="340" height="818" rx="12" fill="#ffffff" stroke="#0284c7" stroke-width="1.5" filter="url(#cardShadow)"/>
+    <text x="1552" y="154" class="card-title" fill="#0369a1">Storage, Cockpit &amp; Portal</text>
+    <text x="1552" y="171" class="card-subtitle">Time-Series Persistence &amp; Fleet Operations</text>
+    <line x1="1535" y1="182" x2="1875" y2="182" stroke="#e2e8f0"/>
+
+    <!-- InfluxDB -->
+    <g transform="translate(1552, 196)">
+      <rect x="0" y="0" width="306" height="145" rx="8" fill="#f8fafc" stroke="#0284c7" stroke-width="1.2"/>
+      <text x="12" y="22" class="comp-title" fill="#0369a1">InfluxDB 2.7 (sdv_influxdb)</text>
+      <text x="12" y="42" class="mono">Ports: 8087 (Host) &#x2192; 8086 (Mesh)</text>
+      <text x="12" y="60" class="comp-desc">&#x2022; Bucket: cabin_telemetry (30-day retention)</text>
+      <text x="12" y="78" class="comp-desc">&#x2022; Org: fhtw_aiot &#x2022; Nanosecond timestamps</text>
+      <text x="12" y="96" class="comp-desc">&#x2022; Fields: co2, temp_scd30, rh_scd30,</text>
+      <text x="18" y="112" class="comp-desc">co_ppm, iaq, fan_pwm, fan_rpm, tau_age</text>
+      <text x="12" y="130" class="mono" fill="#15803d">Decouples high-rate TSDB from CSE TinyDB</text>
+    </g>
+
+    <!-- Link InfluxDB -> Grafana -->
+    <path d="M 1705 341 L 1705 391" fill="none" stroke="#0284c7" stroke-width="2.2" marker-end="url(#arrowBlue)"/>
+    <rect x="1615" y="355" width="180" height="20" rx="4" fill="#e0f2fe"/>
+    <text x="1705" y="369" text-anchor="middle" class="link-lbl" fill="#0369a1">Flux Queries (:8086)</text>
+
+    <!-- Grafana -->
+    <g transform="translate(1552, 393)">
+      <rect x="0" y="0" width="306" height="200" rx="8" fill="#f8fafc" stroke="#0284c7" stroke-width="1.2"/>
+      <text x="12" y="22" class="comp-title" fill="#0369a1">Grafana Enterprise (sdv_grafana)</text>
+      <text x="12" y="42" class="mono">Port: 3000/TCP &#x2022; Live Operations Cockpit</text>
+      <text x="12" y="62" class="comp-desc">&#x2022; Multi-vehicle fleet selector &amp; trends</text>
+      <text x="12" y="80" class="comp-desc">&#x2022; Thresholds: CO&#x2082; 800 / 1,000 ppm</text>
+      <text x="12" y="98" class="comp-desc">&#x2022; 4-Channel Actuator &amp; Tachometer state</text>
+      <text x="12" y="116" class="comp-desc">&#x2022; Manual operator override triggers</text>
+      <text x="12" y="140" class="mono" fill="#d97706">Overrides &#x2192; Mca POST /commands (:8080)</text>
+      <text x="12" y="160" class="comp-desc">&#x2022; Closed-loop feedback verification</text>
+      <text x="12" y="178" class="mono" fill="#15803d">&#x2713; Auto-provisioned cabin_operations.json</text>
+    </g>
+
+    <!-- Web Portal -->
+    <g transform="translate(1552, 620)">
+      <rect x="0" y="0" width="306" height="185" rx="8" fill="#f8fafc" stroke="#7c3aed" stroke-width="1.2"/>
+      <text x="12" y="22" class="comp-title" fill="#4c1d95">Web Management Portal (sdv_web_portal)</text>
+      <text x="12" y="42" class="mono">Port: 8000/TCP &#x2022; Flask + Gunicorn</text>
+      <text x="12" y="62" class="comp-desc">&#x2022; Live oneM2M resource tree explorer</text>
+      <text x="12" y="80" class="comp-desc">&#x2022; Single-vehicle commissioning &amp; decommission</text>
+      <text x="12" y="98" class="comp-desc">&#x2022; Fleet inventory &amp; grp_fleet_telemetry</text>
+      <text x="12" y="116" class="comp-desc">&#x2022; Direct actuation command dispatch UI</text>
+      <text x="12" y="140" class="mono" fill="#6d28d9">Mca Link: http://onem2m_cse:8080/sdv-cse</text>
+      <text x="12" y="160" class="mono" fill="#0369a1">TSDB Link: http://influxdb:8086</text>
+    </g>
+
+    <!-- Link Web Portal <-> IN-CSE -->
+    <path d="M 1552 712 L 1510 712 L 1510 530 L 1492 530" fill="none" stroke="#7c3aed" stroke-width="2" stroke-dasharray="4,3" marker-end="url(#arrowPurple)" marker-start="url(#arrowPurple)"/>
+
+    <!-- Summary Footer inside Server Block -->
+    <g transform="translate(1082, 795)">
+      <rect x="0" y="0" width="410" height="132" rx="8" fill="#f0fdf4" stroke="#86efac"/>
+      <text x="14" y="22" class="comp-title" fill="#14532d">End-to-End Architectural Guarantees</text>
+      <text x="14" y="44" class="comp-desc">&#x2022; <tspan font-weight="700">Physical Separation:</tspan> Firmware (ESP32) &#x2194; Vehicle AE (Pi 5) &#x2194; Server CSE</text>
+      <text x="14" y="62" class="comp-desc">&#x2022; <tspan font-weight="700">Zero Trust Perimeter:</tspan> mTLS 1.3 (:8883) + 0 open ingress ports on Pi 5</text>
+      <text x="14" y="80" class="comp-desc">&#x2022; <tspan font-weight="700">Native Middleware:</tspan> ACMEScripts + TS-0010 MQTT (no Node-RED IPE)</text>
+      <text x="14" y="98" class="comp-desc">&#x2022; <tspan font-weight="700">Single SCD30 Sensor:</tspan> Unified CO&#x2082;/T/RH with CRC-8 integrity</text>
+      <text x="14" y="116" class="comp-desc">&#x2022; <tspan font-weight="700">Stateless Base CSE:</tspan> Boots with 0 AEs; dynamic fleet reconciliation</text>
+    </g>
+
+    <g transform="translate(1552, 822)">
+      <rect x="0" y="0" width="306" height="105" rx="8" fill="#eff6ff" stroke="#bfdbfe"/>
+      <text x="12" y="22" class="comp-title" fill="#1e3a8a">Control &amp; Orchestration</text>
+      <text x="12" y="42" class="mono">deploy/menu.sh (make menu)</text>
+      <text x="12" y="60" class="comp-desc">&#x2022; [1] Distributed Multi-Host (M1 + M2)</text>
+      <text x="12" y="76" class="comp-desc">&#x2022; [2] Standalone Base CSE (Module 1)</text>
+      <text x="12" y="92" class="comp-desc">&#x2022; [3] Standalone Vehicle AE (Module 2)</text>
+    </g>
+  </g>
+</svg>
