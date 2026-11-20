@@ -1,5 +1,6 @@
 """Empirical Data Health Classifier implementing the four-state deterministic state machine."""
 
+import math
 import time
 from enum import Enum
 from typing import Any, Dict, Optional, Tuple
@@ -82,26 +83,48 @@ class HealthClassifier:
 
         tau_age = max(0.0, eval_time_unix_s - float(sample_time))
 
-        scd30 = payload.get("scd30", {})
-        dht22 = payload.get("dht22", {})
-
-        t_scd30 = scd30.get("temperature_c") if isinstance(scd30, dict) else None
-        t_dht22 = dht22.get("temperature_c") if isinstance(dht22, dict) else None
-        co2_val = scd30.get("co2_ppm") if isinstance(scd30, dict) else None
-
-        # Check for unphysical or null readings
-        if t_scd30 is None or t_dht22 is None or co2_val is None:
+        scd30 = payload.get("scd30")
+        if not isinstance(scd30, dict):
             return HealthState.FAULT, tau_age, None
 
-        # Check physical boundary limits
-        if not (-40.0 <= t_scd30 <= 70.0) or not (-40.0 <= t_dht22 <= 80.0) or not (0.0 <= co2_val <= 10000.0):
+        t_scd30 = scd30.get("temperature_c")
+        rh_scd30 = scd30.get("humidity_pct", scd30.get("relative_humidity_pct"))
+        co2_val = scd30.get("co2_ppm")
+
+        if any(
+            isinstance(v, bool) or not isinstance(v, (int, float)) or not math.isfinite(v)
+            for v in (t_scd30, rh_scd30, co2_val)
+        ):
             return HealthState.FAULT, tau_age, None
 
-        delta_t = abs(float(t_scd30) - float(t_dht22))
+        if (
+            not (0.0 <= float(co2_val) <= 10000.0)
+            or not (-40.0 <= float(t_scd30) <= 70.0)
+            or not (0.0 <= float(rh_scd30) <= 100.0)
+        ):
+            return HealthState.FAULT, tau_age, None
+
+        delta_t: Optional[float] = None
+        dht22 = payload.get("dht22")
+        if dht22 is not None:
+            if not isinstance(dht22, dict):
+                return HealthState.FAULT, tau_age, None
+            t_dht22 = dht22.get("temperature_c")
+            rh_dht22 = dht22.get("humidity_pct", dht22.get("relative_humidity_pct"))
+            if any(
+                isinstance(v, bool) or not isinstance(v, (int, float)) or not math.isfinite(v)
+                for v in (t_dht22, rh_dht22)
+            ):
+                return HealthState.FAULT, tau_age, None
+            if not (-40.0 <= float(t_dht22) <= 80.0) or not (0.0 <= float(rh_dht22) <= 100.0):
+                return HealthState.FAULT, tau_age, None
+            delta_t = abs(float(t_scd30) - float(t_dht22))
 
         # Check for blower motor stall/slip fault (PWM >= 30% with Tachometer RPM < 100)
-        actuator = payload.get("actuator_state", {})
-        if isinstance(actuator, dict):
+        actuator = payload.get("actuator_state")
+        if actuator is not None:
+            if not isinstance(actuator, dict):
+                return HealthState.FAULT, tau_age, delta_t
             pwm = actuator.get("pwm_duty_pct")
             rpm = actuator.get("tachometer_rpm")
             if pwm is not None and rpm is not None:
@@ -112,14 +135,15 @@ class HealthClassifier:
         if tau_age > self.max_stale_s:
             return HealthState.FAULT, tau_age, delta_t
 
-        # Check thermal divergence (Delta T > 1.5°C)
-        if delta_t > self.max_delta_t_c:
+        # Single-SCD30 degraded indicators (CRC retry or rate-of-change spike)
+        if scd30.get("crc_retry") is True or payload.get("sensor_status") == "DEGRADED":
             return HealthState.DEGRADED, tau_age, delta_t
 
-        # Check relative humidity divergence (Delta RH > 10%)
-        rh_scd30 = scd30.get("humidity_pct") if isinstance(scd30, dict) else None
-        rh_dht22 = dht22.get("humidity_pct") if isinstance(dht22, dict) else None
-        if rh_scd30 is not None and rh_dht22 is not None:
+        # Legacy dual-sensor divergence checks when dht22 is present
+        if delta_t is not None and delta_t > self.max_delta_t_c:
+            return HealthState.DEGRADED, tau_age, delta_t
+
+        if dht22 is not None:
             delta_rh = abs(float(rh_scd30) - float(rh_dht22))
             if delta_rh > self.max_delta_rh_pct:
                 return HealthState.DEGRADED, tau_age, delta_t

@@ -173,4 +173,45 @@ class TestHealthClassifier:
         state, _, _ = classifier.evaluate_frame(nominal_telemetry_frame, eval_time_unix_s=sample_time + 0.5)
         assert state == HealthState.FRESH
 
+    def test_scd30_only_nominal_frame_evaluates_to_fresh(self, classifier):
+        sample_time = 1715000000
+        payload = {
+            "car_id": "vehicle-001",
+            "zone": "cabin_front",
+            "timestamp_unix_s": sample_time,
+            "sensor_profile": "scd30_only",
+            "scd30": {"co2_ppm": 612.0, "temperature_c": 22.3, "humidity_pct": 46.5},
+        }
+        state, tau_age, delta_t = classifier.evaluate_frame(payload, eval_time_unix_s=sample_time + 0.5)
+        assert state == HealthState.FRESH
+        assert pytest.approx(tau_age, 0.01) == 0.5
+        assert delta_t is None
+
+    def test_scd30_only_crc_retry_evaluates_to_degraded(self, classifier):
+        sample_time = 1715000000
+        payload = {
+            "car_id": "vehicle-001",
+            "zone": "cabin_front",
+            "timestamp_unix_s": sample_time,
+            "sensor_profile": "scd30_only",
+            "scd30": {"co2_ppm": 612.0, "temperature_c": 22.3, "humidity_pct": 46.5, "crc_retry": True},
+        }
+        state, _, delta_t = classifier.evaluate_frame(payload, eval_time_unix_s=sample_time + 0.5)
+        assert state == HealthState.DEGRADED
+        assert delta_t is None
+
+    def test_scd30_only_nan_or_missing_humidity_evaluates_to_fault(self, classifier):
+        sample_time = 1715000000
+        payload = {
+            "car_id": "vehicle-001",
+            "zone": "cabin_front",
+            "timestamp_unix_s": sample_time,
+            "sensor_profile": "scd30_only",
+            "scd30": {"co2_ppm": 612.0, "temperature_c": 22.3, "humidity_pct": float("nan")},
+        }
+        state, _, delta_t = classifier.evaluate_frame(payload, eval_time_unix_s=sample_time + 0.5)
+        assert state == HealthState.FAULT
+        assert delta_t is None
+
+
 
