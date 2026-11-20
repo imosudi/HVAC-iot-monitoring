@@ -13,7 +13,7 @@
 
 This document provides the definitive hardware electrical specification, circuit schematics, bill of materials (BOM), and netlist for the cyber-physical cabin sensing and actuation node of the Software-Defined Vehicle (SDV) IoT HVAC monitoring platform.
 
-The edge cabin node is engineered around the **Espressif ESP32-S3-WROOM-1** System-on-Chip (SoC), interfacing a dual-transducer environmental acquisition suite (Sensirion SCD30 photoacoustic NDIR CO₂ sensor and DHT22 capacitive relative humidity / temperature sensor) alongside a 4-channel discrete coloured LED actuator matrix, a high-speed addressable optical annunciator (WS2812B), and a bench rotor feedback tachometer.
+The edge cabin node is engineered around the **Espressif ESP32-S3-WROOM-1** System-on-Chip (SoC), interfacing a unified environmental acquisition suite (Sensirion SCD30 NDIR $\text{CO}_2$, temperature, and relative humidity sensor) alongside a 4-channel discrete coloured LED actuator matrix, a high-speed addressable optical annunciator (WS2812B), and a bench rotor feedback tachometer.
 
 The complete publication-grade vector schematic is illustrated below:
 
@@ -239,11 +239,11 @@ A single-wire addressable WS2812B RGB LED on GPIO 38 provides instantaneous, hum
 | Optical Display Colour | RGB Code | Associated System State | oneM2M Semantic / Telemetry Condition |
 | :--- | :--- | :--- | :--- |
 | **Flashing Cyan** | `(0, 180, 255)` | Booting / Wi-Fi Handshake | Initialising network layer, establishing TLS 1.3 socket |
-| **Solid Green** | `(0, 255, 0)` | Operational / FRESH | Telemetry streaming, broker connected, sensor delta within bounds |
-| **Solid Amber** | `(255, 160, 0)` | Degraded / STALE | $\tau_{\text{age}} > 2.5\,\text{s}$ or cross-transducer differential $\Delta T > 1.5\,^\circ\text{C}$ |
+| **Solid Green** | `(0, 255, 0)` | Operational / FRESH | Telemetry streaming, broker connected, SCD30 CRC-8 & bounds valid |
+| **Solid Amber** | `(255, 160, 0)` | Degraded / STALE | $\tau_{\text{age}} > 2.5\,\text{s}$ or SCD30 rate-of-change / I²C CRC retry warning |
 | **Solid Red** | `(255, 0, 0)` | Hardware Fault / Disconnected | Transducer CRC failure, I²C bus timeout, or MQTT socket termination |
 | **Pulsing Blue** | `(0, 100, 255)` | Active Purge Actuation | Downlink actuation active: Blue blower operating at commanded duty |
-| **Magenta / Purple** | `(200, 0, 255)` | Downlink Override | Emergency fail-safe override dispatched by Node-RED IPE |
+| **Magenta / Purple** | `(200, 0, 255)` | Downlink Override | Emergency fail-safe override dispatched by ACMEScripts / Base CSE |
 
 ---
 

@@ -24,7 +24,7 @@ The architecture enforces a strict demarcation between the central infrastructur
 
 2. **Vehicle Application Entity (AE) Module (Multi-Instance — In-Vehicle Raspberry Pi 5):**
    * **Host Platform:** Deployed **directly onboard each physical vehicle on a dedicated Raspberry Pi 5** single-board computer (vehicular MEC host).
-   * **Role:** Interfaced directly with in-cabin physical instrumentation (ESP32-S3 micro-ECU, Sensirion SCD30, DHT22, CO, IAQ/VOC, AQI transducers, 4-channel LED actuator matrix, WS2812B annunciator, and closed-loop tachometer). The Raspberry Pi 5 executes the uniquely identified Application Entity (AE) client daemon, local sensor ingress/pre-processing, mTLS client credentials, and downlink actuation dispatcher.
+   * **Role:** Interfaced directly with in-cabin physical instrumentation (ESP32-S3 micro-ECU, unified Sensirion SCD30, CO, IAQ/VOC, AQI transducers, 4-channel LED actuator matrix, WS2812B annunciator, and closed-loop tachometer). The Raspberry Pi 5 executes the uniquely identified Application Entity (AE) client daemon, local sensor ingress/pre-processing, mTLS client credentials, and downlink actuation dispatcher with zero open ingress ports.
    * **Cardinality:** **Deployable across $N$ uniquely identified, concurrent, and independent vehicular instances ($i \in \{1, 2, \dots, N\}$).**
 
 ```mermaid
@@ -47,7 +47,7 @@ flowchart TB
 
     subgraph Vehicle_AE_Module_1 ["Module 2: Vehicle AE Instance 01 (In-Vehicle Raspberry Pi 5)"]
         direction TB
-        SENS_1["In-Cabin Instrumentation & 4x LEDs<br/>(SCD30, DHT22, CO, IAQ, PWM, Tachometer)"]
+        SENS_1["In-Cabin Instrumentation & 4x LEDs<br/>(SCD30, CO, IAQ, PWM, Tachometer)"]
         ESP_1["Micro-ECU: ESP32-S3<br/>(FreeRTOS Fail-Safe, eFuse UID)"]
         PI_1["Vehicular MEC Host: RPi 5<br/>(X.509 Client Cert: SAN VIN-0042)"]
         AE_1["oneM2M AE Client Daemon<br/>(Target: /cse-in/ae_vin_...0042)"]
@@ -57,7 +57,7 @@ flowchart TB
 
     subgraph Vehicle_AE_Module_N ["Module 2: Vehicle AE Instance N (In-Vehicle Raspberry Pi 5)"]
         direction TB
-        SENS_N["In-Cabin Instrumentation & 4x LEDs<br/>(SCD30, DHT22, CO, IAQ, PWM, Tachometer)"]
+        SENS_N["In-Cabin Instrumentation & 4x LEDs<br/>(SCD30, CO, IAQ, PWM, Tachometer)"]
         ESP_N["Micro-ECU: ESP32-S3<br/>(FreeRTOS Fail-Safe, eFuse UID)"]
         PI_N["Vehicular MEC Host: RPi 5<br/>(X.509 Client Cert: SAN VIN-0099)"]
         AE_N["oneM2M AE Client Daemon<br/>(Target: /cse-in/ae_vin_...0099)"]
@@ -156,7 +156,7 @@ Each in-vehicle Raspberry Pi 5 orchestrates two physical and computational tiers
 * **Hardware Interface to Raspberry Pi 5:** Directly connected via a dedicated physical USB-to-UART bridge enumerated as `/dev/ttyUSB0` (115200 bps, 8N1) or native USB-CDC with dynamic port discovery (`/dev/ttyUSB*`, `/dev/ttyACM*`, `/dev/serial/by-id/*`).
 * **Transducers (7 Environmental Channels):**
   * Sensirion SCD30: NDIR $\text{CO}_2$ (0–10,000 ppm), dry-bulb temperature, relative humidity over $\text{I}^2\text{C}$ Fast-Mode (400 kHz) with hardware CRC-8 verification.
-  * DHT22: Redundant temperature and relative humidity over 1-Wire bus with parity checksum.
+  * Sensirion SCD30: Unified $\text{CO}_2$ (NDIR), temperature, and relative humidity over $\text{I}^2\text{C}$ with hardware CRC-8 verification (replacing legacy DHT22 + separate $\text{CO}_2$ sensor).
   * Carbon Monoxide (CO) Sensor: Toxic gas detection (0–1,000 ppm) with emergency alert interrupt.
   * Cabin Air Quality (IAQ/VOC): Volatile organic compound index (0–500) for passenger air quality.
   * Exterior Air Quality (AQI): Ambient outdoor index for fresh-air intake vs cabin air recirculation damper control ($\Delta IAQ$).
@@ -226,16 +226,15 @@ This guarantees:
 
 The system evaluates incoming sensor telemetry against five quantitative health criteria:
 
-$$\Delta T = |T_{\mathrm{SCD30}} - T_{\mathrm{DHT22}}| \le 1.5\,^\circ\text{C}$$
-$$\Delta RH = |RH_{\mathrm{SCD30}} - RH_{\mathrm{DHT22}}| \le 10.0\,\%$$
+$$\text{CRC-8}_{\text{SCD30}} = \text{OK} \;\land\; \text{Bounds}_{\text{SCD30}} = \text{Valid}$$
 $$\tau_{\mathrm{age}} = t_{\mathrm{eval}} - t_{\mathrm{sample}} \le 2.5\,\text{s}$$
 $$\text{Stall Fault} \iff (\text{PWM} \ge 30\%) \land (\text{RPM} < 100)$$
 $$\text{Toxic Gas Hazard} \iff \text{CO} \ge 30.0\,\text{ppm}$$
 
 ### Categorical State Assignment
-1. **`FRESH`:** $\tau_{\text{age}} \le 2.5\,\text{s}$, $\Delta T \le 1.5\,^\circ\text{C}$, $\Delta RH \le 10\%$, and tachometer feedback confirmed. Full closed-loop regulation active.
+1. **`FRESH`:** $\tau_{\text{age}} \le 2.5\,\text{s}$, SCD30 CRC-8 valid, rate-of-change nominal, and tachometer feedback confirmed. Full closed-loop regulation active.
 2. **`STALE`:** $2.5\,\text{s} < \tau_{\text{age}} \le 10.0\,\text{s}$. Network latency delay; hold-last-valid-value regulation logic engaged.
-3. **`DEGRADED`:** $\Delta T > 1.5\,^\circ\text{C}$ or $\Delta RH > 10.0\%$. Transducer divergence; amber annunciator illuminated; system relies on conservative SCD30 readings.
+3. **`DEGRADED`:** Transient SCD30 rate-of-change spike or I²C CRC retry while $\tau_{\text{age}} \le 10.0\,\text{s}$; amber annunciator illuminated; conservative smoothing applied.
 4. **`FAULT`:** $\tau_{\text{age}} > 10.0\,\text{s}$, null reading, out-of-bounds reading, or blower motor stall detected. Numerical values excluded from time-series aggregates; blower defaults to 50% baseline fail-safe ventilation.
 
 ---
@@ -378,7 +377,7 @@ flowchart TB
 
     subgraph Remote_Host_2 ["Remote Host 2: Vehicle AE Host (Raspberry Pi 5 — Hostname: rpi5-car01.local / IP: 192.168.122.105)"]
         direction TB
-        INSTR["In-Cabin Physical Transducers & Actuators<br/>(SCD30 CO2, DHT22, CO, IAQ, 4x LEDs, Fan PWM)"]
+        INSTR["In-Cabin Physical Transducers & Actuators<br/>(SCD30 CO2/T/RH, CO, IAQ, 4x LEDs, Fan PWM)"]
         MCU["ESP32-S3 Micro-ECU<br/>(FreeRTOS Deterministic Control & Fail-Safe)"]
         RPI["Raspberry Pi 5 Vehicular Edge Computer<br/>(Debian 12 Bookworm aarch64 MEC Host)"]
         subgraph V_CONTAINERS ["Containerised Microservices (docker-compose.vehicle-ae.yml)"]

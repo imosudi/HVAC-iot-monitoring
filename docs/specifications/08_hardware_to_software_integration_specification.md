@@ -22,18 +22,17 @@ The ESP32-S3 firmware partitions real-time execution across its dual Xtensa LX7 
 
 | Task Designation | Core Affinity | Priority | Periodicity | Stack Allocation | Functional Scope |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| `sensor_acquisition_task` | Core 1 | 4 | $2000\text{ ms}$ | $4096\text{ bytes}$ | Samples SCD30 ($\text{I}^2\text{C}$) and DHT22 (1-Wire); validates inter-sensor delta. |
+| `sensor_acquisition_task` | Core 1 | 4 | $2000\text{ ms}$ | $4096\text{ bytes}$ | Samples unified Sensirion SCD30 ($\text{I}^2\text{C}$, CRC-8); checks bounds & rate-of-change. |
 | `actuator_control_task` | Core 1 | 4 | $100\text{ ms}$ | $2048\text{ bytes}$ | Modulates LEDC PWM; reads PCNT tachometer counter; checks motor stall. |
 | `network_telemetry_task` | Core 0 | 5 | Event-driven | $8192\text{ bytes}$ | Serialises JSON frames; pushes UART telemetry; receives downlink directives. |
 | `watchdog_task` | Core 0 | 6 | $1000\text{ ms}$ | $2048\text{ bytes}$ | Services FreeRTOS Task Watchdog Timer (TWDT); monitors task liveliness. |
 
 ---
 
-## 2. Low-Level Bus Drivers & Synchronisation (I2C, 1-Wire, LEDC, PCNT)
-1. **$\text{I}^2\text{C}$ Driver:** Initialised via ESP-IDF `i2c_driver_install()` on `I2C_NUM_0` at $100\text{ kHz}$ Standard Mode. Communication with SCD30 utilises a FreeRTOS mutex to guarantee atomic bus access.
-2. **Bit-Banged 1-Wire Driver:** DHT22 protocol execution requires microsecond timing accuracy. Firmware wraps 1-wire pin reads/writes in FreeRTOS critical sections (`portENTER_CRITICAL`) to prevent preemption during the $80\,\mu\text{s}$ sensor response sequence.
-3. **Hardware LEDC Driver:** Configured in `LEDC_HIGH_SPEED_MODE` using `LEDC_TIMER_0` configured for 10-bit duty resolution ($1024$ steps) and $25{,}000\text{ Hz}$ carrier frequency.
-4. **Hardware PCNT Driver:** Configured on `PCNT_UNIT_0` with an input glitch filter ($1\,\mu\text{s}$ filter width) on `GPIO 19`. Every $1000\text{ ms}$, the actuator task queries the accumulator, computes RPM, and resets the counter.
+## 2. Low-Level Bus Drivers & Synchronisation (I2C, LEDC, PCNT)
+1. **$\text{I}^2\text{C}$ Driver:** Initialised via ESP-IDF `i2c_driver_install()` on `I2C_NUM_0` at $100\text{ kHz}$ Standard Mode. Communication with the unified Sensirion SCD30 utilises a FreeRTOS mutex to guarantee atomic bus access and hardware CRC-8 verification.
+2. **Hardware LEDC Driver:** Configured in `LEDC_HIGH_SPEED_MODE` using `LEDC_TIMER_0` configured for 10-bit duty resolution ($1024$ steps) and $25{,}000\text{ Hz}$ carrier frequency.
+3. **Hardware PCNT Driver:** Configured on `PCNT_UNIT_0` with an input glitch filter ($1\,\mu\text{s}$ filter width) on `GPIO 19`. Every $1000\text{ ms}$, the actuator task queries the accumulator, computes RPM, and resets the counter.
 
 ---
 

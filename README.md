@@ -23,7 +23,7 @@
 ## Abstract
 Automotive electrical and electronic (E/E) architectures are transitioning from federated Electronic Control Units (ECUs) interconnected across Controller Area Network (CAN) and Local Interconnect Network (LIN) buses towards consolidated vehicle computers and zonal compute topologies. Within this Software-Defined Vehicle (SDV) framework, passenger compartment climate control presents distinct operational challenges. Enclosed vehicular cabins possess limited air volume (typically 2.5 to 4.5 m³) and low thermal inertia, making them susceptible to rapid temperature variation and metabolic carbon dioxide (CO₂) accumulation. Sustained cabin hypercapnia exceeding 1,000 ppm degrades driver cognitive vigilance, induces drowsiness, and impairs psychomotor response.
 
-This work details the design, implementation, and empirical evaluation of an open-standard, closed-loop cabin environmental monitoring and HVAC actuation system. At the physical layer, an Espressif ESP32-S3 microcontroller executes dual-channel sensing using a Sensirion SCD30 optical non-dispersive infrared sensor and a secondary DHT22 capacitive transducer for empirical cross-validation. In the MVP implementation, physical actuators are emulated using discrete coloured LEDs driven by the ESP32-S3 (with Blue LED purge ventilation governed by a 25 kHz PWM controller above human hearing thresholds, Red for heating, Green for baseline eco-ventilation, and Amber for alert), validating closed-loop regulation without high-power bench hazards. Telemetry is transported over an automotive edge service mesh hosted on a Raspberry Pi 5 gateway, secured using mutual TLS 1.3 with granular access control lists. Semantic interoperability is established using an ETSI oneM2M Common Services Entity (`/sdv-cse`), which drives automated data-health classification (`FRESH`, `STALE`, `DEGRADED`, `FAULT`) in an InfluxDB 2.x time-series store and closed-loop actuation dispatch through a Grafana operations dashboard. The system avoids synthetic value coercion on sensor loss, provides verifiable fault containment, and supports declarative multi-zone cabin expansion.
+This work details the design, implementation, and empirical evaluation of an open-standard, closed-loop cabin environmental monitoring and HVAC actuation system. At the physical firmware layer, an Espressif ESP32-S3 microcontroller executes unified environmental sensing using a single **Sensirion SCD30** optical non-dispersive infrared (NDIR) sensor (measuring CO₂, temperature, and relative humidity over I²C with hardware CRC-8 validation). In the MVP implementation, physical actuators are emulated using discrete coloured LEDs driven by the ESP32-S3 (with Blue LED purge ventilation governed by a 25 kHz PWM controller above human hearing thresholds, Red for heating, Green for baseline eco-ventilation, and Amber for alert), validating closed-loop regulation without high-power bench hazards. The software architecture is strictly decomposed into **vehicle-based components** (Module 2: containerised Vehicle AE services on a Raspberry Pi 5 with zero open ingress ports) and **server/network-based components** (Module 1: central Base CSE infrastructure hosting Eclipse Mosquitto with mutual TLS 1.3, ACME oneM2M IN-CSE `/sdv-cse` with built-in **ACMEScripts** replacing Node-RED, Bridge AE, InfluxDB 2.x, Grafana, and Web Portal). The system avoids synthetic value coercion on sensor loss, provides verifiable fault containment, and supports declarative multi-zone cabin expansion.
 
 
 ---
@@ -85,10 +85,10 @@ In contrast, the **Software-Defined Vehicle (SDV)** paradigm decomposes vehicula
 +-----------------------------------------------------------------------------+
 |                        MODERN SERVICE-ORIENTED SDV                          |
 |                                                                             |
-|  [Dual-Sensor Node] ──(mTLS)──> [oneM2M Middleware] ──> [Analytics & TSDB] |
-|         ▲                               ▲                     │             |
-|         │                               │                     ▼             |
-|  [Actuation PWM] <──(Downlink)── [Node-RED IPE] <── [Closed-Loop Rules]     |
+|  [SCD30 + ESP32-S3] ─(UART)─> [Pi 5 Vehicle AE] ─(mTLS)─> [Base CSE + ACMEScripts] ─> [TSDB/Grafana] |
+|         ▲                             ▲                             │                                  |
+|         │                             │                             ▼                                  |
+|  [Actuation PWM] <──(UART)──── [Actuator Module] <──(Downlink)── [ACMEScripts / Closed-Loop Rules]     |
 +-----------------------------------------------------------------------------+
 ```
 
@@ -159,33 +159,31 @@ The control system operates as a closed-loop discrete-time feedback architecture
 </div>
 
 ### Modular Structural Service Mesh Decomposition
-To ensure deterministic execution, least-privilege security isolation, and hardware failure containment, the software architecture decomposes into two loosely coupled tiers deployed via containerised service meshes on Linux:
+To ensure deterministic execution, least-privilege security isolation, and hardware failure containment, the system enforces a strict 3-way physical separation across **Firmware (ESP32-S3)**, **Vehicle-Based Components (Module 2: Raspberry Pi 5 Vehicle AE)**, and **Server / Network-Based Components (Module 1: Central Base CSE Infrastructure)**:
 
 ```mermaid
 graph TB
-    subgraph EdgeNode["ESP32-S3 Physical Sensing and Actuation Node"]
-        SCD30["Sensirion SCD30 Transducer<br/>NDIR CO2, Temp, RH"]
-        DHT22["DHT22 Transducer<br/>Redundant Temp and RH"]
+    subgraph EdgeNode["Firmware Tier: ESP32-S3 Physical Sensing and Actuation Node"]
+        SCD30["Single Sensirion SCD30 Transducer<br/>NDIR CO2, Temp, RH (I2C, CRC-8)"]
         LEDC["LEDC Hardware Timer<br/>25 kHz Ultrasonic PWM"]
         PCNT["Pulse Counter Unit<br/>Hall-Effect Tachometer"]
         LED["WS2812B Status Indicator<br/>Multi-colour Health Signalling"]
         Firmware["FreeRTOS Firmware Core<br/>Deterministic Loop & Fail-Safe"]
 
         SCD30 -->|I2C Master Read| Firmware
-        DHT22 -->|1-Wire Protocol| Firmware
         Firmware -->|PWM Duty Modulation| LEDC
         PCNT -->|RPM Pulse Stream| Firmware
         Firmware -->|Status Signalling| LED
     end
 
-    subgraph Module2["Module 2: In-Vehicle Raspberry Pi 5 Host (Vehicle AE)"]
+    subgraph Module2["Vehicle-Based Components: Module 2 In-Vehicle Raspberry Pi 5 (Vehicle AE)"]
         EdgeClient["sdv_edge_serial_client<br/>Serial Reader & Synthetic Fallback<br/>Native oneM2M TS-0010 Publisher"]
         Actuator["sdv_actuator_module<br/>Downlink Command Listener<br/>Closed-Loop RPM Modulation"]
     end
 
-    subgraph Module1["Module 1: Central Server / VM Host (Base CSE Platform)"]
+    subgraph Module1["Server / Network-Based Components: Module 1 Central Server / VM (Base CSE Platform)"]
         Mosquitto["sdv_mosquitto_broker<br/>Eclipse Mosquitto MQTT<br/>mTLS 1.3 WAN Termination (:8883)"]
-        CSE["sdv_onem2m_cse<br/>ACME oneM2M IN-CSE Base<br/>Semantic Tree: /sdv-cse (:8080)"]
+        CSE["sdv_onem2m_cse<br/>ACME oneM2M IN-CSE Base (/sdv-cse :8080)<br/>Zero AEs at Boot • ACMEScripts Engine"]
         BridgeAE["sdv_bridge_ae<br/>Data Health Classifier<br/>FRESH/STALE/DEG/FAULT (:5000)"]
         InfluxDB["sdv_influxdb<br/>InfluxDB 2.x TSDB Engine<br/>Bucket: cabin_telemetry (:8087)"]
         Grafana["sdv_grafana<br/>Grafana Operations Cockpit<br/>Observability & Control (:3000)"]
@@ -199,7 +197,7 @@ graph TB
         WebPortal -.->|Mca Admin Operations| CSE
     end
 
-    Firmware <== "USB/UART Serial Bus (/dev/ttyACM0 @ 115200)" ==> EdgeClient
+    Firmware <== "USB/UART Serial Bus (/dev/ttyUSB0 @ 115200)" ==> EdgeClient
     Actuator == "Serial Directives / Closed-Loop Tachometer" ==> Firmware
 
     EdgeClient ==>|mTLS 1.3 TS-0010 Ingress Port 8883| Mosquitto
@@ -227,15 +225,14 @@ The cabin node leverages a high-performance **Espressif ESP32-S3** System-on-Chi
 
 The execution environment is governed by **FreeRTOS**, segregating real-time tasks across symmetric cores:
 * **Core 0:** Protocol execution, TLS 1.3 cryptographic engine, TCP/IP stack management, mutual authentication handshake processing, and serial downlink directive ingestion (`CMD:PWM=%d,MODE=%s\n`).
-* **Core 1:** Deterministic sensor sampling (SCD30 I²C, DHT22 1-Wire), cyclic redundancy check (CRC) verification, cross-validation differential calculation, high-frequency 25 kHz PWM blower modulation, and newline-delimited JSON serial streaming to `/dev/ttyUSB0`.
+* **Core 1:** Deterministic sensor sampling (single Sensirion SCD30 over I²C), hardware CRC-8 checksum verification, physical bounds & rate-of-change validation, high-frequency 25 kHz PWM blower modulation, and newline-delimited JSON serial streaming to `/dev/ttyUSB0`.
 
 ### Transducer Suite and Electrical Interfacing
-Environmental telemetry is acquired through two complementary, physically distinct transducers to provide analytical redundancy:
+Environmental telemetry is acquired through a unified, high-precision **Sensirion SCD30** sensor (consolidating CO₂, temperature, and relative humidity onto a single I²C bus and eliminating separate DHT22/CO₂ wiring):
 
 | Sensor Module | Transduction Mechanism | Monitored Parameters | Communication Interface | Assigned GPIO | Nominal Operating Bounds | Accuracy Limits |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **Sensirion SCD30** | Dual-Beam Optical Non-Dispersive Infrared (NDIR) | CO₂ Concentration<br>Temperature (*T*<sub>SCD30</sub>)<br>Rel. Humidity (*φ*<sub>SCD30</sub>) | I²C Bus (400 kHz Fast-Mode) | **GPIO 8 (SDA)**<br>**GPIO 9 (SCL)** | CO₂: 400 to 10,000 ppm<br>Temp: −40 °C to +70 °C<br>RH: 0% to 100% | ±(30 ppm + 3%)<br>±0.4 °C<br>±3% |
-| **DHT22 / AM2302** | Capacitive Polymer & NTC Thermistor | Temperature (*T*<sub>DHT22</sub>)<br>Rel. Humidity (*φ*<sub>DHT22</sub>) | Bidirectional 1-Wire Serial | **GPIO 4** | Temp: −40 °C to +80 °C<br>RH: 0% to 100% | ±0.5 °C<br>±2% to 5% |
+| **Sensirion SCD30** | Dual-Beam Optical Non-Dispersive Infrared (NDIR) + CMOSens® | CO₂ Concentration<br>Temperature (*T*<sub>SCD30</sub>)<br>Rel. Humidity (*φ*<sub>SCD30</sub>) | I²C Bus (400 kHz Fast-Mode, CRC-8) | **GPIO 8 (SDA)**<br>**GPIO 9 (SCL)** | CO₂: 400 to 10,000 ppm<br>Temp: −40 °C to +70 °C<br>RH: 0% to 100% | ±(30 ppm + 3%)<br>±0.4 °C<br>±3% |
 | **HVAC Centrifugal Fan** | 4-Wire Brushless DC Motor | Proportional Air Mass Flow Rate | Open-Drain Active-Low PWM | **GPIO 18 (PWM Out)** | 0% to 100% Duty Cycle<br>Carrier: 25 kHz | 10-bit Resolution (1024 Steps) |
 | **Hall-Effect Tachometer** | Integrated Bipolar Hall Sensor | Rotor Angular Velocity | Hardware Pulse Counter (PCNT) | **GPIO 19 (Pulse In)** | 0 to 6,000 RPM | ±10 RPM (2 pulses/rev) |
 | **Status Indicator** | WS2812B Integrated Driver | Visual System Health Signalling | High-Speed Serial RZ | **GPIO 38 (RGB Data)** | 24-bit True Colour RGB | Sub-second optical refresh |
@@ -326,7 +323,7 @@ Hosted on an enterprise server or virtual machine running Ubuntu Server (x86_64 
 3. **`sdv_bridge_ae` (Bridge Application Entity):**
    * Autonomous Python Application Entity binding to port `5000`.
    * Subscribes to oneM2M ContentInstance creation events via `<subscription>` (`Sub_BridgeAE`).
-   * Evaluates the empirical four-state data health model (`FRESH`, `STALE`, `DEGRADED`, `FAULT`) and computes inter-sensor divergence ($\Delta T = |T_{\text{SCD30}} - T_{\text{DHT22}}|$).
+   * Evaluates the empirical four-state data health model (`FRESH`, `STALE`, `DEGRADED`, `FAULT`) against temporal latency ($\tau_{\mathrm{age}}$), SCD30 CRC-8 integrity, physical bounds, and rate-of-change thresholds.
 4. **`sdv_influxdb` (InfluxDB 2.x Time-Series TSDB):**
    * Ingests nanosecond-precision classified observations into the `cabin_telemetry` bucket over port `8087`.
    * Enforces 30-day retention policies with categorical indexing across `car_id`, `cabin_zone`, `sensor_modality`, and `data_health`.
@@ -474,9 +471,9 @@ Conforming to **ETSI TS 118 101 (oneM2M Functional Architecture)**, the system m
 ```text
 /sdv-cse (CSEBase)
 │
-├── acp_vehicle_admin (AccessControlPolicy)
-│   ├── pv:  [Role: Admin -> CRUDN, Node-RED -> CRUDN, BridgeAE -> R]
-│   └── pvs: [Role: Admin -> CRUDN]
+├── acp_fleet_manager (AccessControlPolicy)
+│   ├── pv:  [Role: CAdmin -> CRUDN, ACMEScripts -> CRUDN, Vehicle AE -> CR]
+│   └── pvs: [Role: CAdmin -> CRUDN]
 │
 ├── AE_CabinNode_Car01 (Application Entity - Vehicle 01 Zone)
 │   │
@@ -509,11 +506,7 @@ Conforming to **ETSI TS 118 101 (oneM2M Functional Architecture)**, the system m
 ## 8. Empirical Data Health Model and Fault Classification
 
 ### Formal State Machine Formulation
-To maintain rigorous data fidelity, every telemetry frame received at evaluation timestamp $t_{\mathrm{eval}}$ is evaluated by the Bridge AE classifier against a deterministic state function $\mathcal{H}(t) \in \{\mathrm{FRESH}, \mathrm{STALE}, \mathrm{DEGRADED}, \mathrm{FAULT}\}$:
-
-$$
-\Delta T(t) = \left| T_{\mathrm{SCD30}}(t) - T_{\mathrm{DHT22}}(t) \right|
-$$
+To maintain rigorous data fidelity, every telemetry frame received at evaluation timestamp $t_{\mathrm{eval}}$ is evaluated by **ACMEScripts** / the Bridge AE classifier against a deterministic state function $\mathcal{H}(t) \in \{\mathrm{FRESH}, \mathrm{STALE}, \mathrm{DEGRADED}, \mathrm{FAULT}\}$ based on temporal latency $\tau_{\mathrm{age}}(t)$, SCD30 CRC-8 integrity, physical bounds, and rate-of-change stability:
 
 $$
 \tau_{\mathrm{age}}(t) = t_{\mathrm{eval}} - t_{\mathrm{sample}}(t)
@@ -524,7 +517,7 @@ $$
                                │  Frame Arrives  │
                                └────────┬────────┘
                                         │
-                         Is payload valid & non-null?
+                         Is SCD30 CRC-8 & bounds valid?
                                         │
                        ┌────────────────┴────────────────┐
                       Yes                                No
@@ -536,27 +529,28 @@ $$
             Yes                  No
              │                   │
              ▼                   ▼
-    Is Delta_T <= 1.50C?   Is tau_age <= 10.0s?
-             │                   │
-       ┌─────┴─────┐       ┌─────┴─────┐
-      Yes          No     Yes          No
-       │           │       │           │
-       ▼           ▼       ▼           ▼
-   [ FRESH ]  [DEGRADED] [ STALE ] [ FAULT ]
+   Is SCD30 rate-of-change   Is tau_age <= 10.0s?
+      & I2C bus nominal?         │
+             │             ┌─────┴─────┐
+       ┌─────┴─────┐      Yes          No
+      Yes          No      │           │
+       │           │       ▼           ▼
+       ▼           ▼   [ STALE ]   [ FAULT ]
+   [ FRESH ]  [DEGRADED]
 ```
 
 The mathematical state boundaries are formalised as:
 
 $$
 \mathcal{H}(t) = \begin{cases}
-\mathrm{FRESH}, & \text{if } \tau_{\mathrm{age}}(t) \le 2.50\,\mathrm{s} \;\land\; \Delta T(t) \le 1.50\,^{\circ}\mathrm{C} \;\land\; \mathbf{y}(t) \notin \Omega_{\mathrm{err}} \\[6pt]
-\mathrm{STALE}, & \text{if } 2.50\,\mathrm{s} < \tau_{\mathrm{age}}(t) \le 10.00\,\mathrm{s} \;\land\; \Delta T(t) \le 1.50\,^{\circ}\mathrm{C} \\[6pt]
-\mathrm{DEGRADED}, & \text{if } \tau_{\mathrm{age}}(t) \le 10.00\,\mathrm{s} \;\land\; \Delta T(t) > 1.50\,^{\circ}\mathrm{C} \\[6pt]
+\mathrm{FRESH}, & \text{if } \tau_{\mathrm{age}}(t) \le 2.50\,\mathrm{s} \;\land\; \mathrm{CRC}_{\mathrm{SCD30}}(t) = \mathrm{OK} \;\land\; \mathbf{y}(t) \notin \Omega_{\mathrm{anom}} \;\land\; \mathbf{y}(t) \notin \Omega_{\mathrm{err}} \\[6pt]
+\mathrm{STALE}, & \text{if } 2.50\,\mathrm{s} < \tau_{\mathrm{age}}(t) \le 10.00\,\mathrm{s} \;\land\; \mathbf{y}(t) \notin \Omega_{\mathrm{err}} \\[6pt]
+\mathrm{DEGRADED}, & \text{if } \tau_{\mathrm{age}}(t) \le 10.00\,\mathrm{s} \;\land\; \mathbf{y}(t) \in \Omega_{\mathrm{anom}} \\[6pt]
 \mathrm{FAULT}, & \text{if } \tau_{\mathrm{age}}(t) > 10.00\,\mathrm{s} \;\lor\; \mathbf{y}(t) \in \Omega_{\mathrm{err}}
 \end{cases}
 $$
 
-where $\Omega_{\mathrm{err}}$ denotes the set of unphysical out-of-range observations, framing errors, or I²C bus lockup states.
+where $\Omega_{\mathrm{anom}}$ denotes transient SCD30 rate-of-change spikes or I²C CRC retry conditions, and $\Omega_{\mathrm{err}}$ denotes unphysical out-of-range observations, blower stall, or I²C bus lockup states.
 
 ### Telemetry Integrity and Non-Coercion Model
 In vehicular closed-loop automation, substituting default zero values for missing or delayed sensor readings creates hazardous control states. For example, defaulting a lost temperature reading to 0.0 °C causes the controller to command maximum heating, drawing unnecessary current from the traction battery. Conversely, defaulting a lost CO₂ reading to 0 ppm causes the ventilation flaps to remain closed despite rising hypercapnia.
@@ -568,25 +562,25 @@ In vehicular closed-loop automation, substituting default zero values for missin
 ## 9. Bidirectional Data Pipeline and Control Semantics
 
 ```
-[ Cabin Physical Space ]        [ Cryptographic Transport ]      [ oneM2M & Analytics ]
-SCD30 / DHT22 Transducers           Mosquitto Broker (mTLS)          IN-CSE Resource Tree
-        │                                    ▲                                 │
-        │ Sample (1 Hz)                      │ mTLS (8883)                     │ Notification
-        ▼                                    │                                 ▼
-ESP32-S3 Firmware Core   ────────────────────┘                        Bridge AE Classifier
-        ▲                                                                      │
-        │ PWM Actuation (25 kHz)                                               │ Validated Write
-        │                                                                      ▼
-HVAC Actuators & Blower <──── sdv_actuator_module <──── oneM2M <cin> <──── InfluxDB 2.x & Grafana
+[ Firmware: ESP32-S3 ]        [ Vehicle AE: Pi 5 ]         [ Server: Base CSE & TSDB ]
+SCD30 Sensor (I2C)       sdv_edge_serial_client (mTLS)     Mosquitto + ACME IN-CSE
+        │                              ▲                               │
+        │ UART (115200)                │ Outbound mTLS (8883)          │ ACMEScripts / Sub
+        ▼                              │                               ▼
+ESP32-S3 Firmware Core ────────────────┘                     Bridge AE & InfluxDB 2.x
+        ▲                                                              │
+        │ PWM Actuation (25 kHz)                                       │ Flux Queries
+        │                                                              ▼
+HVAC Actuators & Blower <── sdv_actuator_module <── TS-0010 Downlink <── Grafana Cockpit
 ```
 
 ### Uplink Telemetry Flow
-1. **Transducer Interrogation:** The ESP32-S3 periodically (1.0 Hz) interrogates the Sensirion SCD30 via I²C and the DHT22 via 1-Wire.
-2. **Local Frame Formulation:** Firmware calculates local metrics, evaluates the CRC checksum, timestamps the reading, and serialises the structured JSON payload.
-3. **Cryptographic Ingress:** The payload is transmitted across TCP port `8883` under TLS 1.3 mutual authentication to topic `sdv/vehicle_01/telemetry` or ingested via `sdv_edge_serial_client`.
-4. **Middleware Semantic Ingestion:** The edge client or broker bridges payload observations into standard oneM2M REST representations, posting a ContentInstance `<cin>` within `/sdv-cse/AE_CabinNode_Car01/cnt_raw_telemetry`.
+1. **Transducer Interrogation:** The ESP32-S3 periodically (1.0 Hz) interrogates the unified Sensirion SCD30 via I²C (CO₂, temperature, and relative humidity).
+2. **Local Frame Formulation:** Firmware validates the SCD30 CRC-8 checksum, timestamps the reading, and serialises the structured JSON payload over UART (`115200` baud).
+3. **Cryptographic Ingress:** The vehicle-based `sdv_edge_serial_client` on Raspberry Pi 5 transmits the payload outbound across TCP port `8883` under TLS 1.3 mutual authentication to the server-based Mosquitto broker.
+4. **Middleware Semantic Ingestion:** ACME IN-CSE's native TS-0010 MQTT binding and **ACMEScripts** construct a ContentInstance `<cin>` within `/sdv-cse/vehicle-001/raw-telemetry`.
 5. **Subscription Notification:** The oneM2M CSE executes subscription `sub_bridge_consumer`, issuing an asynchronous notification to the Bridge AE.
-6. **Classification & Ingestion:** The Bridge AE computes $\tau_{\mathrm{age}}$ and $\Delta T$, attaches the Data Health tag, and commits the metric to InfluxDB 2.x.
+6. **Classification & Ingestion:** ACMEScripts / Bridge AE computes $\tau_{\mathrm{age}}$ and SCD30 integrity, attaches the Data Health tag, and commits the metric to InfluxDB 2.x.
 7. **Cockpit Visualisation:** Grafana evaluates Flux queries against InfluxDB, rendering live psychrometric trends.
 
 ### Downlink Actuation Flow
@@ -670,7 +664,7 @@ System verification is structured across three rigorous testing tiers designed t
 |  • Transport Layer Severance: Mosquitto broker blackout and automatic reconnection|
 |  • Cryptographic Validation: Injection of expired / unauthorised X.509 certs      |
 |  • Physical Transducer Severance: I2C line ground clamp detecting bus lockup      |
-|  • Data Health Engine Assertion: Divergent Delta_T (> 1.5 °C) asserting DEGRADED  |
+|  • Data Health Engine Assertion: SCD30 Rate-of-Change / CRC retry asserting DEGRADED |
 +-----------------------------------------------------------------------------------+
 ```
 
@@ -724,8 +718,6 @@ HVAC-iot-monitoring/
 │       ├── main/                         # Core C source and header hierarchy
 │       │   ├── app_config.h              # Pinout definitions, task priorities, and timings
 │       │   ├── CMakeLists.txt            # Main component build configuration
-│       │   ├── dht22_driver.c            # DHT22 1-Wire bit-banged driver implementation
-│       │   ├── dht22_driver.h            # DHT22 driver public interface and parity verification
 │       │   ├── main.c                    # Dual-core FreeRTOS task partition and main entry point
 │       │   ├── mtls_client.c             # mbedTLS mutual TLS 1.3 MQTT client
 │       │   ├── mtls_client.h             # Network client public interface
@@ -831,8 +823,8 @@ The conceptualisation, engineering implementation, and formal verification of th
 
 | Researcher | Academic & Implementation Domain (CRediT Taxonomy) | Engineering Deliverables |
 | :--- | :--- | :--- |
-| **Isiaka Mosudi** | *Middleware Architecture, Protocol Interworking, Systems Security, Distributed Topology* | oneM2M IN-CSE deployment and ETSI TS 118 101 semantic resource tree formalisation (`<CSEBase>`, `<AE>`, `<container>`, `<contentInstance>`); Access Control Policy (`<accessControlPolicy>`) schemas; asynchronous subscription event pipelines (`Sub_BridgeAE` & `Sub_Downlink`); Node-RED Ingress Interworking Proxy Entity (IPE) and schema validation engine; MQTT-to-oneM2M REST primitive bridging; bidirectional downlink actuation command dispatcher; containerised Eclipse Mosquitto broker orchestration, mTLS 8883 termination, and topic ACL security policies. |
-| **Ashok Ramalingam** | *Software, Hardware, Embedded Firmware, Edge Security* | Development of ESP32-S3 FreeRTOS firmware; dual-channel transducer acquisition drivers (Sensirion SCD30 & DHT22); 25 kHz ultrasonic LEDC PWM blower control; PCNT tachometer closed-loop verification; hardware fail-safe baseline; edge mTLS client cryptographic integration and local certificate provisioning. |
+| **Isiaka Mosudi** | *Middleware Architecture, Protocol Interworking, Systems Security, Distributed Topology* | oneM2M IN-CSE deployment and ETSI TS 118 101 semantic resource tree formalisation (`<CSEBase>`, `<AE>`, `<container>`, `<contentInstance>`); Access Control Policy (`<accessControlPolicy>`) schemas; asynchronous subscription event pipelines (`Sub_BridgeAE` & `Sub_Downlink`); **ACMEScripts** in-CSE rule automation and native TS-0010 MQTT-to-oneM2M bridging (replacing Node-RED IPE); bidirectional downlink actuation command dispatcher; containerised Eclipse Mosquitto broker orchestration, mTLS 8883 termination, and topic ACL security policies. |
+| **Ashok Ramalingam** | *Software, Hardware, Embedded Firmware, Edge Security* | Development of ESP32-S3 FreeRTOS firmware; unified **Sensirion SCD30** I²C transducer acquisition driver (CO₂, Temperature, RH with CRC-8); 25 kHz ultrasonic LEDC PWM blower control; PCNT tachometer closed-loop verification; hardware fail-safe baseline; edge mTLS client cryptographic integration and local certificate provisioning. |
 | **Pooja Janwalkar** | *Data Engineering, Observability, Verification, Analytical Infrastructure* | Public Key Infrastructure (Root CA and certificate lifecycle governance); Bridge AE Data Health classification state machine (`FRESH`, `STALE`, `DEGRADED`, `FAULT`); InfluxDB 2.x time-series data modelling and retention policies; Grafana operations cockpit; closed-loop rule evaluation and telemetry integrity assertion. |
 
 ---

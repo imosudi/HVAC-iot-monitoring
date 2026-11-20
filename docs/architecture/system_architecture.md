@@ -20,45 +20,40 @@ The software-defined vehicle (SDV) architectural paradigm decouples vehicular ph
 ┌─────────────────────────────────────────────────────────────────────────────────┐
 │                           VEHICULAR CYBER-PHYSICAL SYSTEM                       │
 └─────────────────────────────────────────────────────────────────────────────────┘
- [ In-Cabin Physical Tier ]                         [ Onboard Vehicular MEC Host ]
- ESP32-S3 Dual-Core SoC                             Raspberry Pi 5 (Podman / Docker Mesh)
- ┌────────────────────────┐                         ┌─────────────────────────────┐
- │ Sensirion SCD30 (I2C)  │                         │ Eclipse Mosquitto Broker    │
- │ DHT22 1-Wire Sensor    │──[mTLS 1.3: Port 8883]─>│ Port 8883, X.509 Client Auth│
- │ Coloured LED Actuators │<────────────────────────│ Topic: sdv/vehicle_01/#     │
- │ PCNT / Bench Feedback  │                         └──────────────┬──────────────┘
- │ WS2812B Node Annunc.   │                                        │
- └────────────────────────┘                                        ▼
-                                                    ┌─────────────────────────────┐
-                                                    │ Node-RED Ingress IPE        │
-                                                    │ Schema Validation & Mca REST│
-                                                    └──────────────┬──────────────┘
-                                                                   │
-                                                                   ▼
-                                                    ┌─────────────────────────────┐
-                                                    │ oneM2M IN-CSE: /sdv-cse     │
-                                                    │ Semantic Resource Hierarchy │
-                                                    └──────────────┬──────────────┘
-                                                                   │
-                                        ┌──────────────────────────┴──────────────┐
-                                        │ Sub_BridgeAE                            │ Sub_Downlink
-                                        ▼                                         ▼
-                         ┌─────────────────────────────┐           ┌─────────────────────────────┐
-                         │ Bridge AE Classifier        │           │ Downlink Command Dispatcher │
-                         │ 4-State Data Health Machine │           │ Translates <cin> to MQTT    │
-                         └──────────────┬──────────────┘           └─────────────────────────────┘
-                                        │
-                                        ▼
-                         ┌─────────────────────────────┐
-                         │ InfluxDB 2.x TSDB           │
-                         │ Nanosecond Line-Protocol    │
-                         └──────────────┬──────────────┘
-                                        │
-                                        ▼
-                         ┌─────────────────────────────┐
-                         │ Grafana Observability       │
-                         │ Dynamic Actuator Thresholds │
-                         └─────────────────────────────┘
+ [ Firmware Tier: ESP32-S3 ]       [ Vehicle-Based: Module 2 ]       [ Server / Network: Module 1 ]
+ ESP32-S3 Dual-Core SoC           Raspberry Pi 5 (Vehicle AE)       Central Server / VM
+ ┌────────────────────────┐       ┌───────────────────────────┐     ┌─────────────────────────────┐
+ │ Sensirion SCD30 (I2C)  │─UART─>│ sdv_edge_serial_client    │mTLS │ Eclipse Mosquitto Broker    │
+ │ CO2, Temp, RH (CRC-8)  │115200 │ (Outbound Only, 0 Ingress)├────>│ Port 8883, X.509 Client Auth│
+ │ Coloured LED Actuators │<──────┤ sdv_actuator_module       │<────│ Topic: sdv/vehicle_01/#     │
+ │ PCNT / WS2812B Annunc. │       └───────────────────────────┘     └──────────────┬──────────────┘
+ └────────────────────────┘                                                        │ TS-0010 MQTT
+                                                                                   ▼
+                                                                    ┌─────────────────────────────┐
+                                                                    │ oneM2M IN-CSE: /sdv-cse     │
+                                                                    │ Zero AEs at Boot •          │
+                                                                    │ ACMEScripts (Replaces NR)   │
+                                                                    └──────────────┬──────────────┘
+                                                                                   │
+                                                        ┌──────────────────────────┴──────────────┐
+                                                        │ Sub_BridgeAE                            │ Sub_Downlink
+                                                        ▼                                         ▼
+                                         ┌─────────────────────────────┐           ┌─────────────────────────────┐
+                                         │ Bridge AE Classifier        │           │ Downlink Command Dispatcher │
+                                         │ 4-State Data Health Machine │           │ Translates <cin> to MQTT    │
+                                         └──────────────┬──────────────┘           └─────────────────────────────┘
+                                                        │
+                                                        ▼
+                                         ┌─────────────────────────────┐
+                                         │ InfluxDB 2.x TSDB           │
+                                         │ Nanosecond Line-Protocol    │
+                                         └──────────────┬──────────────┘
+                                                        │
+                                                        ▼
+                                         ┌─────────────────────────────┐
+                                         │ Grafana & Web Portal        │
+                                         │ Dynamic Actuator Thresholds │
+                                         └─────────────────────────────┘
 ```
 
 ---
@@ -70,9 +65,8 @@ The physical tier executes on an Espressif ESP32-S3 dual-core microcontroller cl
 * **Core 1 (Physical Loop):** Executes transducer sampling, hardware filtering, PWM modulation of coloured LED actuators, and pulse accumulation.
 * **Core 0 (Network Loop):** Executes the mbedTLS 1.3 stack, MQTT client state machine, connection keep-alives, and JSON payload serialisation.
 
-#### 2.1 Dual-Transducer Environmental Sensing
-* **Sensirion SCD30:** Interfaces over I²C Fast-Mode at 400 kHz on GPIO 8 (SDA) and GPIO 9 (SCL). Samples carbon dioxide concentration via Non-Dispersive Infrared (NDIR) spectroscopy (0 to 10,000 ppm), dry-bulb temperature (-40 to +70 °C), and relative humidity (0 to 100 %). Every 16-bit word is validated using hardware CRC-8 polynomials ($P(x) = x^8 + x^5 + x^4 + 1$).
-* **DHT22 (AM2302):** Interfaces over a single-wire digital bus on GPIO 4. Provides redundant temperature (-40 to +80 °C) and humidity measurements. Data frames are verified against a 40-bit parity checksum.
+#### 2.1 Unified Environmental Sensing (Sensirion SCD30)
+* **Sensirion SCD30:** Replaces the legacy dual-sensor (DHT22 + separate CO₂) setup with a single unified transducer interfacing over I²C Fast-Mode at 400 kHz on GPIO 8 (SDA) and GPIO 9 (SCL). Samples carbon dioxide concentration via Non-Dispersive Infrared (NDIR) spectroscopy (400 to 10,000 ppm), dry-bulb temperature (-40 to +70 °C), and relative humidity (0 to 100 %). Every 16-bit word is validated using hardware CRC-8 polynomials ($P(x) = x^8 + x^5 + x^4 + 1$).
 
 #### 2.2 Coloured LED Actuator Emulation Paradigm
 For the MVP deployment, physical mechanical actuators (such as 12 V high-current centrifugal blower fans, PTC heater elements, and motorised air flaps) are emulated using discrete coloured LEDs driven directly by the ESP32-S3 microcontroller. This avoids high-voltage power hazards, bench acoustic disturbance, and high thermal dissipation while strictly validating the closed-loop cyber-physical control pipeline:
@@ -88,7 +82,7 @@ To confirm actuator command reception and detect electrical fault conditions, th
 #### 2.4 Optical Node Health Annunciation
 A single-wire WS2812B addressable RGB LED on GPIO 38 provides visual feedback of overall node and network health:
 * Green: Nominal telemetry streaming over mutual TLS 1.3.
-* Amber: Warning state ($\tau_{\mathrm{age}} > 2.5\,\mathrm{s}$ or $\Delta T > 1.5\,^\circ\mathrm{C}$).
+* Amber: Warning state ($\tau_{\mathrm{age}} > 2.5\,\mathrm{s}$ or SCD30 rate-of-change / CRC retry warning).
 * Red: Transducer fault or broker disconnection.
 * Blue: High CO₂ purge ventilation active (75% duty cycle).
 * Cyan: Closed-loop fail-safe override engaged (50% duty cycle).
@@ -130,23 +124,20 @@ The middleware layer conforms to ETSI TS 118 101, exposing standard Mca and Mcc 
            └── sub_downlink_dispatcher (Subscription -> Native oneM2M TS-0010 MQTT Bus)
 ```
 
-#### 4.2 Interworking Proxy Entity (IPE) Pipeline
-The Node-RED Ingress IPE subscribes to the MQTT broker, validates incoming JSON payloads against `docs/schemas/telemetry_schema.json`, and posts standard oneM2M REST `<contentInstance>` primitives to `/sdv-cse/AE_CabinNode_Car01/cnt_raw_telemetry`.
+#### 4.2 ACMEScripts & Native TS-0010 MQTT Ingestion
+Replacing the legacy Node-RED Ingress IPE, ACME IN-CSE's built-in **ACMEScripts** engine and native `[mqtt]` TS-0010 binding ingest MQTT frames from Mosquitto directly, validate payloads, construct `<contentInstance>` primitives under `/sdv-cse/<vehicle-id>/raw-telemetry`, and evaluate closed-loop actuation rules.
 
 ---
 
 ### 5. Empirical Data Health Classification Engine
 
-The Python Bridge AE evaluates incoming sensor records against two empirical dimensions:
-
-$$\Delta T = |T_{\mathrm{SCD30}} - T_{\mathrm{DHT22}}|$$
-$$\tau_{\mathrm{age}} = t_{\mathrm{eval}} - t_{\mathrm{sample}}$$
+ACMEScripts / the Python Bridge AE evaluate incoming SCD30 sensor records against temporal latency ($\tau_{\mathrm{age}} = t_{\mathrm{eval}} - t_{\mathrm{sample}}$), hardware CRC-8 integrity, physical bounds, and rate-of-change stability:
 
 Categorical state assignment follows deterministic criteria:
-1. **`FRESH`:** $\tau_{\mathrm{age}} \le 2.5\,\mathrm{s}$ and $\Delta T \le 1.5\,^\circ\mathrm{C}$. Data valid for closed-loop control.
+1. **`FRESH`:** $\tau_{\mathrm{age}} \le 2.5\,\mathrm{s}$, valid SCD30 CRC-8, and nominal rate-of-change. Data valid for closed-loop control.
 2. **`STALE`:** $2.5\,\mathrm{s} < \tau_{\mathrm{age}} \le 10.0\,\mathrm{s}$. Data acceptable for display; control rules employ hold-last-value logic.
-3. **`DEGRADED`:** $\Delta T > 1.5\,^\circ\mathrm{C}$. Transducer disagreement; system logs warning and uses conservative sensor readings.
-4. **`FAULT`:** $\tau_{\mathrm{age}} > 10.0\,\mathrm{s}$, transducer disconnection, or out-of-bounds readings. Numerical values are excluded from time-series aggregation, and the blower defaults to 50% baseline fail-safe ventilation.
+3. **`DEGRADED`:** Transient SCD30 rate-of-change spike or I²C CRC retry while $\tau_{\mathrm{age}} \le 10.0\,\mathrm{s}$; system logs warning and applies conservative smoothing.
+4. **`FAULT`:** $\tau_{\mathrm{age}} > 10.0\,\mathrm{s}$, transducer disconnection, blower stall, or out-of-bounds readings. Numerical values are excluded from time-series aggregation, and the blower defaults to 50% baseline fail-safe ventilation.
 
 ---
 

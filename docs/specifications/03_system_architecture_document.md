@@ -34,10 +34,10 @@ The SDV paradigm transforms this architecture into a **service-oriented cyber-ph
 ---
 
 ## 2. End-to-End Cyber-Physical Topology
-The platform implements an end-to-end, multi-tier cyber-physical topology distributed across three physical host environments:
-1. **Tier 1: Smart Cabin Sensing & Actuation Node (Micro-ECU):** Espressif ESP32-S3 microcontroller directly interfacing with physical transducers (Sensirion SCD30, DHT22) and actuator emulation circuits (Blue PWM Purge LED, Red Heat LED, Green Eco LED, Amber Alert LED).
-2. **Tier 2: Vehicular Edge Gateway (In-Vehicle Compute):** Raspberry Pi 5 single-board computer hosting the **Vehicle Application Entity (AE) microservices stack** (`sdv_edge_serial_client`, `sdv_actuator_module`, and local serial bus listeners).
-3. **Tier 3: Base CSE Infrastructure Platform (Central Server / VM):** High-availability server hosting the **ACME oneM2M Common Services Entity (`/sdv-cse`)**, Eclipse Mosquitto mTLS broker, `sdv_bridge_ae` data health service, InfluxDB 2.x time-series engine, Grafana operations cockpit, and `sdv_web_portal`.
+The platform implements an end-to-end, multi-tier cyber-physical topology with strict physical separation across three host environments:
+1. **Firmware Tier — Smart Cabin Sensing & Actuation Node (Micro-ECU):** Espressif ESP32-S3 microcontroller directly interfacing with a single unified **Sensirion SCD30** transducer (NDIR CO₂, Temperature, RH over I²C with CRC-8) and actuator emulation circuits (Blue PWM Purge LED, Red Heat LED, Green Eco LED, Amber Alert LED).
+2. **Vehicle-Based Components — Module 2: Standalone Vehicle AE (Raspberry Pi 5):** In-vehicle compute host running containerised Vehicle AE services (`sdv_edge_serial_client`, `sdv_actuator_module`) with **0 open ingress ports** and outbound-only WAN links.
+3. **Server / Network-Based Components — Module 1: Standalone Base CSE Infrastructure (Central Server / VM):** High-availability server hosting the **ACME oneM2M IN-CSE (`/sdv-cse`, Zero AEs at boot, Baseline Governance)**, built-in **ACMEScripts** engine (replacing Node-RED), Eclipse Mosquitto mTLS broker, `sdv_bridge_ae` data health service, InfluxDB 2.x time-series engine, Grafana operations cockpit, and `sdv_web_portal`.
 
 ![Figure 2: SDV End-to-End Cyber-Physical Architecture & Service Topology](../assets/sdv_architecture_flowchart.png)
 
@@ -68,15 +68,15 @@ The architecture adheres to the Multi-Access Edge Computing (ETSI GS MEC 003) pa
 ![Figure 3: Closed-Loop Telemetry & Actuation Feedback Signal Trajectory](../assets/sdv_closed_loop_flow.png)
 
 The primary cyber-physical feedback loop regulates cabin air quality dynamically:
-1. **Sensing:** SCD30 samples $\text{CO}_2$, $T$, and $\text{RH}$ every $2\text{ seconds}$; DHT22 samples $T$ and $\text{RH}$ concurrently.
-2. **Uplink Dispatch:** Micro-ECU serialises readings into JSON and pushes them across UART to the edge gateway.
-3. **Transport & Ingress:** `sdv_edge_serial_client` transmits the payload across MQTT (mTLS 1.3) to Mosquitto.
-4. **Semantic Registration:** Node-RED IPE ingests the MQTT frame, wraps it into an `<m2m:cin>` resource, and posts it to `/sdv-cse/AE_CabinNode_Car01/cnt_raw_telemetry`.
-5. **Health Certification:** oneM2M fires an HTTP webhook notification to `sdv_bridge_ae`. The classifier confirms data validity ($|T_{scd30} - T_{dht22}| \le 1.5^\circ\text{C}$, $\text{Age} \le 2.5\text{s}$) and marks the record as `FRESH`.
+1. **Sensing:** Single Sensirion SCD30 samples $\text{CO}_2$, $T$, and $\text{RH}$ every $2\text{ seconds}$ over I²C with hardware CRC-8 verification.
+2. **Uplink Dispatch:** Micro-ECU serialises readings into JSON and pushes them across UART to the Raspberry Pi 5 Vehicle AE.
+3. **Transport & Ingress:** `sdv_edge_serial_client` transmits the payload outbound across MQTT (mTLS 1.3) to the server-based Mosquitto broker.
+4. **Semantic Registration:** ACME IN-CSE's native TS-0010 MQTT binding and **ACMEScripts** wrap the payload into an `<m2m:cin>` resource under `/sdv-cse/vehicle-001/raw-telemetry`.
+5. **Health Certification:** oneM2M fires an HTTP webhook notification to `sdv_bridge_ae` (and/or ACMEScripts). The classifier confirms SCD30 CRC-8 integrity, bounds, and latency ($\text{Age} \le 2.5\text{s}$) and marks the record as `FRESH`.
 6. **Persistence:** The classified frame is stored in InfluxDB 2.x.
 7. **Control Decision:** If $\text{CO}_2 > 800\text{ ppm}$, an actuation directive is issued. If $\text{CO}_2 > 1{,}200\text{ ppm}$, high-speed emergency purge is commanded (`PWM = 100%`).
-8. **Downlink Dispatch:** A new `<m2m:cin>` is created in `/sdv-cse/AE_CabinNode_Car01/cnt_actuation_cmd`.
-9. **Actuation Notification:** oneM2M notifies Node-RED, which publishes a control frame to `sdv/vehicle_01/control/cmd`.
+8. **Downlink Dispatch:** A new `<m2m:cin>` is created in `/sdv-cse/vehicle-001/commands`.
+9. **Actuation Notification:** ACME IN-CSE / **ACMEScripts** dispatches the downlink directive directly over TS-0010 MQTT (`sdv/vehicle_01/control/cmd`).
 10. **Actuation Modulation:** `sdv_actuator_module` receives the command and issues `CMD:PWM=100,MODE=AUTOMATIC` to the ESP32-S3, which ramps the Blue Purge LED to 100% duty cycle, opens the fresh air damper, and monitors tachometer RPM to confirm fan rotation.
 
 ---

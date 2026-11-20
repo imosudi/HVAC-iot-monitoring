@@ -26,16 +26,13 @@ The Smart Cabin Node executes on the Espressif ESP32-S3-WROOM-1 module:
 
 ---
 
-## 2. Environmental Perception Sensor Subsystems (SCD30 & DHT22)
-1. **Sensirion SCD30 (Primary NDIR $\text{CO}_2$, Temperature & Humidity):**
-   - Transduction Principle: Non-Dispersive Infrared (NDIR) optical dual-channel spectroscopy.
+## 2. Unified Environmental Perception Sensor Subsystem (Sensirion SCD30)
+1. **Sensirion SCD30 (Unified NDIR $\text{CO}_2$, Temperature & Humidity):**
+   - Replaces legacy DHT22 + separate $\text{CO}_2$ sensor with a single unified transducer.
+   - Transduction Principle: Non-Dispersive Infrared (NDIR) optical dual-channel spectroscopy with integrated CMOSens® temperature and humidity sensing.
    - Measurement Range: $400\text{ ppm}$ to $10{,}000\text{ ppm}$ $\text{CO}_2$; $-40.0^\circ\text{C}$ to $+70.0^\circ\text{C}$; $0\%\text{--}95\%\text{ RH}$.
    - Accuracy: $\pm(30\text{ ppm} + 3\%)$ of reading; $\pm 0.4^\circ\text{C}$; $\pm 3\%\text{ RH}$.
-   - Interface: $\text{I}^2\text{C}$ Standard Mode ($100\text{ kHz}$) on `GPIO 8` (SDA) and `GPIO 9` (SCL) with dual $4.7\text{ k}\Omega$ pull-up resistors to $3.3\text{V}$.
-2. **DHT22 / AM2302 (Redundant Temperature & Humidity Cross-Validator):**
-   - Transduction Principle: Capacitive relative humidity polymer and high-precision NTC thermistor.
-   - Measurement Range: $-40.0^\circ\text{C}$ to $+80.0^\circ\text{C}$; $0\%\text{--}100\%\text{ RH}$.
-   - Interface: Custom 1-Wire single-bus on `GPIO 4` with a $4.7\text{ k}\Omega$ pull-up resistor to $3.3\text{V}$.
+   - Interface: $\text{I}^2\text{C}$ Standard/Fast Mode on `GPIO 8` (SDA) and `GPIO 9` (SCL) with dual $4.7\text{ k}\Omega$ pull-up resistors to $3.3\text{V}$ and hardware CRC-8 verification.
 
 ---
 
@@ -81,7 +78,6 @@ The blower feedback line is interfaced to `GPIO 19`, configured as an input to t
 | :--- | :--- | :--- | :--- | :--- |
 | `SCD30_SDA` | `GPIO 8` | Bi-directional | $\text{I}^2\text{C}$ Bus Data | Sensirion SCD30 communication ($4.7\text{ k}\Omega$ pull-up to $3.3\text{V}$) |
 | `SCD30_SCL` | `GPIO 9` | Output | $\text{I}^2\text{C}$ Bus Clock | Sensirion SCD30 clock line ($100\text{ kHz}$ standard mode) |
-| `DHT22_DATA` | `GPIO 4` | Bi-directional | 1-Wire Single-Bus | High-speed bit-banged capacitive temp/humidity acquisition |
 | `ACTUATOR_BLUE_PURGE` | `GPIO 18` | Output | LEDC PWM / Digital | High-speed cabin air purge blower (luminous intensity emulates speed) |
 | `ACTUATOR_RED_HEAT` | `GPIO 17` | Output | GPIO Digital | Auxiliary cabin PTC heating element |
 | `ACTUATOR_GREEN_VENT` | `GPIO 16` | Output | GPIO Digital | Baseline cabin eco-ventilation damper actuator |

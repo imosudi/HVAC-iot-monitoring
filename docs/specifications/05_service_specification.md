@@ -59,26 +59,26 @@
 - **Core Function:** Evaluates telemetry frames against the formal 4-state deterministic Data Health Classifier and writes validated records to InfluxDB 2.x.
 
 ### Deterministic 4-State Health Machine Formulation
-Let incoming telemetry frame have wall-clock evaluation time $t_{eval}$, sample timestamp $t_{sample}$, primary temperature $T_{scd30}$, secondary temperature $T_{dht22}$, primary relative humidity $\text{RH}_{scd30}$, secondary relative humidity $\text{RH}_{dht22}$, and $\text{CO}_2$ concentration $C_{co2}$.
+Let incoming telemetry frame have wall-clock evaluation time $t_{eval}$, sample timestamp $t_{sample}$, SCD30 temperature $T_{scd30}$, SCD30 relative humidity $\text{RH}_{scd30}$, and $\text{CO}_2$ concentration $C_{co2}$.
 
 1. **Temporal Latency Calculation:**
    $$\tau_{age} = \max(0,\, t_{eval} - t_{sample})$$
 
-2. **Inter-Transducer Divergence Evaluation:**
-   $$\Delta T = |T_{scd30} - T_{dht22}|, \quad \Delta\text{RH} = |\text{RH}_{scd30} - \text{RH}_{dht22}|$$
+2. **SCD30 Integrity & Rate-of-Change Evaluation:**
+   Hardware CRC-8 verification, physical bounds check, and temporal derivative $|dT_{scd30}/dt|$ / I²C bus health.
 
 3. **Deterministic State Assignment:**
    $$S \in \{\mathbf{FRESH},\, \mathbf{STALE},\, \mathbf{DEGRADED},\, \mathbf{FAULT}\}$$
 
 | Deterministic Health State | Mathematical Transition Boundary | Operational Diagnostic Trigger |
 | :--- | :--- | :--- |
-| **`FAULT`** | $t_{sample} = \text{null} \lor T_{scd30} = \text{null} \lor T_{dht22} = \text{null} \lor C_{co2} = \text{null}$ | Transducer missing, line disconnect, or corrupt payload. |
-| **`FAULT`** | $T_{scd30} \notin [-40, 70]^\circ\text{C} \lor T_{dht22} \notin [-40, 80]^\circ\text{C} \lor C_{co2} \notin [0, 10000]\text{ ppm}$ | Physical boundary violation or sensor rail saturation. |
+| **`FAULT`** | $t_{sample} = \text{null} \lor T_{scd30} = \text{null} \lor \text{RH}_{scd30} = \text{null} \lor C_{co2} = \text{null}$ | Transducer missing, line disconnect, or corrupt payload. |
+| **`FAULT`** | $T_{scd30} \notin [-40, 70]^\circ\text{C} \lor \text{RH}_{scd30} \notin [0, 100]\% \lor C_{co2} \notin [0, 10000]\text{ ppm}$ | Physical boundary violation or sensor rail saturation. |
 | **`FAULT`** | $\text{PWM} \ge 30\% \land \text{RPM} < 100$ | Mechanical blower motor stall or belt slippage diagnostic. |
 | **`FAULT`** | $\tau_{age} > 10.0\text{ s}$ | Telemetry communication timeout or link severance. |
-| **`DEGRADED`** | $\Delta T > 1.5^\circ\text{C} \lor \Delta\text{RH} > 10.0\%$ | Inter-transducer sensor drift exceeding cross-validation bounds. |
+| **`DEGRADED`** | $\text{SCD30 rate-of-change spike} \lor \text{I}^2\text{C CRC retry}$ | Transient sensor instability while $\tau_{age} \le 10.0\text{ s}$. |
 | **`STALE`** | $2.5\text{ s} < \tau_{age} \le 10.0\text{ s}$ | Ingress latency threshold exceeded ($> 2.5\text{ s}$). |
-| **`FRESH`** | Nominal boundaries ($\Delta T \le 1.5^\circ\text{C} \land \tau_{age} \le 2.5\text{ s}$) | Certified high-integrity telemetry suitable for closed-loop regulation. |
+| **`FRESH`** | Nominal boundaries ($\text{CRC-8 OK} \land \tau_{age} \le 2.5\text{ s}$) | Certified high-integrity telemetry suitable for closed-loop regulation. |
 
 ![Figure 6: Deterministic Data Health State Machine Transition Model](../assets/sdv_health_state_machine.png)
 
@@ -143,11 +143,10 @@ make menu
 | Service Identifier | Container Name | Host Module | Network Binding | Ports Exposed | Restart Policy |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | `mosquitto` | `sdv_mosquitto_broker` | Module 1 (Base CSE) | `sdv_mec_mesh` | `1883/TCP` (local), `8883/TCP` (mTLS) | `unless-stopped` |
-| `onem2m_cse` | `sdv_onem2m_cse` | Module 1 (Base CSE) | `sdv_mec_mesh` | `8080/TCP` | `unless-stopped` |
+| `onem2m_cse` | `sdv_onem2m_cse` | Module 1 (Base CSE) | `sdv_mec_mesh` | `8080/TCP` (includes ACMEScripts) | `unless-stopped` |
 | `bridge_ae` | `sdv_bridge_ae` | Module 1 (Base CSE) | `sdv_mec_mesh` | `5000/TCP` (internal) | `unless-stopped` |
 | `influxdb` | `sdv_influxdb` | Module 1 (Base CSE) | `sdv_mec_mesh` | `8086/TCP` | `unless-stopped` |
 | `grafana` | `sdv_grafana` | Module 1 (Base CSE) | `sdv_mec_mesh` | `3000/TCP` | `unless-stopped` |
 | `web_portal` | `sdv_web_portal` | Module 1 (Base CSE) | `sdv_mec_mesh` | `8000/TCP` | `unless-stopped` |
-| `nodered` | `sdv_nodered_ipe` | Module 1 (Base CSE) | `sdv_mec_mesh` | `1880/TCP` | `unless-stopped` |
 | `edge_client` | `sdv_edge_serial_client`| Module 2 (Vehicle AE)| Host Network | Local `/dev/ttyUSB0` | `unless-stopped` |
 | `actuator_module` | `sdv_actuator_module` | Module 2 (Vehicle AE)| Host Network | Local `/dev/ttyUSB0` | `unless-stopped` |
