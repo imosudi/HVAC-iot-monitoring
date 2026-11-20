@@ -150,13 +150,24 @@ else
     fi
 fi
 
+HOST_ARCH="$(uname -m)"
+COMPOSE_FILE_ARGS="-f ${DEPLOY_DIR}/docker-compose.yml"
+if [ "${HOST_ARCH}" = "x86_64" ] || [ "${HOST_ARCH}" = "amd64" ]; then
+    if [ -f "${DEPLOY_DIR}/docker-compose.amd64.yml" ]; then
+        COMPOSE_FILE_ARGS="${COMPOSE_FILE_ARGS} -f ${DEPLOY_DIR}/docker-compose.amd64.yml"
+        echo "[INFO] Detected x86_64/amd64 host: using pre-built ankraft/acme-onem2m-cse image."
+    fi
+else
+    echo "[INFO] Detected ${HOST_ARCH} host: building native ARM64 ACME IN-CSE image via ./onem2m/Dockerfile."
+fi
+
 if ! docker info >/dev/null 2>&1 && command -v sg >/dev/null 2>&1 && getent group docker | grep -qw "${USER}"; then
     COMPOSE_EXEC="sg docker -c"
-    ${COMPOSE_EXEC} "${COMPOSE_CMD} build"
-    ${COMPOSE_EXEC} "${COMPOSE_CMD} up -d --remove-orphans"
+    ${COMPOSE_EXEC} "${COMPOSE_CMD} ${COMPOSE_FILE_ARGS} build"
+    ${COMPOSE_EXEC} "${COMPOSE_CMD} ${COMPOSE_FILE_ARGS} up -d --remove-orphans"
 else
-    ${COMPOSE_CMD} build
-    ${COMPOSE_CMD} up -d --remove-orphans
+    ${COMPOSE_CMD} ${COMPOSE_FILE_ARGS} build
+    ${COMPOSE_CMD} ${COMPOSE_FILE_ARGS} up -d --remove-orphans
 fi
 
 echo "[STEP 4/4] Initialising oneM2M semantic resource hierarchy..."

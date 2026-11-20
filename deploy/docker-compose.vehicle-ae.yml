@@ -10,6 +10,7 @@ services:
     build:
       context: ../services/edge_client
       dockerfile: Dockerfile
+      network: host
     container_name: sdv_edge_serial_client
     restart: unless-stopped
     privileged: true
@@ -31,6 +32,7 @@ services:
     build:
       context: ../services/actuator_module
       dockerfile: Dockerfile
+      network: host
     container_name: sdv_actuator_module
     restart: unless-stopped
     privileged: true

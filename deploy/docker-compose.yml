@@ -33,8 +33,10 @@ services:
   # oneM2M Middleware Tier: IN-CSE Resource Tree
   # ----------------------------------------------------------------------------
   onem2m_cse:
-    image: ankraft/acme-onem2m-cse:latest
-    platform: linux/amd64
+    build:
+      context: ./onem2m
+      dockerfile: Dockerfile
+      network: host
     container_name: sdv_onem2m_cse
     restart: unless-stopped
     ports:
@@ -59,6 +61,7 @@ services:
     build:
       context: ../services/bridge_ae
       dockerfile: Dockerfile
+      network: host
     container_name: sdv_bridge_ae
     restart: unless-stopped
     ports:
@@ -128,6 +131,7 @@ services:
     build:
       context: ../services/web_portal
       dockerfile: Dockerfile
+      network: host
     container_name: sdv_web_portal
     restart: unless-stopped
     ports:
