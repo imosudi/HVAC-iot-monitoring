@@ -592,16 +592,17 @@ action_diagnostics() {
     echo -e "${WHITE}Select pre-flight diagnostic workflow:${RESET}"
     echo -e "  ${CYAN}[1]${RESET} Full pre-flight check with automated Docker, build tools, update & upgrade, and SSH setup (--preflight)"
     echo -e "  ${CYAN}[2]${RESET} Inspection-only report (changes nothing, reports missing dependencies) (--check-only)"
-    echo -e "  ${CYAN}[3]${RESET} Explicitly ensure SSH password authentication is enabled (--enable-password-auth)"
-    echo -e "  ${CYAN}[4]${RESET} Optional: Enforce key-only authentication (disable password logins) (--disable-password-auth)"
-    echo -e "  ${CYAN}[5]${RESET} Local Hardware Peripheral & Network Diagnostics (V4L2, UART, I2C, CAN, sysfs, TCP)"
-    echo -e "  ${CYAN}[6]${RESET} Comprehensive Diagnostics (Run both remote preflight check & local hardware probes)"
+    echo -e "  ${CYAN}[3]${RESET} Implement / Configure Passwordless SSH Key Login (ssh-copy-id / provision public key) (--setup-passwordless)"
+    echo -e "  ${CYAN}[4]${RESET} Explicitly ensure SSH password authentication is enabled (--enable-password-auth)"
+    echo -e "  ${CYAN}[5]${RESET} Optional: Enforce key-only authentication (disable password logins) (--disable-password-auth)"
+    echo -e "  ${CYAN}[6]${RESET} Local Hardware Peripheral & Network Diagnostics (V4L2, UART, I2C, CAN, sysfs, TCP)"
+    echo -e "  ${CYAN}[7]${RESET} Comprehensive Diagnostics (Run both remote preflight check & local hardware probes)"
     echo -e "  ${RED}[0]${RESET} Return to main menu\n"
 
-    prompt_input "Enter choice [1-6, 0 to return] (default: 1): " "1" diag_choice
+    prompt_input "Enter choice [1-7, 0 to return] (default: 1): " "1" diag_choice
 
     case "${diag_choice}" in
-        1|2|3|4|6)
+        1|2|3|4|5|7)
             echo -e "\n${CYAN}--- Target Remote Host Configuration ---${RESET}"
             prompt_input "Enter target remote username [default: ${DEF_BASE_USER}]: " "${DEF_BASE_USER}" diag_user
             prompt_input "Enter target remote hostname or IP address [default: ${DEF_BASE_HOST}]: " "${DEF_BASE_HOST}" diag_host
@@ -611,8 +612,9 @@ action_diagnostics() {
             local script_path="${ROOT_DIR}/scripts/check_install-docker_ssh.sh"
             local flag="--preflight"
             [ "${diag_choice}" = "2" ] && flag="--check-only"
-            [ "${diag_choice}" = "3" ] && flag="--enable-password-auth"
-            [ "${diag_choice}" = "4" ] && flag="--disable-password-auth"
+            [ "${diag_choice}" = "3" ] && flag="--setup-passwordless"
+            [ "${diag_choice}" = "4" ] && flag="--enable-password-auth"
+            [ "${diag_choice}" = "5" ] && flag="--disable-password-auth"
 
             echo -e "\n${CYAN}[INFO] Executing pre-flight diagnostic (${flag}) against ${diag_user}@${diag_host}:${diag_port}...${RESET}\n"
             bash "${script_path}" \
@@ -621,14 +623,14 @@ action_diagnostics() {
                 ${flag} \
                 "${diag_user}@${diag_host}" || true
 
-            if [ "${diag_choice}" = "6" ]; then
+            if [ "${diag_choice}" = "7" ]; then
                 echo -e "\n${CYAN}================================================================================${RESET}"
                 echo -e "${CYAN}Executing Local Peripheral & Hardware Diagnostic Suite...${RESET}"
                 echo -e "${CYAN}================================================================================${RESET}"
                 run_local_hardware_diagnostics
             fi
             ;;
-        5)
+        6)
             run_local_hardware_diagnostics
             ;;
         0)

@@ -1,0 +1,59 @@
+flowchart TB
+    subgraph TIER1 ["Tier 1: Smart Cabin Micro-ECU (ESP32-S3)"]
+        direction LR
+        SCD30["Sensirion SCD30<br/><i>NDIR CO2, Temp &amp; RH<br/>I2C (GPIO 8/9) • CRC-8</i>"]
+        PCNT["Pulse Counter<br/><i>PCNT Tachometer (GPIO 19)</i>"]
+        RTOS["FreeRTOS Scheduler<br/><i>Core 0 &amp; Core 1</i>"]
+        PWM["LEDC PWM Controller<br/><i>25 kHz, GPIO 18</i>"]
+        RGB["WS2812B RGB<br/><i>Annunciator (GPIO 38)</i>"]
+        LEDS["Actuator LEDs<br/><i>Blue Purge, Red Heat,<br/>Green Eco, Amber Alert</i>"]
+
+        SCD30 --> RTOS
+        PCNT -.-> RTOS
+        RTOS --> PWM --> LEDS
+        RTOS --> RGB
+    end
+
+    subgraph MOD2 ["Module 2: Standalone Vehicle AE (Raspberry Pi 5 • 0 Open Ingress Ports)"]
+        direction LR
+        EDGE_CLI["sdv_edge_serial_client<br/><i>Serial Reader &amp; mTLS Publisher</i>"]
+        ACT_MOD["sdv_actuator_module<br/><i>Downlink Actuation Controller</i>"]
+        PKI_M2["Local PKI Trust Store<br/><i>ca.crt, client_esp32.crt</i>"]
+    end
+
+    subgraph MOD1 ["Module 1: Standalone Base CSE Infrastructure (Central Server / VM • Zero AEs at Boot)"]
+        direction TB
+        MOSQ["Eclipse Mosquitto MQTT Broker<br/><i>mTLS 1.3 (Port 8883) • Internal (1883)</i>"]
+        CSE["ACME oneM2M IN-CSE (/sdv-cse, Port 8080)<br/><i>Baseline Governance: acp_fleet_manager &amp; grp_fleet_telemetry</i>"]
+        ACMES["ACMEScripts Engine (In-CSE)<br/><i>Replaces Node-RED IPE • Native TS-0010 &amp; Rules</i>"]
+        BRIDGE["sdv_bridge_ae<br/><i>Health Classifier &amp; InfluxDB Writer (Port 5000)</i>"]
+        INFLUX["InfluxDB 2.7<br/><i>cabin_telemetry Bucket (Port 8087:8086)</i>"]
+        GRAF["Grafana Enterprise<br/><i>Operations Cockpit (Port 3000)</i>"]
+        PORTAL["sdv_web_portal<br/><i>Fleet Admin &amp; Mca UI (Port 8000)</i>"]
+
+        MOSQ <-->|"TS-0010 MQTT"| CSE
+        CSE <--> ACMES
+        CSE -->|"Subscription (/notify)"| BRIDGE
+        BRIDGE -->|"Line Protocol"| INFLUX
+        INFLUX --> GRAF
+        CSE <-->|"Mca REST"| PORTAL
+    end
+
+    RTOS <==>|"UART (115200 8N1)<br/>JSON Telemetry &amp; CMD:PWM=..."| EDGE_CLI
+    ACT_MOD -.->|"UART Actuation Directive"| RTOS
+
+    EDGE_CLI ==>|"Mode 1 Distributed: mTLS 1.3 (8883) / Mca (8080)"| MOSQ
+    MOSQ ==>|"Downlink Command (mTLS 8883)"| ACT_MOD
+
+    classDef tier1 fill:#FEF3C7,stroke:#D97706,stroke-width:2px,color:#0F172A
+    classDef mod2 fill:#F0FDF4,stroke:#16A34A,stroke-width:2px,color:#0F172A
+    classDef mod1 fill:#EFF6FF,stroke:#1D4ED8,stroke-width:2px,color:#0F172A
+    classDef acmes fill:#F5F3FF,stroke:#7C3AED,stroke-width:1.5px,color:#4C1D95
+    classDef comp fill:#FFFFFF,stroke:#64748B,stroke-width:1.2px,color:#0F172A
+
+    class TIER1 tier1
+    class MOD2 mod2
+    class MOD1 mod1
+    class ACMES acmes
+    class SCD30,PCNT,RTOS,PWM,RGB,LEDS,EDGE_CLI,ACT_MOD,PKI_M2,MOSQ,CSE,BRIDGE,INFLUX,GRAF,PORTAL comp
+

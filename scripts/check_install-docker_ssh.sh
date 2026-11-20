@@ -28,6 +28,8 @@
 #                             dependencies (Docker, Compose, build-essential, git, zip,
 #                             curl, update & upgrade, and configure SSH password/key access)
 #   --check-only              report status only, change nothing (exit 1 if action needed)
+#   --setup-passwordless      configure and verify passwordless SSH key authentication only
+#                             (provisions local key to remote authorized_keys via ssh-copy-id)
 #   --enable-password-auth    ensure SSH password logins are enabled on server (default: enabled)
 #   --disable-password-auth   disable SSH password logins on server (enforce key-only)
 #   --skip-upgrade            skip system package upgrade (apt-get upgrade)
@@ -35,6 +37,9 @@
 #   -h, --help                show this help
 #
 # Examples:
+#   # Configure passwordless SSH key authentication on remote host:
+#   ./scripts/check_install-docker_ssh.sh --setup-passwordless <user>@<host_or_ip>
+#
 #   # Full pre-flight check with automated Docker, build tools, update & upgrade, and SSH setup:
 #   ./scripts/check_install-docker_ssh.sh --preflight <user>@<host_or_ip>
 #
@@ -124,7 +129,7 @@ EOS
 }
 
 main() {
-  local TARGET="" PORT="" IDENTITY="" CHECK_ONLY=0 PREFLIGHT=0
+  local TARGET="" PORT="" IDENTITY="" CHECK_ONLY=0 PREFLIGHT=0 SETUP_PASSWORDLESS=0
   local ENABLE_PW=1 DISABLE_PW=0 SKIP_UPGRADE=0 SKIP_TEST=0
   local EXTRA_USERS=()
   local HOST_ARG="" USER_ARG=""
@@ -137,6 +142,7 @@ main() {
       -u|--user)                [[ -n "${2:-}" ]] || die "Missing value for $1"; USER_ARG="$2"; EXTRA_USERS+=("$2"); shift 2 ;;
       --preflight|--pre-flight) PREFLIGHT=1; shift ;;
       --check-only)             CHECK_ONLY=1; shift ;;
+      --setup-passwordless|--passwordless|--setup-ssh-key) SETUP_PASSWORDLESS=1; shift ;;
       --enable-password-auth)   ENABLE_PW=1; DISABLE_PW=0; shift ;;
       --disable-password-auth)  DISABLE_PW=1; ENABLE_PW=0; shift ;;
       --skip-upgrade)           SKIP_UPGRADE=1; shift ;;
@@ -263,12 +269,28 @@ main() {
     fi
   fi
 
+  # If passwordless setup mode was requested and already verified, output success and exit immediately
+  if [[ $passwordless_verified -eq 1 && $SETUP_PASSWORDLESS -eq 1 ]]; then
+    echo
+    echo "================================================================================"
+    echo "  PASSWORDLESS SSH KEY AUTHENTICATION: ALREADY CONFIGURED & VERIFIED"
+    echo "================================================================================"
+    printf '  %-32s %s\n' "Target Host & User:"      "${TARGET}"
+    printf '  %-32s %s\n' "Active Private Key:"        "${PRIV}"
+    printf '  %-32s %s\n' "Public Key Identity:"      "${PUB}"
+    printf '  %-32s %s\n' "Passwordless Key Status:"  "VERIFIED & ACTIVE"
+    echo "================================================================================"
+    echo
+    ok "Passwordless SSH access confirmed. Remote deployment commands are ready to proceed."
+    exit 0
+  fi
+
   # If passwordless login is not yet active, provision public key
   if [[ $passwordless_verified -eq 0 ]]; then
     warn "Passwordless key authentication is not active on ${TARGET}."
-    if [[ $CHECK_ONLY -eq 1 && $PREFLIGHT -eq 0 ]]; then
+    if [[ $CHECK_ONLY -eq 1 && $PREFLIGHT -eq 0 && $SETUP_PASSWORDLESS -eq 0 ]]; then
       echo
-      warn "Check-only mode: nothing was changed. Run with --preflight or without --check-only to configure key and install packages."
+      warn "Check-only mode: nothing was changed. Run with --setup-passwordless or --preflight to configure key."
       exit 1
     fi
 
@@ -296,6 +318,20 @@ main() {
 
     rssh true >/dev/null 2>&1 || die "Passwordless login still fails after ssh-copy-id. Check remote sshd settings (PubkeyAuthentication)."
     ok "Passwordless SSH key authentication successfully configured."
+
+    if [[ $SETUP_PASSWORDLESS -eq 1 ]]; then
+      echo
+      echo "================================================================================"
+      echo "  PASSWORDLESS SSH KEY AUTHENTICATION: SUCCESSFULLY CONFIGURED"
+      echo "================================================================================"
+      printf '  %-32s %s\n' "Target Host & User:"      "${TARGET}"
+      printf '  %-32s %s\n' "Installed Public Key:"   "${PUB}"
+      printf '  %-32s %s\n' "Passwordless Key Status:"  "VERIFIED & ACTIVE"
+      echo "================================================================================"
+      echo
+      ok "Passwordless SSH key access has been configured. You can now execute remote deployment without password prompts."
+      exit 0
+    fi
   fi
 
   # Ensure public key exists locally for remote installation payload

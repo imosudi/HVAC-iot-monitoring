@@ -404,6 +404,11 @@ Please choose an execution, deployment, or diagnostic option:
   [0] Exit
 ```
 
+<div align="center">
+  <img src="docs/assets/sdv_tui_menu.png" alt="Interactive Terminal Operations Dashboard" width="850"/>
+  <p><i>Figure 6.1: Interactive Terminal Operations Dashboard (make menu / deploy/menu.sh)</i></p>
+</div>
+
 ### Dashboard Architecture and Capabilities
 
 | Option | Functional Workflow | Target Environment | Key Artefacts & Operations |
@@ -420,13 +425,13 @@ Please choose an execution, deployment, or diagnostic option:
 
 ### Quickstart Guide: From Zero to Verified Closed-Loop
 
-1. **Clone the Repository & Configure Secrets:**
+1. **Clone the Repository & Launch Terminal Operations Dashboard:**
    ```bash
-   git clone https://github.com/FH-Technikum-Wien/HVAC-iot-monitoring.git
+   git clone https://github.com/imosudi/HVAC-iot-monitoring.git
    cd HVAC-iot-monitoring
-   cp deploy/.env.example .env
-   # Edit .env with target host IPs and credentials
+   make menu
    ```
+   *(Optionally inspect or customise environment parameters in `deploy/.env`)*
 2. **Execute Pre-Flight Diagnostics & Setup Prerequisites:**
    ```bash
    # Automated check & installation on target host:
@@ -445,6 +450,20 @@ Please choose an execution, deployment, or diagnostic option:
    * **ACME oneM2M Web UI:** `http://<SERVER_IP>:8080/webui`
    * **Grafana Operations Cockpit:** `http://<SERVER_IP>:3000` (User: `admin`, Pass: `sdv_secure_pass`)
    * **Fleet Web Portal:** `http://<SERVER_IP>:8000`
+
+<div align="center">
+  <img src="docs/assets/sdv_menu_option2_deployment.png" alt="Standalone Base CSE Deployment Workflow via TUI Option 2" width="850"/>
+  <p><i>Figure 6.2: Standalone Base CSE Remote Commissioning Workflow via TUI Option [2]</i></p>
+
+  <img src="docs/assets/sdv_base_cse_verification_success.png" alt="Automated Lean Base CSE Validation & Verification Suite Execution (100% Pass)" width="850"/>
+  <p><i>Figure 6.3: Automated Lean Base CSE Validation & Verification Suite Execution (6/6 Passed - 100.0% Compliant)</i></p>
+
+  <img src="docs/assets/sdv_acme_webui_tree.png" alt="ACME oneM2M IN-CSE Web Management Portal and Resource Tree" width="850"/>
+  <p><i>Figure 6.4: ACME oneM2M IN-CSE Web Management Portal and Semantic Resource Tree (/sdv-cse on Port 8080)</i></p>
+
+  <img src="docs/assets/sdv_web_portal_cockpit.png" alt="Web Operations Cockpit & Actuation Console" width="850"/>
+  <p><i>Figure 6.5: Real-Time Web Operations Cockpit & Actuation Console (sdv_web_portal on Port 8000)</i></p>
+</div>
 
 ---
 

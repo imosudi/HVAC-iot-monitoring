@@ -130,15 +130,6 @@ if [ -z "${VEHICLE_KEY}" ] && [ -f "${HOME}/.ssh/id_ed25519" ]; then
     VEHICLE_KEY="${HOME}/.ssh/id_ed25519"
 fi
 
-echo "================================================================================"
-echo "  SDV AUTOMOTIVE IOT: DISTRIBUTED REMOTE MODULAR DEPLOYMENT ORCHESTRATOR"
-echo "  Standard Conformance: ETSI TS 118 101 Rel 4 / oneM2M TS-0004 & TS-0010"
-echo "  Active Module Selection: ${MODULE_CLI}"
-echo "================================================================================"
-echo "[INFO] Module 1 (Base CSE Host):  ${BASE_USER}@${BASE_HOST}:${BASE_PORT} (Target Dir: ${BASE_DIR})"
-echo "[INFO] Module 2 (Vehicle AE Host): ${VEHICLE_USER}@${VEHICLE_HOST}:${VEHICLE_PORT} (Target Dir: ${VEHICLE_DIR})"
-echo "================================================================================"
-
 build_ssh_cmd() {
     local host="$1"
     local user="$2"
@@ -161,6 +152,51 @@ build_rsync_ssh_opt() {
     fi
     echo "${opt}"
 }
+
+resolve_remote_dir() {
+    local host="$1"
+    local user="$2"
+    local port="$3"
+    local key="$4"
+    local dir_input="$5"
+
+    local ssh_cmd
+    ssh_cmd=$(build_ssh_cmd "${host}" "${user}" "${port}" "${key}")
+
+    local remote_home
+    remote_home=$(${ssh_cmd} 'echo $HOME' 2>/dev/null || echo "")
+
+    if [ -n "${remote_home}" ]; then
+        if [[ "${dir_input}" == "${HOME}"* ]]; then
+            local rel_part="${dir_input#${HOME}}"
+            echo "${remote_home}${rel_part}"
+            return 0
+        elif [[ "${dir_input}" == "~"* ]]; then
+            local rel_part="${dir_input#\~}"
+            echo "${remote_home}${rel_part}"
+            return 0
+        elif [[ "${dir_input}" != "/"* ]]; then
+            echo "${remote_home}/${dir_input}"
+            return 0
+        fi
+    fi
+
+    echo "${dir_input}"
+}
+
+# Dynamically resolve remote target directories to match the remote host's actual user environment
+BASE_DIR=$(resolve_remote_dir "${BASE_HOST}" "${BASE_USER}" "${BASE_PORT}" "${BASE_KEY}" "${BASE_DIR}")
+VEHICLE_DIR=$(resolve_remote_dir "${VEHICLE_HOST}" "${VEHICLE_USER}" "${VEHICLE_PORT}" "${VEHICLE_KEY}" "${VEHICLE_DIR}")
+
+echo "================================================================================"
+echo "  SDV AUTOMOTIVE IOT: DISTRIBUTED REMOTE MODULAR DEPLOYMENT ORCHESTRATOR"
+echo "  Standard Conformance: ETSI TS 118 101 Rel 4 / oneM2M TS-0004 & TS-0010"
+echo "  Active Module Selection: ${MODULE_CLI}"
+echo "================================================================================"
+echo "[INFO] Module 1 (Base CSE Host):  ${BASE_USER}@${BASE_HOST}:${BASE_PORT} (Target Dir: ${BASE_DIR})"
+echo "[INFO] Module 2 (Vehicle AE Host): ${VEHICLE_USER}@${VEHICLE_HOST}:${VEHICLE_PORT} (Target Dir: ${VEHICLE_DIR})"
+echo "================================================================================"
+
 
 # ------------------------------------------------------------------------------
 # Universal Remote Synchronisation (rsync with POSIX tar/scp streaming fallback)

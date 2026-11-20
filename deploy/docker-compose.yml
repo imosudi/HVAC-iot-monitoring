@@ -34,6 +34,7 @@ services:
   # ----------------------------------------------------------------------------
   onem2m_cse:
     image: ankraft/acme-onem2m-cse:latest
+    platform: linux/amd64
     container_name: sdv_onem2m_cse
     restart: unless-stopped
     ports:

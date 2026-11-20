@@ -1,0 +1,26 @@
+sequenceDiagram
+    autonumber
+    participant ECU as ESP32-S3 (SCD30)
+    participant EDGE as sdv_edge_serial_client (Pi 5)
+    participant MOSQ as Mosquitto Broker (mTLS 8883)
+    participant CSE as ACME IN-CSE + ACMEScripts
+    participant BRIDGE as sdv_bridge_ae
+    participant DB as InfluxDB 2.x
+    participant ACT as sdv_actuator_module (Pi 5)
+
+    Note over ECU,ACT: Module 2 (Pi 5 + ESP32-S3) -> Module 1 (Base CSE Server) Uplink Telemetry Workflow
+    ECU->>EDGE: Serial JSON Frame (UART 115200, SCD30 CO2/Temp/RH)
+    EDGE->>MOSQ: MQTT PUBLISH /oneM2M/req/vehicle-001/id-sdv/json (TLS 1.3)
+    MOSQ->>CSE: Native TS-0010 MQTT Binding (Port 1883)
+    CSE->>CSE: ACMEScripts onCreate Trigger and m2m:cin Storage
+    CSE->>BRIDGE: HTTP POST /notify (oneM2M Subscription)
+    BRIDGE->>BRIDGE: Evaluate Health State Machine (FRESH/STALE/DEGRADED/FAULT)
+    BRIDGE->>DB: Write Line Protocol (Tags: health_state, Fields: co2, temp_scd30, rh_scd30)
+
+    Note over ECU,ACT: Closed-Loop Downlink Actuation Workflow
+    CSE->>CSE: ACMEScripts Rule Evaluation (e.g., CO2 > 800 ppm)
+    CSE->>MOSQ: TS-0010 Downlink Notification (sub_downlink)
+    MOSQ->>ACT: Deliver Actuation Directive (mTLS 1.3 Port 8883)
+    ACT->>ECU: UART "CMD:PWM=75,MODE=AUTOMATIC"
+    ECU->>ECU: Modulate LEDC Timer and Blue Purge LED (25 kHz)
+    ECU->>ECU: Sample Tachometer PCNT Pulses (Stall Guard)

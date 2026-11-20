@@ -1,0 +1,25 @@
+graph TD
+    CA["<b>Root Certificate Authority (CA)</b><br/>FHTW-Automotive-RootCA (ca.crt)<br/><i>ECDSA P-256 • Self-Signed Trust Anchor</i>"]
+
+    subgraph MOD1_PKI ["Module 1: Base CSE Server / VM"]
+        SVR["<b>Broker Server Certificate</b><br/>(server.crt / mosquitto.crt)<br/><i>Mosquitto mTLS 1.3 Broker (Port 8883)<br/>SAN: BASE_CSE_HOST, mosquitto.sdv.local</i>"]
+        ACME_CERT["<b>ACME IN-CSE &amp; ACMEScripts Client</b><br/>(Internal Loopback / mTLS Identity)<br/><i>Native TS-0010 MQTT Binding &amp; Scripting</i>"]
+    end
+
+    subgraph MOD2_PKI ["Module 2: Vehicle AE (Raspberry Pi 5 &amp; ESP32-S3)"]
+        EDGE["<b>Vehicle Edge Client Certificate</b><br/>(client_esp32.crt / client_edge.crt)<br/><i>Pi 5 Containerised Vehicle AE Services<br/>(sdv_edge_serial_client &amp; sdv_actuator_module)</i>"]
+    end
+
+    CA -->|Issues &amp; Cryptographically Signs| SVR
+    CA -->|Issues &amp; Cryptographically Signs| ACME_CERT
+    CA -->|Issues &amp; Cryptographically Signs| EDGE
+
+    classDef ca fill:#EFF6FF,stroke:#1D4ED8,stroke-width:2.5px,color:#1E3A8A
+    classDef mod1 fill:#F8FAFC,stroke:#2563EB,stroke-width:1.5px,color:#0F172A
+    classDef mod2 fill:#F0FDF4,stroke:#16A34A,stroke-width:1.5px,color:#14532D
+    classDef cert fill:#FFFFFF,stroke:#3B82F6,stroke-width:1.5px,color:#0F172A
+
+    class CA ca
+    class MOD1_PKI mod1
+    class MOD2_PKI mod2
+    class SVR,ACME_CERT,EDGE cert
