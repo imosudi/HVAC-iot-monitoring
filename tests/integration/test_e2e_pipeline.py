@@ -391,6 +391,61 @@ class TestEndToEndPipeline:
                     f"Vector {vector['id']} evaluated to {state.value}, expected {vector['expected_state']}"
                 )
 
+    def test_scd30_only_bridge_ae_notification_pipeline(self, telemetry_schema):
+        """Verifies Bridge AE processes scd30_only oneM2M notifications without dht22."""
+        from main import app as bridge_app
+
+        bridge_app.config["TESTING"] = True
+        client = bridge_app.test_client()
+
+        now_ts = int(time.time())
+        telemetry_payload = {
+            "car_id": "vehicle-001",
+            "zone": "cabin_front",
+            "timestamp_unix_s": now_ts,
+            "sensor_profile": "scd30_only",
+            "scd30": {"co2_ppm": 610.0, "temperature_c": 22.4, "humidity_pct": 46.0},
+            "alerts": {"co2": False, "temperature": False, "humidity": False},
+        }
+        jsonschema.validate(instance=telemetry_payload, schema=telemetry_schema)
+
+        notification_body = {
+            "m2m:sgn": {
+                "nev": {
+                    "net": 3,
+                    "rep": {
+                        "m2m:cin": {
+                            "cnf": "application/json:0",
+                            "con": json.dumps(telemetry_payload),
+                        }
+                    },
+                }
+            }
+        }
+        resp = client.post("/notification", json=notification_body)
+        assert resp.status_code == 200
+        body = resp.get_json()
+        assert body["status"] == "PROCESSED"
+        assert body["health_state"] == "FRESH"
+        assert body["delta_t_c"] is None
+
+    def test_acmescripts_and_grafana_scd30_only_configuration(self):
+        """Verifies Node-RED removal, ACMEScripts wiring, and Grafana SCD30-only Flux query."""
+        repo_root = Path(__file__).resolve().parent.parent.parent
+        assert not (repo_root / "deploy" / "nodered").exists()
+        assert (repo_root / "deploy" / "onem2m" / "scripts" / "sdv_hvac_rules.as").is_file()
+
+        acme_ini = (repo_root / "deploy" / "onem2m" / "acme.ini").read_text(encoding="utf-8")
+        assert "[scripting]" in acme_ini
+
+        compose = (repo_root / "deploy" / "docker-compose.yml").read_text(encoding="utf-8")
+        assert "./onem2m/scripts:/data/scripts:ro" in compose
+
+        dashboard = (repo_root / "deploy" / "grafana" / "dashboards" / "cabin_operations.json").read_text(encoding="utf-8")
+        assert "temp_scd30_c" in dashboard
+        assert "temp_dht22_c" not in dashboard
+
+
 
 
 
