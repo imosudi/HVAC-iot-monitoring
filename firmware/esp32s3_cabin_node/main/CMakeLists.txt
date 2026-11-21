@@ -2,7 +2,6 @@ idf_component_register(
     SRCS
         "main.c"
         "scd30_driver.c"
-        "dht22_driver.c"
         "pwm_fan_control.c"
         "tachometer.c"
         "ws2812b_indicator.c"

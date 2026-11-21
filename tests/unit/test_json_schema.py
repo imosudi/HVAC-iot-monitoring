@@ -89,6 +89,25 @@ class TestJsonSchemaContracts:
         with pytest.raises(jsonschema.ValidationError):
             jsonschema.validate(instance=invalid_cmd, schema=actuator_schema)
 
+    def test_scd30_only_telemetry_payload_passes(self, telemetry_schema):
+        scd30_only_payload = {
+            "car_id": "vehicle-001",
+            "zone": "cabin_front",
+            "timestamp_unix_s": 1715000000,
+            "sensor_profile": "scd30_only",
+            "scd30": {
+                "co2_ppm": 820.0,
+                "temperature_c": 22.5,
+                "humidity_pct": 45.0
+            },
+            "alerts": {
+                "co2": True,
+                "temperature": False,
+                "humidity": False
+            }
+        }
+        jsonschema.validate(instance=scd30_only_payload, schema=telemetry_schema)
+
     def test_invalid_actuator_mode_fails(self, actuator_schema):
         invalid_cmd = {
             "target_pwm": 50,

@@ -9,7 +9,6 @@
 #include <stddef.h>
 #include <stdint.h>
 #include "scd30_driver.h"
-#include "dht22_driver.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -20,7 +19,6 @@ typedef struct {
     const char *zone;
     uint32_t timestamp_unix_s;
     scd30_measurement_t scd30;
-    dht22_measurement_t dht22;
     uint8_t fan_duty_pct;
     uint16_t fan_rpm;
 } telemetry_record_t;

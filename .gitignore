@@ -78,6 +78,9 @@ target/
 # Jupyter Notebook
 .ipynb_checkpoints
 
+# Interactive menu persisted defaults
+deploy/.menu_defaults.env
+
 # IPython
 profile_default/
 ipython_config.py
@@ -237,7 +240,7 @@ SDV_Expandable_Fleet_ACME_CSE_SOP.md
 ACME_CSE_Collection_Optimisation_Specification.md
 generate_pdf_report.py
 
-# Generated Insomnia Sub-Collections (subsets of acme_fleet_insomnia_collection.yaml)
+# Insomnia Sub-Collections (subsets of acme_fleet_insomnia_collection.yaml)
 collections/environment_base_cse_collection.yaml
 collections/environment_base_cse_collections.yaml
 collections/single_vehicle_deploy_validation_collection.yaml
@@ -249,14 +252,22 @@ collections/enviroment_csenase_validation&verification_collection.yaml
 collections/split_collections_architecture_guide.md
 split_collections_architecture_guide.md
 
-# Testing Scripts
-testing/
-scripts/testing/
-
 # Scratch & temporary generation files
 scratch/
 
-# Confirmation Assessment PDF (untracked documentation)
-docs/architecture/confirmation_assessment_native_in_cse_route.pdf
-docs/architecture/confirmation_assessment_*.pdf
+# Confirmation Assessment PDF & internal documentation (untracked)
+docs/architecture/
+docs/assets/*
+!docs/assets/architecture_high_level.png
+!docs/assets/architecture_detailed.png
+!docs/assets/sdv_closed_loop_flow.png
+!docs/assets/sdv_tui_menu.png
+!docs/assets/sdv_menu_option2_deployment.png
+!docs/assets/sdv_base_cse_verification_success.png
+!docs/assets/sdv_acme_webui_tree.png
+!docs/assets/sdv_web_portal_cockpit.png
+!docs/assets/vehicle_resource_tree.png
+docs/specifications/
+docs/system_overview_and_component_specification.*
+docs/vehicle_resource_tree.json
 scripts/generate_confirmation_assessment_pdf.py

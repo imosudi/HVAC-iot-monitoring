@@ -1,12 +1,16 @@
 /**
  * ==============================================================================
  * Software-Defined Vehicle (SDV) Cyber-Physical Cabin Environmental Control
- * Frontend Interactivity and Real-Time Telemetry Client
+ * Frontend Interactivity and Real-Time Multi-Vehicle Telemetry Client
  * ==============================================================================
  */
 
+let currentVehicle = localStorage.getItem('sdv_active_vehicle') || null;
+let fleetVehicles = [];
+
 document.addEventListener('DOMContentLoaded', () => {
     initHudClock();
+    loadFleetVehicles();
     initTelemetryStream();
 });
 
@@ -70,26 +74,217 @@ function initHudClock() {
 }
 
 /**
+ * Displays a clean standby banner in the stream log when the Base CSE is in vanilla mode.
+ */
+function showVanillaBaseStreamMessage() {
+    const streamConsole = document.getElementById('streamConsole');
+    if (streamConsole) {
+        const nowStr = formatLocalDateTime(new Date());
+        streamConsole.innerHTML = `
+            <div class="text-warning font-monospace small mb-1">[${nowStr}] <strong>VANILLA BASE CSE ACTIVE:</strong> Strictly zero Application Entities (&lt;m2m:ae&gt;) registered under /sdv-cse.</div>
+            <div class="text-secondary font-monospace small">[${nowStr}] Transducer telemetry stream paused. Onboard an Application Entity via the <a href="/entities" class="text-fhtw-green text-decoration-none">Entity Provisioner Workbench</a> to begin real-time telemetry ingestion.</div>
+        `;
+    }
+}
+
+/**
+ * Discovers and renders the registered vehicles roster across the SDV fleet.
+ */
+async function loadFleetVehicles() {
+    try {
+        const response = await fetch('/api/vehicles');
+        if (!response.ok) return;
+        const data = await response.json();
+        fleetVehicles = (data.vehicles && Array.isArray(data.vehicles)) ? data.vehicles : [];
+        if (fleetVehicles.length > 0) {
+            if (!currentVehicle || !fleetVehicles.some(v => v.id === currentVehicle)) {
+                currentVehicle = fleetVehicles[0].id;
+            }
+            renderFleetDropdown(fleetVehicles);
+            renderVehiclePills(fleetVehicles);
+            selectActiveVehicle(currentVehicle);
+        } else {
+            currentVehicle = null;
+            localStorage.removeItem('sdv_active_vehicle');
+            renderFleetDropdown([]);
+            renderVehiclePills([]);
+            selectActiveVehicle(null);
+        }
+    } catch (err) {
+        console.debug('Fleet vehicles discovery poll failed:', err);
+    }
+}
+
+/**
+ * Selects the active vehicular node across the UI consoles.
+ */
+function selectActiveVehicle(carId) {
+    if (!carId || !fleetVehicles || fleetVehicles.length === 0) {
+        currentVehicle = null;
+        localStorage.removeItem('sdv_active_vehicle');
+
+        const globalBadge = document.getElementById('globalActiveVehicleBadge');
+        if (globalBadge) globalBadge.textContent = 'VANILLA BASE (0 AEs)';
+
+        const breadcrumbBadge = document.getElementById('breadcrumbVehicleBadge');
+        if (breadcrumbBadge) breadcrumbBadge.textContent = 'VANILLA BASE (0 AEs)';
+
+        const actuationBadge = document.getElementById('actuationTargetBadge');
+        if (actuationBadge) actuationBadge.textContent = 'NO ACTIVE AE';
+
+        const filterBadge = document.getElementById('logFilterBadge');
+        if (filterBadge) filterBadge.textContent = 'FILTER: NONE';
+
+        const pipelinePath = document.getElementById('pipelineCsePath');
+        if (pipelinePath) pipelinePath.textContent = '/sdv-cse (Vanilla Base • 0 AEs)';
+
+        const pipelineBadge = document.getElementById('pipelineCseBadge');
+        if (pipelineBadge) {
+            pipelineBadge.textContent = 'AWAITING AE';
+            pipelineBadge.className = 'badge bg-secondary text-white';
+        }
+
+        renderFleetDropdown([]);
+        renderVehiclePills([]);
+        showVanillaBaseStreamMessage();
+        return;
+    }
+
+    currentVehicle = carId;
+    localStorage.setItem('sdv_active_vehicle', carId);
+
+    // 1. Update global HUD badge in navigation bar
+    const globalBadge = document.getElementById('globalActiveVehicleBadge');
+    if (globalBadge) {
+        globalBadge.textContent = carId.toUpperCase();
+    }
+
+    // 2. Update breadcrumb badge on overview console
+    const breadcrumbBadge = document.getElementById('breadcrumbVehicleBadge');
+    if (breadcrumbBadge) {
+        breadcrumbBadge.textContent = carId.toUpperCase();
+    }
+
+    // 3. Update Downlink Actuation Controller target badge
+    const actuationBadge = document.getElementById('actuationTargetBadge');
+    if (actuationBadge) {
+        actuationBadge.textContent = `TARGET: ${carId}`;
+    }
+
+    // 4. Update stream filter badge
+    const filterBadge = document.getElementById('logFilterBadge');
+    if (filterBadge) {
+        filterBadge.textContent = `FILTER: ${carId}`;
+    }
+
+    // 5. Update pipeline CSE container path
+    const pipelinePath = document.getElementById('pipelineCsePath');
+    if (pipelinePath) {
+        const digits = carId.replace(/\D/g, '');
+        const suffix = digits ? `Car${digits.padStart(2, '0')}` : carId.replace('vehicle_', 'Car');
+        pipelinePath.textContent = `/sdv-cse/AE_CabinNode_${suffix}/cnt_raw_telemetry`;
+    }
+    const pipelineBadge = document.getElementById('pipelineCseBadge');
+    if (pipelineBadge) {
+        pipelineBadge.textContent = 'STORED';
+        pipelineBadge.className = 'badge bg-fhtw-green text-white';
+    }
+
+    // 6. Refresh active highlights in dropdown and pills
+    renderFleetDropdown(fleetVehicles);
+    renderVehiclePills(fleetVehicles);
+
+    // 7. Trigger immediate telemetry fetch for newly selected vehicle
+    if (typeof fetchActiveVehicleTelemetry === 'function') {
+        fetchActiveVehicleTelemetry();
+    }
+}
+
+/**
+ * Renders the vehicle items inside the global navigation dropdown.
+ */
+function renderFleetDropdown(vehicles) {
+    const listEl = document.getElementById('fleetVehicleMenuItems');
+    if (!listEl) return;
+
+    if (!vehicles || vehicles.length === 0) {
+        listEl.innerHTML = `
+            <li><span class="dropdown-item text-secondary disabled small"><i class="bi bi-info-circle me-2"></i>Zero AEs Registered</span></li>
+        `;
+        return;
+    }
+
+    listEl.innerHTML = vehicles.map(v => {
+        const isActive = v.id === currentVehicle;
+        return `
+            <li>
+                <a class="dropdown-item ${isActive ? 'active' : ''} d-flex align-items-center justify-content-between" 
+                   href="javascript:void(0)" 
+                   onclick="selectActiveVehicle('${v.id}')">
+                    <span>
+                        <i class="bi ${isActive ? 'bi-check2 text-success' : 'bi-truck text-secondary'} me-2"></i>
+                        <strong>${v.id}</strong> <span class="text-secondary small">(${v.ae_rn})</span>
+                    </span>
+                    ${isActive ? '<span class="badge bg-success-subtle text-success border border-success-subtle ms-2 font-monospace">ACTIVE</span>' : ''}
+                </a>
+            </li>
+        `;
+    }).join('');
+}
+
+/**
+ * Renders vehicle pill buttons on the overview console.
+ */
+function renderVehiclePills(vehicles) {
+    const pillsGroup = document.getElementById('vehiclePillsGroup');
+    if (!pillsGroup) return;
+
+    if (!vehicles || vehicles.length === 0) {
+        pillsGroup.innerHTML = `
+            <span class="badge bg-secondary font-monospace py-1 px-2">ZERO AEs REGISTERED</span>
+        `;
+        return;
+    }
+
+    pillsGroup.innerHTML = vehicles.map(v => {
+        const isActive = v.id === currentVehicle;
+        return `
+            <button type="button" 
+                    class="btn ${isActive ? 'btn-primary active' : 'btn-outline-primary'} font-monospace px-2 py-0" 
+                    onclick="selectActiveVehicle('${v.id}')">
+                ${v.name || v.id.toUpperCase()}
+            </button>
+        `;
+    }).join('');
+}
+
+let fetchActiveVehicleTelemetry = null;
+
+/**
  * Polls the backend API for real-time cabin telemetry metrics and updates the console.
  */
 function initTelemetryStream() {
     const streamConsole = document.getElementById('streamConsole');
     if (!streamConsole) return;
 
-    async function fetchTelemetry() {
+    fetchActiveVehicleTelemetry = async function() {
+        if (!currentVehicle || !fleetVehicles || fleetVehicles.length === 0) {
+            showVanillaBaseStreamMessage();
+            return;
+        }
         try {
-            const response = await fetch('/api/telemetry/latest');
+            const response = await fetch(`/api/telemetry/latest?car_id=${encodeURIComponent(currentVehicle)}`);
             if (!response.ok) return;
             const data = await response.json();
             updateTelemetryDisplay(data);
         } catch (err) {
             console.debug('Telemetry stream poll skipped:', err);
         }
-    }
+    };
 
     // Initial poll followed by 2-second interval
-    fetchTelemetry();
-    setInterval(fetchTelemetry, 2000);
+    fetchActiveVehicleTelemetry();
+    setInterval(fetchActiveVehicleTelemetry, 2000);
 }
 
 /**
@@ -100,46 +295,97 @@ function updateTelemetryDisplay(data) {
 
     // SCD30 CO2
     const co2El = document.getElementById('val-co2');
+    const co2Badge = document.getElementById('badge-co2');
     if (co2El && data.scd30.co2_ppm !== null && data.scd30.co2_ppm !== undefined) {
-        co2El.textContent = parseFloat(data.scd30.co2_ppm).toFixed(1);
+        const co2Val = parseFloat(data.scd30.co2_ppm);
+        co2El.textContent = co2Val.toFixed(1);
+        if (co2Badge) {
+            if (co2Val >= 800.0) {
+                co2Badge.textContent = 'PURGE';
+                co2Badge.className = 'badge bg-danger text-white font-monospace py-1 px-2';
+            } else {
+                co2Badge.textContent = 'NOMINAL';
+                co2Badge.className = 'badge bg-fhtw-green text-white font-monospace py-1 px-2';
+            }
+        }
     }
 
     // SCD30 Temperature
     const tempScdEl = document.getElementById('val-temp-scd30');
+    const tempBadge = document.getElementById('badge-temp-scd30');
     if (tempScdEl && data.scd30.temperature_c !== null && data.scd30.temperature_c !== undefined) {
-        tempScdEl.textContent = parseFloat(data.scd30.temperature_c).toFixed(1);
+        const tempVal = parseFloat(data.scd30.temperature_c);
+        tempScdEl.textContent = tempVal.toFixed(1);
+        if (tempBadge) {
+            if (tempVal < 18.0) {
+                tempBadge.textContent = 'COLD';
+                tempBadge.className = 'badge bg-warning text-dark font-monospace py-1 px-2';
+            } else if (tempVal > 30.0) {
+                tempBadge.textContent = 'HOT';
+                tempBadge.className = 'badge bg-danger text-white font-monospace py-1 px-2';
+            } else {
+                tempBadge.textContent = 'SCD30 OK';
+                tempBadge.className = 'badge bg-fhtw-green text-white font-monospace py-1 px-2';
+            }
+        }
     }
 
     // Relative Humidity
     const rhEl = document.getElementById('val-humidity');
+    const rhBadge = document.getElementById('badge-humidity');
     if (rhEl && data.scd30.humidity_pct !== null && data.scd30.humidity_pct !== undefined) {
-        rhEl.textContent = parseFloat(data.scd30.humidity_pct).toFixed(1);
+        const rhVal = parseFloat(data.scd30.humidity_pct);
+        rhEl.textContent = rhVal.toFixed(1);
+        if (rhBadge) {
+            if (rhVal < 30.0) {
+                rhBadge.textContent = 'LOW RH';
+                rhBadge.className = 'badge bg-warning text-dark font-monospace py-1 px-2';
+            } else if (rhVal > 60.0) {
+                rhBadge.textContent = 'HIGH RH';
+                rhBadge.className = 'badge bg-warning text-dark font-monospace py-1 px-2';
+            } else {
+                rhBadge.textContent = 'OPTIMAL';
+                rhBadge.className = 'badge bg-fhtw-green text-white font-monospace py-1 px-2';
+            }
+        }
     }
 
-    // Fan RPM and Duty
+    // Fan RPM, Duty & Expected Actuator Actions
     if (data.actuator_state) {
         const rpmEl = document.getElementById('val-fan-rpm');
         if (rpmEl && data.actuator_state.tachometer_rpm !== undefined) {
             rpmEl.textContent = data.actuator_state.tachometer_rpm;
         }
-        const dutyBadge = document.getElementById('badge-fan-duty');
+        const dutyBadge = document.getElementById('badge-fan-rpm');
         if (dutyBadge && data.actuator_state.pwm_duty_pct !== undefined) {
             dutyBadge.textContent = `DUTY: ${data.actuator_state.pwm_duty_pct}%`;
         }
     }
-
-    // DHT22 Cross-Check & Delta-T
-    if (data.dht22 && data.dht22.temperature_c !== null && data.scd30.temperature_c !== null) {
-        const deltaT = Math.abs(parseFloat(data.scd30.temperature_c) - parseFloat(data.dht22.temperature_c));
-        const deltaBadge = document.getElementById('badge-delta-t');
-        if (deltaBadge) {
-            deltaBadge.textContent = `ΔT: ${deltaT.toFixed(1)}°C`;
-            if (deltaT > 1.5) {
-                deltaBadge.className = 'badge bg-warning text-dark font-monospace py-0 px-2';
-            } else {
-                deltaBadge.className = 'badge bg-fhtw-green text-white font-monospace py-0 px-2';
-            }
+    const fanSubtextEl = document.getElementById('subtext-fan-rpm');
+    if (fanSubtextEl && data.scd30) {
+        const co2Val = parseFloat(data.scd30.co2_ppm);
+        const tempVal = parseFloat(data.scd30.temperature_c);
+        const rhVal = parseFloat(data.scd30.humidity_pct);
+        const actions = [];
+        let targetPwm = 25;
+        if (!Number.isNaN(co2Val) && co2Val >= 1500) {
+            actions.push('FAN ON');
+            targetPwm = 100;
+        } else if (!Number.isNaN(co2Val) && co2Val >= 1000) {
+            actions.push('FAN ON');
+            targetPwm = 75;
+        } else if (!Number.isNaN(co2Val) && co2Val >= 800) {
+            actions.push('FAN ON');
+            targetPwm = 50;
+        } else if (!Number.isNaN(tempVal) && tempVal < 19.0) {
+            targetPwm = 0;
         }
+        if (!Number.isNaN(tempVal) && tempVal < 18.0) actions.push('HEATER ON');
+        if (!Number.isNaN(tempVal) && tempVal > 30.0) actions.push('AC ON');
+        if (!Number.isNaN(rhVal) && rhVal < 30.0) actions.push('HUMIDIFIER ON');
+        if (!Number.isNaN(rhVal) && rhVal > 60.0) actions.push('DEHUMIDIFIER ON');
+        const actionSummary = actions.length > 0 ? actions.join(', ') : 'IDLE (Nominal)';
+        fanSubtextEl.textContent = `Expected: ${actionSummary} | Target PWM: ${targetPwm}%`;
     }
 
     // Health State Badge
@@ -181,13 +427,14 @@ function appendStreamLog(data) {
     const stateClass = state === 'FRESH' ? 'text-success' : (state === 'FAULT' ? 'text-danger' : 'text-warning');
     const co2 = data.scd30 ? (data.scd30.co2_ppm || 'N/A') : 'N/A';
     const tScd = data.scd30 ? (data.scd30.temperature_c || 'N/A') : 'N/A';
-    const tDht = data.dht22 ? (data.dht22.temperature_c || 'N/A') : 'N/A';
+    const rhScd = data.scd30 ? (data.scd30.humidity_pct || 'N/A') : 'N/A';
     const pwm = data.actuator_state ? data.actuator_state.pwm_duty_pct : 25;
     const rpm = data.actuator_state ? data.actuator_state.tachometer_rpm : 980;
+    const carId = data.car_id || currentVehicle || 'vehicle_01';
 
     const logLine = document.createElement('div');
     logLine.className = 'text-muted py-0.5 border-bottom border-grid-subtle';
-    logLine.innerHTML = `[${timeStr}] <span class="text-info">INGRESS</span> car_id=${data.car_id || 'vehicle_01'} CO2=${co2}ppm T_scd30=${tScd}°C T_dht22=${tDht}°C PWM=${pwm}% RPM=${rpm} &rarr; <span class="${stateClass} fw-bold">state=${state}</span>`;
+    logLine.innerHTML = `[${timeStr}] <span class="text-info">INGRESS</span> car_id=<strong>${carId}</strong> CO2=${co2}ppm T_scd30=${tScd}°C RH=${rhScd}% PWM=${pwm}% RPM=${rpm} &rarr; <span class="${stateClass} fw-bold">state=${state}</span>`;
 
     streamConsole.insertBefore(logLine, streamConsole.firstChild);
 
@@ -198,7 +445,7 @@ function appendStreamLog(data) {
 }
 
 /**
- * Dispatches an actuator command directive to the backend via POST.
+ * Dispatches an actuator command directive to the backend via POST targeting the active vehicle.
  */
 async function dispatchActuation() {
     const pwmSlider = document.getElementById('pwmSlider');
@@ -210,13 +457,14 @@ async function dispatchActuation() {
 
     try {
         if (statusFeedback) {
-            statusFeedback.innerHTML = '<span class="text-info font-monospace small"><i class="bi bi-arrow-repeat spin me-1"></i>Dispatching directive to oneM2M CSE...</span>';
+            statusFeedback.innerHTML = `<span class="text-info font-monospace small"><i class="bi bi-arrow-repeat spin me-1"></i>Dispatching directive for ${currentVehicle} to oneM2M CSE...</span>`;
         }
 
         const response = await fetch('/api/actuator/dispatch', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
+                car_id: currentVehicle,
                 target_pwm: pwm,
                 mode: mode,
                 source_entity: 'WebPortal_Console'
@@ -226,7 +474,7 @@ async function dispatchActuation() {
         const result = await response.json();
         if (response.ok) {
             if (statusFeedback) {
-                statusFeedback.innerHTML = `<span class="text-success font-monospace small"><i class="bi bi-check-circle me-1"></i>Directive dispatched [HTTP ${result.status_code || 201}]: PWM=${pwm}%, Mode=${mode}</span>`;
+                statusFeedback.innerHTML = `<span class="text-success font-monospace small"><i class="bi bi-check-circle me-1"></i>Directive dispatched to ${result.car_id || currentVehicle} [HTTP ${result.status_code || 201}]: PWM=${pwm}%, Mode=${mode}</span>`;
             }
         } else {
             if (statusFeedback) {
@@ -241,10 +489,10 @@ async function dispatchActuation() {
 }
 
 /**
- * Triggers emergency shutdown of cabin ventilation.
+ * Triggers emergency shutdown of cabin ventilation on the active vehicle.
  */
 async function triggerEStop() {
-    if (!confirm('CONFIRM IMMEDIATE EMERGENCY SHUTDOWN OF CABIN VENTILATION ACTUATORS?')) {
+    if (!confirm(`CONFIRM IMMEDIATE EMERGENCY SHUTDOWN OF CABIN VENTILATION ACTUATORS FOR ${currentVehicle.toUpperCase()}?`)) {
         return;
     }
 
@@ -264,6 +512,7 @@ async function triggerEStop() {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
+                car_id: currentVehicle,
                 target_pwm: 0,
                 mode: 'MANUAL',
                 source_entity: 'WebPortal_EStop'
@@ -271,7 +520,7 @@ async function triggerEStop() {
         });
         const result = await response.json();
         if (statusFeedback) {
-            statusFeedback.innerHTML = '<span class="badge bg-danger rounded-0 font-monospace p-2 w-100"><i class="bi bi-slash-circle me-1"></i>E-STOP ENGAGED: ACTUATOR PWM FORCED TO 0%</span>';
+            statusFeedback.innerHTML = `<span class="badge bg-danger rounded-0 font-monospace p-2 w-100"><i class="bi bi-slash-circle me-1"></i>E-STOP ENGAGED FOR ${currentVehicle.toUpperCase()}: ACTUATOR PWM FORCED TO 0%</span>`;
         }
     } catch (err) {
         console.error('E-Stop dispatch error:', err);

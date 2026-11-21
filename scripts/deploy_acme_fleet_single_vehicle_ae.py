@@ -33,13 +33,34 @@ Functionality:
 import argparse
 import json
 import os
+import socket
 import sys
 import time
 import urllib.error
 import urllib.request
+from pathlib import Path
 
-API_ID = "N.org.fhtw.sdv.cabin"
-RVI = "3"
+
+def _load_env_file():
+    """Dynamically loads configuration from root or deploy .env files."""
+    root = Path(__file__).resolve().parent.parent
+    for env_path in [root / ".env", root / "deploy" / ".env"]:
+        if env_path.exists():
+            with open(env_path, "r", encoding="utf-8") as f:
+                for line in f:
+                    clean = line.strip()
+                    if clean and not clean.startswith("#") and "=" in clean:
+                        k, v = clean.split("=", 1)
+                        k = k.strip()
+                        v = v.strip().strip("'\"")
+                        if k and k not in os.environ:
+                            os.environ[k] = v
+
+
+_load_env_file()
+
+API_ID = os.getenv("API_ID", "N.org.fhtw.sdv.cabin")
+RVI = os.getenv("RVI", os.getenv("ONEM2M_RVI", "3"))
 
 SENSOR_MANIFEST = [
     {"name": "temperature-cabin", "measurement": "temperature", "location": "cabin", "unit": "Cel"},
@@ -71,20 +92,24 @@ def request_m2m(url: str, method: str = "GET", payload: dict = None, ty: int = N
             ct += f";ty={ty}"
         headers["Content-Type"] = ct
 
-    req = urllib.request.Request(url, data=data, headers=headers, method=method)
-    try:
-        with urllib.request.urlopen(req, timeout=10) as resp:
-            body = resp.read().decode("utf-8")
-            return resp.status, json.loads(body) if body else {}
-    except urllib.error.HTTPError as e:
-        body = e.read().decode("utf-8")
+    for attempt in range(1, 5):
+        req = urllib.request.Request(url, data=data, headers=headers, method=method)
         try:
-            parsed = json.loads(body)
-        except Exception:
-            parsed = {"raw": body}
-        return e.code, parsed
-    except Exception as e:
-        return 0, {"error": str(e)}
+            with urllib.request.urlopen(req, timeout=15) as resp:
+                body = resp.read().decode("utf-8")
+                return resp.status, json.loads(body) if body else {}
+        except urllib.error.HTTPError as e:
+            body = e.read().decode("utf-8")
+            try:
+                parsed = json.loads(body)
+            except Exception:
+                parsed = {"raw": body}
+            return e.code, parsed
+        except Exception as e:
+            if attempt < 4:
+                time.sleep(1.5)
+                continue
+            return 0, {"error": str(e)}
 
 def parse_arguments():
     parser = argparse.ArgumentParser(
@@ -102,19 +127,31 @@ def parse_arguments():
         help="Vehicle Identification Number (default: generated based on vehicle-id)"
     )
     parser.add_argument(
+        "--target", "-t",
+        choices=["localhost", "remote"],
+        default=os.getenv("DEPLOY_TARGET", "localhost"),
+        help="Deployment topology target (localhost or remote)"
+    )
+    parser.add_argument(
+        "--base-host", "--base-cse-host",
+        dest="base_host",
+        default=None,
+        help="Base CSE host or IP address"
+    )
+    parser.add_argument(
         "--host",
-        default=os.getenv("ACME_HOST", "192.168.122.91"),
+        default=os.getenv("BASE_CSE_HOST", os.getenv("ACME_HOST", os.getenv("CSE_HOST", os.getenv("GATEWAY_IP", "127.0.0.1")))),
         help="ACME CSE hostname or IP address"
     )
     parser.add_argument(
         "--port", "-p",
         type=int,
-        default=int(os.getenv("ACME_PORT", "8080")),
+        default=int(os.getenv("ACME_PORT", os.getenv("ONEM2M_PORT", "8080"))),
         help="ACME CSE HTTP port"
     )
     parser.add_argument(
         "--cse-rn",
-        default="cse-in",
+        default=os.getenv("ONEM2M_CSE_NAME", os.getenv("CSE_RN", "sdv-cse")),
         help="Root CSEBase Resource Name"
     )
     parser.add_argument(
@@ -179,10 +216,35 @@ def main():
     args = parse_arguments()
     vehicle_id = args.vehicle_id
     vin = args.vin or f"VIN-WAUZZZ-SDV-2026-{vehicle_id.split('-')[-1].zfill(4)}"
-    base_url = f"http://{args.host}:{args.port}"
+
+    # Prioritise explicit command-line host or base-host arguments
+    cli_host_provided = any(arg in sys.argv for arg in ("--base-host", "--base-cse-host", "--host"))
+    if args.base_host:
+        target_host = args.base_host
+    elif args.host and cli_host_provided:
+        target_host = args.host
+    elif args.target == "localhost" and not os.getenv("ACME_HOST"):
+        target_host = "localhost"
+    else:
+        target_host = args.base_host or args.host or "localhost"
+
+    # Reachability detection with graceful localhost fallback
+    def _is_host_reachable(host: str, port: int) -> bool:
+        try:
+            with socket.create_connection((host, port), timeout=2.0):
+                return True
+        except (socket.timeout, OSError):
+            return False
+
+    if not _is_host_reachable(target_host, args.port):
+        if not cli_host_provided and target_host not in ("localhost", "127.0.0.1") and _is_host_reachable("localhost", args.port):
+            log("NOTICE", f"Host '{target_host}' unreachable. Falling back to localhost.", "33")
+            target_host = "localhost"
+
+    base_url = f"http://{target_host}:{args.port}"
     cse_rn = args.cse_rn
     originator = args.originator
-    notif_base = args.notification_host or base_url
+    notif_base = args.notification_host or "http://bridge_ae:5000"
 
     print("=" * 80)
     print("  SDV VEHICLE ONBOARDING: ACME oneM2M CSE SINGLE AE PROVISIONER")
@@ -232,9 +294,9 @@ def main():
         sys.exit(1)
 
     # -------------------------------------------------------------------------
-    # STEP 2: Reconcile 8 Manifest Containers
+    # STEP 2: Reconcile 8 Manifest oneM2M Containers (<cnt>)
     # -------------------------------------------------------------------------
-    log("STEP 2", f"Reconciling 8 Manifest Containers for {vehicle_id} (mia: 86400)...", "36")
+    log("STEP 2", f"Reconciling 8 oneM2M <container> (Type 3) Resources for {vehicle_id} (mia: 86400)...", "36")
     reconciled_cnts = {}
     for cnt_def in SENSOR_MANIFEST:
         c_name = cnt_def["name"]
@@ -252,6 +314,8 @@ def main():
                 "lbl": ["sensor", cnt_def["location"], cnt_def["measurement"], vehicle_id]
             }
         }
+        if c_name == "raw-telemetry":
+            cnt_payload["m2m:cnt"]["acpi"] = [f"/id-sdv/{cse_rn}/acp_fleet_manager"]
         c_status, c_res = request_m2m(
             f"{base_url}/{cse_rn}/{vehicle_id}",
             method="POST",
@@ -262,9 +326,16 @@ def main():
         if c_status == 201:
             cnt_ri = c_res["m2m:cnt"]["ri"]
             reconciled_cnts[c_name] = cnt_ri
-            log("CREATED", f"  -> Container: {c_name:<22} (mni={mni:<4}, mia=86400, RI={cnt_ri})", "32")
+            log("CREATED", f"  -> oneM2M <cnt>: {c_name:<20} (mni={mni:<4}, mia=86400, RI={cnt_ri})", "32")
         elif c_status == 409:
-            log("VERIFIED", f"  -> Container: {c_name:<22} (already provisioned)", "34")
+            if c_name == "raw-telemetry":
+                request_m2m(
+                    f"{base_url}/{cse_rn}/{vehicle_id}/{c_name}",
+                    method="PUT",
+                    payload={"m2m:cnt": {"acpi": [f"/id-sdv/{cse_rn}/acp_fleet_manager"]}},
+                    origin=originator,
+                )
+            log("VERIFIED", f"  -> oneM2M <cnt>: {c_name:<20} (already provisioned)", "34")
             reconciled_cnts[c_name] = "existing"
         else:
             log("WARN", f"  -> Failed to provision {c_name}: HTTP {c_status} {c_res}", "33")
@@ -276,7 +347,7 @@ def main():
     subscriptions = [
         {"rn": "sub_co_alert", "target_cnt": "co-cabin", "nu": f"{notif_base}/emergency-monitor"},
         {"rn": "sub_fleet_telemetry", "target_cnt": "raw-telemetry", "nu": f"{notif_base}/fleet-ingest"},
-        {"rn": "sub_downlink", "target_cnt": "commands", "nu": f"{notif_base}/downlink"}
+        {"rn": "sub_downlink", "target_cnt": "commands", "nu": f"mqtt://mosquitto:1883/sdv/{vehicle_id}/control/cmd"}
     ]
 
     for sub in subscriptions:
@@ -298,7 +369,13 @@ def main():
         if s_status == 201:
             log("SUBSCRIPTION", f"  -> Created {sub['rn']:<20} on {sub['target_cnt']} (RI: {s_res['m2m:sub']['ri']})", "32")
         elif s_status == 409:
-            log("SUBSCRIPTION", f"  -> Verified {sub['rn']:<19} on {sub['target_cnt']} (already active)", "34")
+            put_status, _ = request_m2m(
+                f"{base_url}/{cse_rn}/{vehicle_id}/{sub['target_cnt']}/{sub['rn']}",
+                method="PUT",
+                payload={"m2m:sub": {"nu": [sub["nu"]]}},
+                origin=originator
+            )
+            log("SUBSCRIPTION", f"  -> Verified {sub['rn']:<19} on {sub['target_cnt']} (already active, sync PUT={put_status})", "34")
         else:
             log("WARN", f"  -> Subscription {sub['rn']} status {s_status}: {s_res}", "33")
 
@@ -476,11 +553,12 @@ def main():
         print(f"  Resource ID (RI):    {ae_data.get('ri')}")
         print(f"  Assigned AEI:        {ae_data.get('aei')}")
         print(f"  Labels:              {ae_data.get('lbl')}")
-        print(f"  Expected Containers: {len(manifest_names)}")
-        print(f"  Verified Count:      {len(verified)} / {len(manifest_names)}")
-        print(f"  Verified Names:      {verified}")
-        print(f"  Missing Names:       {missing}")
-        print(f"  Audit Status:        {'PASSED - 100% RECONCILED' if len(missing) == 0 else 'FAILED'}")
+        print(f"  Expected oneM2M <cnt>: {len(manifest_names)} (Type 3 Resource Nodes)")
+        print(f"  Verified Count:        {len(verified)} / {len(manifest_names)}")
+        print(f"  Verified Names:        {verified}")
+        print(f"  Missing Names:         {missing}")
+        print(f"  Audit Status:          {'PASSED - 100% RECONCILED' if len(missing) == 0 else 'FAILED'}")
+        print("  Note: oneM2M <cnt> resources reside inside Base CSE (not local Docker ps)")
         print("=" * 60 + "\n")
 
     log("COMPLETE", f"Vehicle Application Entity '{vehicle_id}' successfully deployed to ACME CSE!\n", "32")

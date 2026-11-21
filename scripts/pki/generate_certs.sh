@@ -25,6 +25,14 @@ openssl ecparam -name prime256v1 -genkey -noout -out server.key
 openssl req -new -key server.key -out server.csr \
     -subj "/C=AT/ST=Vienna/L=Vienna/O=FH Technikum Wien/OU=MEC-Gateway/CN=mosquitto.sdv.local"
 
+# Source environment to discover configured remote hosts
+ENV_FILE="${SCRIPT_DIR}/../../deploy/.env"
+if [ -f "${ENV_FILE}" ]; then
+    set -a
+    source <(grep -v '^#' "${ENV_FILE}" | grep -v '^[[:space:]]*$' || true)
+    set +a
+fi
+
 cat > server_ext.cnf <<EOF
 authorityKeyIdentifier=keyid,issuer
 basicConstraints=CA:FALSE
@@ -39,6 +47,22 @@ DNS.4 = sdv_mosquitto_broker
 IP.1 = 127.0.0.1
 EOF
 
+# Append detected host IP and configured BASE_CSE_HOST if present and unique
+DETECTED_IP="$(hostname -I 2>/dev/null | awk '{print $1}' || true)"
+NEXT_IP_IDX=2
+if [ -n "${DETECTED_IP}" ] && [ "${DETECTED_IP}" != "127.0.0.1" ]; then
+    echo "IP.${NEXT_IP_IDX} = ${DETECTED_IP}" >> server_ext.cnf
+    NEXT_IP_IDX=$((NEXT_IP_IDX + 1))
+fi
+
+if [ -n "${BASE_CSE_HOST:-}" ] && [ "${BASE_CSE_HOST}" != "localhost" ] && [ "${BASE_CSE_HOST}" != "127.0.0.1" ] && [ "${BASE_CSE_HOST}" != "${DETECTED_IP}" ]; then
+    if [[ "${BASE_CSE_HOST}" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+        echo "IP.${NEXT_IP_IDX} = ${BASE_CSE_HOST}" >> server_ext.cnf
+    else
+        echo "DNS.5 = ${BASE_CSE_HOST}" >> server_ext.cnf
+    fi
+fi
+
 openssl x509 -req -in server.csr -CA ca.crt -CAkey ca.key -CAcreateserial \
     -out server.crt -days 730 -extfile server_ext.cnf
 
@@ -50,13 +74,13 @@ openssl req -new -key client_esp32.key -out client_esp32.csr \
 openssl x509 -req -in client_esp32.csr -CA ca.crt -CAkey ca.key -CAcreateserial \
     -out client_esp32.crt -days 730
 
-echo "[INFO] Generating Node-RED Ingress IPE client certificate..."
-openssl ecparam -name prime256v1 -genkey -noout -out client_nodered.key
-openssl req -new -key client_nodered.key -out client_nodered.csr \
-    -subj "/C=AT/ST=Vienna/L=Vienna/O=FH Technikum Wien/OU=MEC-IPE/CN=nodered_ipe_gateway"
+echo "[INFO] Generating ACME IN-CSE / ACMEScripts client certificate..."
+openssl ecparam -name prime256v1 -genkey -noout -out client_acme_cse.key
+openssl req -new -key client_acme_cse.key -out client_acme_cse.csr \
+    -subj "/C=AT/ST=Vienna/L=Vienna/O=FH Technikum Wien/OU=MEC-ACMEScripts/CN=acme_cse_scripts"
 
-openssl x509 -req -in client_nodered.csr -CA ca.crt -CAkey ca.key -CAcreateserial \
-    -out client_nodered.crt -days 730
+openssl x509 -req -in client_acme_cse.csr -CA ca.crt -CAkey ca.key -CAcreateserial \
+    -out client_acme_cse.crt -days 730
 
 # Clean up CSRs and temporary files
 rm -f *.csr server_ext.cnf

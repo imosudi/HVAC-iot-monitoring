@@ -14,7 +14,7 @@
       "spid": "//acme.mioemi.com",
       "cst": 1,
       "srv": ["2a", "3", "4"],
-      "poa": ["http://192.168.122.91:8080"]
+      "poa": ["http://${GATEWAY_IP:-192.168.122.91}:${ONEM2M_PORT:-8080}"]
     }
   },
   "fleet_management": {
@@ -157,7 +157,7 @@
                     "ri": "sub_v001_co_01",
                     "ty": 23,
                     "pi": "cnt_v001_co",
-                    "nu": ["http://192.168.122.91:8080/emergency-monitor"],
+                    "nu": ["http://${GATEWAY_IP:-192.168.122.91}:${ONEM2M_PORT:-8080}/emergency-monitor"],
                     "nct": 1,
                     "enc": {
                       "net": [3]
@@ -235,7 +235,7 @@
                     "ri": "sub_v001_raw_01",
                     "ty": 23,
                     "pi": "cnt_v001_raw",
-                    "nu": ["http://192.168.122.91:8080/fleet-ingest"],
+                    "nu": ["http://${GATEWAY_IP:-192.168.122.91}:${ONEM2M_PORT:-8080}/fleet-ingest"],
                     "nct": 1,
                     "enc": {
                       "net": [3]

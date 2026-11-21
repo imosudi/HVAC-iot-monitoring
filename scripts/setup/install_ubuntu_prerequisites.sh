@@ -189,6 +189,22 @@ audit_requirements() {
         missing=$((missing + 1))
     fi
 
+    # Check Git
+    if command -v git >/dev/null 2>&1; then
+        log_ok "Git: $(git --version)"
+    else
+        log_error "Missing tool: 'git' not found."
+        missing=$((missing + 1))
+    fi
+
+    # Check Ping
+    if command -v ping >/dev/null 2>&1; then
+        log_ok "Ping utility (iputils-ping) found."
+    else
+        log_warn "'ping' utility not found."
+        missing=$((missing + 1))
+    fi
+
     return ${missing}
 }
 
@@ -227,6 +243,7 @@ apt-get install -y --no-install-recommends \
     gnupg \
     lsb-release \
     make \
+    iputils-ping \
     openssl \
     jq \
     git \

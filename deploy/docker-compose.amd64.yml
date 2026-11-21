@@ -1,0 +1,8 @@
+# Architecture override for x86_64 / amd64 hosts:
+# Uses the pre-built upstream ankraft/acme-onem2m-cse:latest image on amd64,
+# while arm64 / aarch64 hosts build natively from ./onem2m/Dockerfile.
+services:
+  onem2m_cse:
+    image: ankraft/acme-onem2m-cse:latest
+    platform: linux/amd64
+

@@ -122,3 +122,96 @@ class TestHealthClassifier:
 
         assert state == HealthState.FAULT
 
+    def test_thermal_derivative_calculation(self, classifier):
+        """Verifies calculation of temporal derivative dT_cabin/dt and differential against exterior."""
+        # Initial observation establishes baseline
+        dt_cabin_1, dt_diff_1 = classifier.compute_thermal_derivative(
+            car_id="vehicle_01",
+            current_temp_c=21.0,
+            timestamp_unix_s=1715000000,
+            ext_temp_c=18.0
+        )
+        assert dt_cabin_1 is None
+        assert dt_diff_1 is None
+
+        # Second observation (+1.0°C cabin, +0.5°C exterior over 10 seconds)
+        dt_cabin_2, dt_diff_2 = classifier.compute_thermal_derivative(
+            car_id="vehicle_01",
+            current_temp_c=22.0,
+            timestamp_unix_s=1715000010,
+            ext_temp_c=18.5
+        )
+        assert pytest.approx(dt_cabin_2, 0.001) == 0.10  # 1.0°C / 10s = 0.10 °C/s
+        assert pytest.approx(dt_diff_2, 0.001) == 0.05   # 0.10 - 0.05 = 0.05 °C/s
+
+        # Third observation cooling (-0.5°C cabin, constant exterior over 10 seconds)
+        dt_cabin_3, dt_diff_3 = classifier.compute_thermal_derivative(
+            car_id="vehicle_01",
+            current_temp_c=21.5,
+            timestamp_unix_s=1715000020,
+            ext_temp_c=18.5
+        )
+        assert pytest.approx(dt_cabin_3, 0.001) == -0.05
+        assert pytest.approx(dt_diff_3, 0.001) == -0.05
+
+    def test_blower_motor_stall_heuristic_boundaries(self, classifier, nominal_telemetry_frame):
+        """Verifies precise boundary transitions for blower motor stall/slip detection."""
+        sample_time = nominal_telemetry_frame["timestamp_unix_s"]
+
+        # Boundary A: PWM 29% (< 30% threshold) with 0 RPM is not flagged as blower stall
+        nominal_telemetry_frame["actuator_state"] = {"pwm_duty_pct": 29, "tachometer_rpm": 0}
+        state, _, _ = classifier.evaluate_frame(nominal_telemetry_frame, eval_time_unix_s=sample_time + 0.5)
+        assert state == HealthState.FRESH
+
+        # Boundary B: PWM 30% with 99 RPM (< 100 RPM threshold) flags FAULT
+        nominal_telemetry_frame["actuator_state"] = {"pwm_duty_pct": 30, "tachometer_rpm": 99}
+        state, _, _ = classifier.evaluate_frame(nominal_telemetry_frame, eval_time_unix_s=sample_time + 0.5)
+        assert state == HealthState.FAULT
+
+        # Boundary C: PWM 30% with 100 RPM (threshold met) evaluates to FRESH
+        nominal_telemetry_frame["actuator_state"] = {"pwm_duty_pct": 30, "tachometer_rpm": 100}
+        state, _, _ = classifier.evaluate_frame(nominal_telemetry_frame, eval_time_unix_s=sample_time + 0.5)
+        assert state == HealthState.FRESH
+
+    def test_scd30_only_nominal_frame_evaluates_to_fresh(self, classifier):
+        sample_time = 1715000000
+        payload = {
+            "car_id": "vehicle-001",
+            "zone": "cabin_front",
+            "timestamp_unix_s": sample_time,
+            "sensor_profile": "scd30_only",
+            "scd30": {"co2_ppm": 612.0, "temperature_c": 22.3, "humidity_pct": 46.5},
+        }
+        state, tau_age, delta_t = classifier.evaluate_frame(payload, eval_time_unix_s=sample_time + 0.5)
+        assert state == HealthState.FRESH
+        assert pytest.approx(tau_age, 0.01) == 0.5
+        assert delta_t is None
+
+    def test_scd30_only_crc_retry_evaluates_to_degraded(self, classifier):
+        sample_time = 1715000000
+        payload = {
+            "car_id": "vehicle-001",
+            "zone": "cabin_front",
+            "timestamp_unix_s": sample_time,
+            "sensor_profile": "scd30_only",
+            "scd30": {"co2_ppm": 612.0, "temperature_c": 22.3, "humidity_pct": 46.5, "crc_retry": True},
+        }
+        state, _, delta_t = classifier.evaluate_frame(payload, eval_time_unix_s=sample_time + 0.5)
+        assert state == HealthState.DEGRADED
+        assert delta_t is None
+
+    def test_scd30_only_nan_or_missing_humidity_evaluates_to_fault(self, classifier):
+        sample_time = 1715000000
+        payload = {
+            "car_id": "vehicle-001",
+            "zone": "cabin_front",
+            "timestamp_unix_s": sample_time,
+            "sensor_profile": "scd30_only",
+            "scd30": {"co2_ppm": 612.0, "temperature_c": 22.3, "humidity_pct": float("nan")},
+        }
+        state, _, delta_t = classifier.evaluate_frame(payload, eval_time_unix_s=sample_time + 0.5)
+        assert state == HealthState.FAULT
+        assert delta_t is None
+
+
+

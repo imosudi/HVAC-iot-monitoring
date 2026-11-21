@@ -29,13 +29,34 @@ Capabilities:
 import argparse
 import json
 import os
+import socket
 import sys
 import time
 import urllib.error
 import urllib.request
+from pathlib import Path
 
-API_ID = "N.org.fhtw.sdv.cabin"
-RVI = "3"
+
+def _load_env_file():
+    """Dynamically loads configuration from root or deploy .env files."""
+    root = Path(__file__).resolve().parent.parent
+    for env_path in [root / ".env", root / "deploy" / ".env"]:
+        if env_path.exists():
+            with open(env_path, "r", encoding="utf-8") as f:
+                for line in f:
+                    clean = line.strip()
+                    if clean and not clean.startswith("#") and "=" in clean:
+                        k, v = clean.split("=", 1)
+                        k = k.strip()
+                        v = v.strip().strip("'\"")
+                        if k and k not in os.environ:
+                            os.environ[k] = v
+
+
+_load_env_file()
+
+API_ID = os.getenv("API_ID", "N.org.fhtw.sdv.cabin")
+RVI = os.getenv("RVI", os.getenv("ONEM2M_RVI", "3"))
 
 SENSOR_MANIFEST = [
     {"name": "temperature-cabin", "measurement": "temperature", "location": "cabin", "unit": "Cel"},
@@ -88,19 +109,31 @@ def parse_arguments():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
     parser.add_argument(
+        "--target", "-t",
+        choices=["localhost", "remote"],
+        default=os.getenv("DEPLOY_TARGET", "localhost"),
+        help="Deployment topology target (localhost or remote)"
+    )
+    parser.add_argument(
+        "--base-host", "--base-cse-host",
+        dest="base_host",
+        default=None,
+        help="Base CSE host or IP address"
+    )
+    parser.add_argument(
         "--host",
-        default=os.getenv("ACME_HOST", "192.168.122.91"),
+        default=os.getenv("BASE_CSE_HOST", os.getenv("ACME_HOST", os.getenv("CSE_HOST", os.getenv("GATEWAY_IP", "127.0.0.1")))),
         help="ACME CSE hostname or IP address"
     )
     parser.add_argument(
         "--port", "-p",
         type=int,
-        default=int(os.getenv("ACME_PORT", "8080")),
+        default=int(os.getenv("ACME_PORT", os.getenv("ONEM2M_PORT", "8080"))),
         help="ACME CSE HTTP port"
     )
     parser.add_argument(
         "--cse-rn",
-        default="cse-in",
+        default=os.getenv("ONEM2M_CSE_NAME", os.getenv("CSE_RN", "sdv-cse")),
         help="Target Root CSEBase Resource Name"
     )
     parser.add_argument(
@@ -299,7 +332,24 @@ def onboard_vehicle(base_url: str, cse_rn: str, vehicle_id: str, vin: str = None
 
 def main():
     args = parse_arguments()
-    base_url = f"http://{args.host}:{args.port}"
+    target_host = args.base_host or args.host
+    if args.target == "localhost" and not args.base_host and not os.getenv("ACME_HOST"):
+        target_host = "localhost"
+
+    # Reachability detection with graceful localhost fallback
+    def _is_host_reachable(host: str, port: int) -> bool:
+        try:
+            with socket.create_connection((host, port), timeout=0.8):
+                return True
+        except (socket.timeout, OSError):
+            return False
+
+    if not _is_host_reachable(target_host, args.port):
+        if target_host not in ("localhost", "127.0.0.1") and _is_host_reachable("localhost", args.port):
+            log("NOTICE", f"Host '{target_host}' unreachable. Falling back to localhost.", "33")
+            target_host = "localhost"
+
+    base_url = f"http://{target_host}:{args.port}"
     cse_rn = args.cse_rn
     originator = args.originator
     acp_name = args.acp_name
@@ -343,7 +393,7 @@ def main():
             "pv": {
                 "acr": [
                     {"acor": [originator], "acop": 63},
-                    {"acor": ["C_vehicle_nodes"], "acop": 35}
+                    {"acor": ["C_vehicle_nodes", "C*"], "acop": 35}
                 ]
             },
             "pvs": {
@@ -357,7 +407,13 @@ def main():
     if status == 201:
         log("SUCCESS", f"Created ACP '{acp_name}' (RI: {res['m2m:acp']['ri']})", "32")
     elif status == 409:
-        log("IDEMPOTENT", f"ACP '{acp_name}' already active on CSE (HTTP 409)", "34")
+        put_status, _ = request_m2m(
+            f"{base_url}/{cse_rn}/{acp_name}",
+            method="PUT",
+            payload={"m2m:acp": {"pv": acp_payload["m2m:acp"]["pv"], "pvs": acp_payload["m2m:acp"]["pvs"]}},
+            origin=originator,
+        )
+        log("IDEMPOTENT", f"ACP '{acp_name}' already active on CSE (HTTP 409, sync PUT={put_status})", "34")
     else:
         log("WARN", f"Unexpected status {status} for ACP creation: {res}", "33")
 

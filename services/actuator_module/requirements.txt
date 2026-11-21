@@ -1,0 +1,4 @@
+pyserial>=3.5
+paho-mqtt>=2.0.0
+requests>=2.31.0
+jsonschema>=4.20.0

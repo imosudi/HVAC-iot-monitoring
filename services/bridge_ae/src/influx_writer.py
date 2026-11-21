@@ -75,7 +75,9 @@ class InfluxWriter:
         payload: Dict[str, Any],
         health_state: HealthState,
         tau_age: float,
-        delta_t: Optional[float]
+        delta_t: Optional[float],
+        dt_derivative: Optional[float] = None,
+        dt_diff_derivative: Optional[float] = None
     ):
         """Converts structured telemetry frame into InfluxDB line-protocol points."""
         if not self.write_api:
@@ -84,12 +86,17 @@ class InfluxWriter:
 
         car_id = payload.get("car_id", "unknown_vehicle")
         zone = payload.get("zone", "cabin_front")
+        sensor_profile = payload.get(
+            "sensor_profile",
+            "scd30_dht22" if payload.get("dht22") is not None else "scd30_only",
+        )
         timestamp_s = payload.get("timestamp_unix_s", 0)
 
         point = (
             Point("cabin_environment")
             .tag("car_id", car_id)
             .tag("zone", zone)
+            .tag("sensor_profile", sensor_profile)
             .tag("health_state", health_state.value)
             .field("tau_age_s", float(tau_age))
             .time(int(timestamp_s * 1e9), WritePrecision.NS)
@@ -97,6 +104,12 @@ class InfluxWriter:
 
         if delta_t is not None:
             point.field("delta_t_c", float(delta_t))
+
+        if dt_derivative is not None:
+            point.field("dt_cabin_c_per_s", float(dt_derivative))
+
+        if dt_diff_derivative is not None:
+            point.field("dt_diff_c_per_s", float(dt_diff_derivative))
 
         # Under FAULT regimes, omit corrupt numerical values to prevent false aggregation
         if health_state != HealthState.FAULT:

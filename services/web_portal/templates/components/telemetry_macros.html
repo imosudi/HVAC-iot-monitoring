@@ -31,6 +31,8 @@
     <span class="badge bg-warning text-dark font-monospace px-2 py-1" id="badge-health-state"><i class="bi bi-clock-history me-1"></i>STALE (&tau; &gt; 2.5s)</span>
 {% elif state == 'DEGRADED' %}
     <span class="badge bg-warning text-dark font-monospace px-2 py-1" id="badge-health-state" style="background-color: #e67e22 !important; color: #fff !important;"><i class="bi bi-exclamation-triangle me-1"></i>DEGRADED (&Delta;T &gt; 1.5&deg;C)</span>
+{% elif state == 'AWAITING AE' or state == 'STANDBY' %}
+    <span class="badge bg-secondary text-white font-monospace px-2 py-1" id="badge-health-state"><i class="bi bi-pause-circle me-1"></i>STANDBY (0 AEs)</span>
 {% else %}
     <span class="badge bg-danger text-white font-monospace px-2 py-1" id="badge-health-state"><i class="bi bi-x-octagon me-1"></i>FAULT</span>
 {% endif %}

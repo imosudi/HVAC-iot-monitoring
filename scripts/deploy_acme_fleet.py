@@ -15,12 +15,52 @@ import urllib.error
 import json
 import time
 import sys
+import os
+from pathlib import Path
 
-BASE_URL = "http://192.168.122.91:8080"
-CSE_RN = "cse-in"
-ORIGINATOR = "CAdmin"
-RVI = "3"
-API_ID = "N.org.fhtw.sdv.cabin"
+
+def _load_env_file():
+    """Dynamically loads configuration from root or deploy .env files."""
+    root = Path(__file__).resolve().parent.parent
+    for env_path in [root / ".env", root / "deploy" / ".env"]:
+        if env_path.exists():
+            with open(env_path, "r", encoding="utf-8") as f:
+                for line in f:
+                    clean = line.strip()
+                    if clean and not clean.startswith("#") and "=" in clean:
+                        k, v = clean.split("=", 1)
+                        k = k.strip()
+                        v = v.strip().strip("'\"")
+                        if k and k not in os.environ:
+                            os.environ[k] = v
+
+
+import socket
+_load_env_file()
+
+CSE_PORT = os.getenv("ACME_PORT", os.getenv("ONEM2M_PORT", "8080"))
+DEPLOY_TARGET = os.getenv("DEPLOY_TARGET", "localhost")
+_configured_host = "localhost" if DEPLOY_TARGET == "localhost" else os.getenv("BASE_CSE_HOST", os.getenv("ACME_HOST", os.getenv("CSE_HOST", os.getenv("GATEWAY_IP", "127.0.0.1"))))
+
+def _is_host_reachable(host: str, port: int) -> bool:
+    try:
+        with socket.create_connection((host, int(port)), timeout=0.8):
+            return True
+    except (socket.timeout, OSError):
+        return False
+
+if _is_host_reachable(_configured_host, int(CSE_PORT)):
+    CSE_HOST = _configured_host
+elif _is_host_reachable("127.0.0.1", int(CSE_PORT)):
+    CSE_HOST = "127.0.0.1"
+else:
+    CSE_HOST = _configured_host
+
+BASE_URL = os.getenv("BASE_URL", f"http://{CSE_HOST}:{CSE_PORT}").rstrip("/")
+CSE_RN = os.getenv("CSE_RN", os.getenv("ONEM2M_CSE_NAME", "cse-in"))
+ORIGINATOR = os.getenv("ORIGINATOR", os.getenv("ONEM2M_ADMIN_ORIGIN", "CAdmin"))
+RVI = os.getenv("RVI", os.getenv("ONEM2M_RVI", "3"))
+API_ID = os.getenv("API_ID", "N.org.fhtw.sdv.cabin")
 
 SENSOR_MANIFEST = [
     {"name": "temperature-cabin", "measurement": "temperature", "location": "cabin", "unit": "Cel"},

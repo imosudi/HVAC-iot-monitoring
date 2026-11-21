@@ -17,7 +17,6 @@
 
 #include "app_config.h"
 #include "scd30_driver.h"
-#include "dht22_driver.h"
 #include "pwm_fan_control.h"
 #include "tachometer.h"
 #include "ws2812b_indicator.h"
@@ -53,7 +52,6 @@ static void sensor_acquisition_task(void *pvParameters)
     ESP_LOGI(TAG, "Sensor acquisition task running on Core %d", xPortGetCoreID());
 
     scd30_measurement_t scd30_data;
-    dht22_measurement_t dht22_data;
     telemetry_record_t record;
 
     while (1) {
@@ -66,10 +64,7 @@ static void sensor_acquisition_task(void *pvParameters)
             scd30_data.is_valid = false;
         }
 
-        /* 2. Sample DHT22 */
-        dht22_read_measurement(&dht22_data);
-
-        /* 3. Read Actuator Feedback */
+        /* 2. Read Actuator Feedback */
         uint16_t current_rpm = tachometer_get_rpm(TACHO_SAMPLE_WINDOW_MS, TACHO_PULSES_PER_REV);
         uint8_t current_duty = pwm_fan_get_duty();
 
@@ -99,12 +94,11 @@ static void sensor_acquisition_task(void *pvParameters)
         }
 
 
-        /* 5. Pack structured telemetry frame */
+        /* 4. Pack structured telemetry frame */
         record.car_id = SDV_CAR_ID;
         record.zone = SDV_CABIN_ZONE;
         record.timestamp_unix_s = (uint32_t)time(NULL);
         record.scd30 = scd30_data;
-        record.dht22 = dht22_data;
         record.fan_duty_pct = current_duty;
         record.fan_rpm = current_rpm;
 
@@ -129,6 +123,10 @@ static void network_transport_task(void *pvParameters)
     while (1) {
         if (xQueueReceive(s_telemetry_queue, &record, portMAX_DELAY) == pdTRUE) {
             if (telemetry_serialize_json(&record, json_buffer, sizeof(json_buffer)) > 0) {
+                /* Stream structured JSON frame across UART console to Raspberry Pi 5 (/dev/ttyUSB0) */
+                printf("%s\n", json_buffer);
+                fflush(stdout);
+
                 if (mtls_client_is_connected()) {
                     mtls_client_publish(SDV_TOPIC_TELEMETRY, json_buffer);
                 } else {
@@ -136,6 +134,30 @@ static void network_transport_task(void *pvParameters)
                 }
             }
         }
+    }
+}
+
+/**
+ * @brief FreeRTOS Task pinned to Core 0: Ingests serial actuation directives from Raspberry Pi 5 (/dev/ttyUSB0).
+ */
+static void serial_command_task(void *pvParameters)
+{
+    ESP_LOGI(TAG, "Serial command receiver active on UART console (/dev/ttyUSB0)");
+    char line[128];
+
+    while (1) {
+        if (fgets(line, sizeof(line), stdin) != NULL) {
+            int target_pwm = -1;
+            char mode_str[32] = {0};
+            if (sscanf(line, "CMD:PWM=%d,MODE=%31s", &target_pwm, mode_str) >= 1) {
+                if (target_pwm >= 0 && target_pwm <= 100) {
+                    bool is_override = (strstr(mode_str, "OVERRIDE") != NULL || strstr(mode_str, "MANUAL") != NULL);
+                    ESP_LOGI(TAG, "Serial directive received: target_pwm=%d%%, mode=%s", target_pwm, mode_str);
+                    on_downlink_command((uint8_t)target_pwm, is_override);
+                }
+            }
+        }
+        vTaskDelay(pdMS_TO_TICKS(50));
     }
 }
 
@@ -175,9 +197,6 @@ void app_main(void)
     ESP_ERROR_CHECK(scd30_init(GPIO_SCD30_SDA, GPIO_SCD30_SCL));
     scd30_start_continuous_measurement(0);
 
-    ESP_ERROR_CHECK(dht22_init(GPIO_DHT22_DATA));
-
-
     /* Create Telemetry Queue */
     s_telemetry_queue = xQueueCreate(1, sizeof(telemetry_record_t));
 
@@ -202,6 +221,16 @@ void app_main(void)
         STACK_SIZE_NETWORK,
         NULL,
         TASK_PRIORITY_NETWORK,
+        NULL,
+        0
+    );
+
+    xTaskCreatePinnedToCore(
+        serial_command_task,
+        "serial_cmd_core0",
+        STACK_SIZE_ACTUATOR,
+        NULL,
+        TASK_PRIORITY_ACTUATOR,
         NULL,
         0
     );

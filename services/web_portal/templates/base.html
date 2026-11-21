@@ -41,7 +41,36 @@
                 </div>
                 <span class="text-white-50">|</span>
                 <span class="text-light tabular-nums" id="hud-clock">--:--:--</span>
-                <span class="badge bg-fhtw-blue font-monospace">VEHICLE_01</span>
+                <!-- SDV Fleet Context Selector Dropdown -->
+                <div class="dropdown">
+                    <button class="btn btn-sm btn-outline-light dropdown-toggle font-monospace py-0 px-2 d-flex align-items-center gap-1"
+                            type="button"
+                            id="fleetVehicleDropdown"
+                            data-bs-toggle="dropdown"
+                            aria-expanded="false"
+                            title="Active Vehicular Context across SDV Fleet">
+                        <i class="bi bi-truck me-1"></i>
+                        <span id="globalActiveVehicleBadge" class="fw-bold">
+                            {% if vehicles and vehicles|length > 0 %}{{ active_car_id|upper }}{% else %}VANILLA BASE (0 AEs){% endif %}
+                        </span>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end shadow-sm font-monospace small" id="fleetVehicleMenu" aria-labelledby="fleetVehicleDropdown">
+                        <li><h6 class="dropdown-header text-uppercase text-secondary small py-1"><i class="bi bi-hdd-network me-1"></i>SDV Fleet Nodes</h6></li>
+                        <div id="fleetVehicleMenuItems">
+                            {% for v in vehicles %}
+                            <li>
+                                <a class="dropdown-item {% if v.id == active_car_id %}active{% endif %}" href="javascript:void(0)" onclick="selectActiveVehicle('{{ v.id }}')">
+                                    <i class="bi bi-check2 text-success me-2"></i>{{ v.id }} ({{ v.ae_rn }})
+                                </a>
+                            </li>
+                            {% else %}
+                            <li><span class="dropdown-item text-secondary disabled small"><i class="bi bi-info-circle me-2"></i>Zero AEs Registered</span></li>
+                            {% endfor %}
+                        </div>
+                        <li><hr class="dropdown-divider my-1"></li>
+                        <li><a class="dropdown-item text-fhtw-blue fw-semibold" href="/entities"><i class="bi bi-grid-3x3-gap me-2"></i>Fleet Entities &amp; Provisioner &rarr;</a></li>
+                    </ul>
+                </div>
             </div>
         </div>
     </div>
@@ -55,7 +84,7 @@
                 </div>
                 <div>
                     <div class="font-heading fw-bold text-fhtw-blue fs-5 lh-1">FH TECHNIKUM WIEN</div>
-                    <div class="font-monospace small text-secondary">Cyber-Physical SDV Cabin Environmental Monitoring</div>
+                    <div class="font-monospace small text-secondary">SDV Cabin Environmental Monitoring</div>
                 </div>
             </a>
 
@@ -83,18 +112,8 @@
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link {% if active_page == 'architecture' %}active{% endif %}" href="/architecture">
-                        <i class="bi bi-diagram-3 me-1"></i>ARCHITECTURE
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link {% if active_page == 'security' %}active{% endif %}" href="/security">
-                        <i class="bi bi-shield-check me-1"></i>SECURITY &amp; HEALTH
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link {% if active_page == 'validation' %}active{% endif %}" href="/validation">
-                        <i class="bi bi-journal-code me-1"></i>VALIDATION
+                    <a class="nav-link {% if active_page == 'entities' %}active{% endif %}" href="/entities">
+                        <i class="bi bi-hdd-stack me-1"></i>APPLICATION ENTITIES &amp; API CLIENT
                     </a>
                 </li>
             </ul>
@@ -122,7 +141,7 @@
                 <span class="mx-2 text-white-50">|</span>
                 <span class="text-light">&Delta;T &le; 1.5&deg;C</span>
                 <span class="mx-2 text-white-50">|</span>
-                <span class="text-fhtw-green fw-bold">ASIL-B READY</span>
+                <span class="text-fhtw-green fw-bold">ETSI TS 118 101 Rel 4</span>
             </div>
         </div>
     </footer>
