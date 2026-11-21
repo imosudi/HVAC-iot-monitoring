@@ -35,16 +35,17 @@ class TestEdgeSerialClient:
     """Validates SerialReader and TelemetryPublisher behaviors."""
 
     def test_serial_reader_simulation_fallback_generates_schema_compliant_frames(self, telemetry_schema):
-        reader = SerialReader(
-            car_id="vehicle_01",
-            zone="cabin_front",
-            device="/dev/nonexistent_serial_device_test",
-            simulation_fallback=True,
-        )
-        assert reader.is_simulated is True
+        with patch.object(SerialReader, "_discover_serial_port", return_value=None):
+            reader = SerialReader(
+                car_id="vehicle_01",
+                zone="cabin_front",
+                device="/dev/nonexistent_serial_device_test",
+                simulation_fallback=True,
+            )
+            assert reader.is_simulated is True
 
-        frame = reader.read_frame()
-        assert frame is not None
+            frame = reader.read_frame()
+            assert frame is not None
         assert frame["car_id"] == "vehicle_01"
         assert frame["zone"] == "cabin_front"
         assert frame["sensor_profile"] == "scd30_only"
@@ -82,6 +83,10 @@ class TestEdgeSerialClient:
 
         # Error frame should be dropped (returns None)
         mock_serial.readline.return_value = json.dumps({"type": "error", "message": "SCD30 read failed"}).encode("utf-8") + b"\n"
+        assert reader.read_frame() is None
+
+        # Applied actuator ack frame should be ignored cleanly (returns None)
+        mock_serial.readline.return_value = json.dumps({"type": "applied", "command_id": 1}).encode("utf-8") + b"\n"
         assert reader.read_frame() is None
         reader.close()
 
@@ -136,12 +141,13 @@ class TestActuatorModule:
     """Validates ActuatorController and DownlinkListener behaviors."""
 
     def test_actuator_controller_applies_valid_directive(self):
-        controller = ActuatorController(
-            vehicle_id="vehicle-001",
-            device="/dev/nonexistent_test",
-            simulation_fallback=True,
-        )
-        assert controller.is_simulated is True
+        with patch.object(ActuatorController, "_discover_serial_port", return_value=None):
+            controller = ActuatorController(
+                vehicle_id="vehicle-001",
+                device="/dev/nonexistent_test",
+                simulation_fallback=True,
+            )
+            assert controller.is_simulated is True
 
         directive = {
             "target_pwm": 80,

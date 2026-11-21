@@ -45,13 +45,19 @@ DNS.2 = localhost
 DNS.3 = mosquitto
 DNS.4 = sdv_mosquitto_broker
 IP.1 = 127.0.0.1
-IP.2 = 192.168.122.91
 EOF
 
-# Append configured BASE_CSE_HOST if present and unique
-if [ -n "${BASE_CSE_HOST:-}" ] && [ "${BASE_CSE_HOST}" != "localhost" ] && [ "${BASE_CSE_HOST}" != "127.0.0.1" ] && [ "${BASE_CSE_HOST}" != "192.168.122.91" ]; then
+# Append detected host IP and configured BASE_CSE_HOST if present and unique
+DETECTED_IP="$(hostname -I 2>/dev/null | awk '{print $1}' || true)"
+NEXT_IP_IDX=2
+if [ -n "${DETECTED_IP}" ] && [ "${DETECTED_IP}" != "127.0.0.1" ]; then
+    echo "IP.${NEXT_IP_IDX} = ${DETECTED_IP}" >> server_ext.cnf
+    NEXT_IP_IDX=$((NEXT_IP_IDX + 1))
+fi
+
+if [ -n "${BASE_CSE_HOST:-}" ] && [ "${BASE_CSE_HOST}" != "localhost" ] && [ "${BASE_CSE_HOST}" != "127.0.0.1" ] && [ "${BASE_CSE_HOST}" != "${DETECTED_IP}" ]; then
     if [[ "${BASE_CSE_HOST}" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-        echo "IP.3 = ${BASE_CSE_HOST}" >> server_ext.cnf
+        echo "IP.${NEXT_IP_IDX} = ${BASE_CSE_HOST}" >> server_ext.cnf
     else
         echo "DNS.5 = ${BASE_CSE_HOST}" >> server_ext.cnf
     fi

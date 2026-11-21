@@ -295,46 +295,97 @@ function updateTelemetryDisplay(data) {
 
     // SCD30 CO2
     const co2El = document.getElementById('val-co2');
+    const co2Badge = document.getElementById('badge-co2');
     if (co2El && data.scd30.co2_ppm !== null && data.scd30.co2_ppm !== undefined) {
-        co2El.textContent = parseFloat(data.scd30.co2_ppm).toFixed(1);
+        const co2Val = parseFloat(data.scd30.co2_ppm);
+        co2El.textContent = co2Val.toFixed(1);
+        if (co2Badge) {
+            if (co2Val >= 800.0) {
+                co2Badge.textContent = 'PURGE';
+                co2Badge.className = 'badge bg-danger text-white font-monospace py-1 px-2';
+            } else {
+                co2Badge.textContent = 'NOMINAL';
+                co2Badge.className = 'badge bg-fhtw-green text-white font-monospace py-1 px-2';
+            }
+        }
     }
 
     // SCD30 Temperature
     const tempScdEl = document.getElementById('val-temp-scd30');
+    const tempBadge = document.getElementById('badge-temp-scd30');
     if (tempScdEl && data.scd30.temperature_c !== null && data.scd30.temperature_c !== undefined) {
-        tempScdEl.textContent = parseFloat(data.scd30.temperature_c).toFixed(1);
+        const tempVal = parseFloat(data.scd30.temperature_c);
+        tempScdEl.textContent = tempVal.toFixed(1);
+        if (tempBadge) {
+            if (tempVal < 18.0) {
+                tempBadge.textContent = 'COLD';
+                tempBadge.className = 'badge bg-warning text-dark font-monospace py-1 px-2';
+            } else if (tempVal > 30.0) {
+                tempBadge.textContent = 'HOT';
+                tempBadge.className = 'badge bg-danger text-white font-monospace py-1 px-2';
+            } else {
+                tempBadge.textContent = 'SCD30 OK';
+                tempBadge.className = 'badge bg-fhtw-green text-white font-monospace py-1 px-2';
+            }
+        }
     }
 
     // Relative Humidity
     const rhEl = document.getElementById('val-humidity');
+    const rhBadge = document.getElementById('badge-humidity');
     if (rhEl && data.scd30.humidity_pct !== null && data.scd30.humidity_pct !== undefined) {
-        rhEl.textContent = parseFloat(data.scd30.humidity_pct).toFixed(1);
+        const rhVal = parseFloat(data.scd30.humidity_pct);
+        rhEl.textContent = rhVal.toFixed(1);
+        if (rhBadge) {
+            if (rhVal < 30.0) {
+                rhBadge.textContent = 'LOW RH';
+                rhBadge.className = 'badge bg-warning text-dark font-monospace py-1 px-2';
+            } else if (rhVal > 60.0) {
+                rhBadge.textContent = 'HIGH RH';
+                rhBadge.className = 'badge bg-warning text-dark font-monospace py-1 px-2';
+            } else {
+                rhBadge.textContent = 'OPTIMAL';
+                rhBadge.className = 'badge bg-fhtw-green text-white font-monospace py-1 px-2';
+            }
+        }
     }
 
-    // Fan RPM and Duty
+    // Fan RPM, Duty & Expected Actuator Actions
     if (data.actuator_state) {
         const rpmEl = document.getElementById('val-fan-rpm');
         if (rpmEl && data.actuator_state.tachometer_rpm !== undefined) {
             rpmEl.textContent = data.actuator_state.tachometer_rpm;
         }
-        const dutyBadge = document.getElementById('badge-fan-duty');
+        const dutyBadge = document.getElementById('badge-fan-rpm');
         if (dutyBadge && data.actuator_state.pwm_duty_pct !== undefined) {
             dutyBadge.textContent = `DUTY: ${data.actuator_state.pwm_duty_pct}%`;
         }
     }
-
-    // DHT22 Cross-Check & Delta-T
-    if (data.dht22 && data.dht22.temperature_c !== null && data.scd30.temperature_c !== null) {
-        const deltaT = Math.abs(parseFloat(data.scd30.temperature_c) - parseFloat(data.dht22.temperature_c));
-        const deltaBadge = document.getElementById('badge-delta-t');
-        if (deltaBadge) {
-            deltaBadge.textContent = `ΔT: ${deltaT.toFixed(1)}°C`;
-            if (deltaT > 1.5) {
-                deltaBadge.className = 'badge bg-warning text-dark font-monospace py-0 px-2';
-            } else {
-                deltaBadge.className = 'badge bg-fhtw-green text-white font-monospace py-0 px-2';
-            }
+    const fanSubtextEl = document.getElementById('subtext-fan-rpm');
+    if (fanSubtextEl && data.scd30) {
+        const co2Val = parseFloat(data.scd30.co2_ppm);
+        const tempVal = parseFloat(data.scd30.temperature_c);
+        const rhVal = parseFloat(data.scd30.humidity_pct);
+        const actions = [];
+        let targetPwm = 25;
+        if (!Number.isNaN(co2Val) && co2Val >= 1500) {
+            actions.push('FAN ON');
+            targetPwm = 100;
+        } else if (!Number.isNaN(co2Val) && co2Val >= 1000) {
+            actions.push('FAN ON');
+            targetPwm = 75;
+        } else if (!Number.isNaN(co2Val) && co2Val >= 800) {
+            actions.push('FAN ON');
+            targetPwm = 50;
+        } else if (!Number.isNaN(tempVal) && tempVal < 19.0) {
+            targetPwm = 0;
         }
+        if (!Number.isNaN(tempVal) && tempVal < 18.0) actions.push('HEATER ON');
+        if (!Number.isNaN(tempVal) && tempVal > 30.0) actions.push('AC ON');
+        if (!Number.isNaN(rhVal) && rhVal < 30.0) actions.push('HUMIDIFIER ON');
+        if (!Number.isNaN(rhVal) && rhVal > 60.0) actions.push('DEHUMIDIFIER ON');
+        const actionSummary = actions.length > 0 ? actions.join(', ') : 'IDLE (Nominal)';
+        fanSubtextEl.textContent = `Expected: ${actionSummary} | Target PWM: ${targetPwm}%`;
     }
 
     // Health State Badge
@@ -376,14 +427,14 @@ function appendStreamLog(data) {
     const stateClass = state === 'FRESH' ? 'text-success' : (state === 'FAULT' ? 'text-danger' : 'text-warning');
     const co2 = data.scd30 ? (data.scd30.co2_ppm || 'N/A') : 'N/A';
     const tScd = data.scd30 ? (data.scd30.temperature_c || 'N/A') : 'N/A';
-    const tDht = data.dht22 ? (data.dht22.temperature_c || 'N/A') : 'N/A';
+    const rhScd = data.scd30 ? (data.scd30.humidity_pct || 'N/A') : 'N/A';
     const pwm = data.actuator_state ? data.actuator_state.pwm_duty_pct : 25;
     const rpm = data.actuator_state ? data.actuator_state.tachometer_rpm : 980;
     const carId = data.car_id || currentVehicle || 'vehicle_01';
 
     const logLine = document.createElement('div');
     logLine.className = 'text-muted py-0.5 border-bottom border-grid-subtle';
-    logLine.innerHTML = `[${timeStr}] <span class="text-info">INGRESS</span> car_id=<strong>${carId}</strong> CO2=${co2}ppm T_scd30=${tScd}°C T_dht22=${tDht}°C PWM=${pwm}% RPM=${rpm} &rarr; <span class="${stateClass} fw-bold">state=${state}</span>`;
+    logLine.innerHTML = `[${timeStr}] <span class="text-info">INGRESS</span> car_id=<strong>${carId}</strong> CO2=${co2}ppm T_scd30=${tScd}°C RH=${rhScd}% PWM=${pwm}% RPM=${rpm} &rarr; <span class="${stateClass} fw-bold">state=${state}</span>`;
 
     streamConsole.insertBefore(logLine, streamConsole.firstChild);
 

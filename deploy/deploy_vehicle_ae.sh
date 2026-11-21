@@ -26,7 +26,7 @@ BASE_HOST=""
 BASE_PORT=""
 VEHICLE_ID="vehicle-001"
 VEHICLE_VIN=""
-SKIP_TELEMETRY=false
+SKIP_TELEMETRY=true
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -121,7 +121,7 @@ if [ -n "${VEHICLE_VIN}" ]; then
     EXTRA_ARGS+=("--vin" "${VEHICLE_VIN}")
 fi
 if [ "${SKIP_TELEMETRY}" = "true" ]; then
-    EXTRA_ARGS+=("--skip-telemetry")
+    EXTRA_ARGS+=("--no-telemetry")
 fi
 
 echo -e "\n[STEP 1/3] Onboarding and registering Vehicle AE (with 8 oneM2M <container> resources) on Base CSE..."
@@ -140,6 +140,12 @@ if [ -f "${VEHICLE_COMPOSE}" ] && (docker compose version >/dev/null 2>&1 || com
     export BASE_CSE_HOST="${RESOLVED_BASE_HOST}"
     export ONEM2M_PORT="${RESOLVED_PORT}"
     export MOSQUITTO_PORT="${MOSQUITTO_PORT:-8883}"
+
+    # Persist current BASE_CSE_HOST and VEHICLE_ID into deploy/.env for standalone compose runs
+    if [ -f "${DEPLOY_DIR}/.env" ]; then
+        grep -q '^BASE_CSE_HOST=' "${DEPLOY_DIR}/.env" && sed -i "s|^BASE_CSE_HOST=.*|BASE_CSE_HOST=${RESOLVED_BASE_HOST}|" "${DEPLOY_DIR}/.env" || echo "BASE_CSE_HOST=${RESOLVED_BASE_HOST}" >> "${DEPLOY_DIR}/.env"
+        grep -q '^VEHICLE_ID=' "${DEPLOY_DIR}/.env" && sed -i "s|^VEHICLE_ID=.*|VEHICLE_ID=${VEHICLE_ID}|" "${DEPLOY_DIR}/.env" || echo "VEHICLE_ID=${VEHICLE_ID}" >> "${DEPLOY_DIR}/.env"
+    fi
 
     COMPOSE_CMD="docker compose -f ${VEHICLE_COMPOSE}"
     if ! docker compose version >/dev/null 2>&1; then
@@ -165,7 +171,13 @@ CA_CERT="${DEPLOY_DIR}/mosquitto/certs/ca.crt"
 CLIENT_CERT="${DEPLOY_DIR}/mosquitto/certs/client_esp32.crt"
 CLIENT_KEY="${DEPLOY_DIR}/mosquitto/certs/client_esp32.key"
 
-if [ -f "${CA_CERT}" ] && [ -f "${CLIENT_CERT}" ] && [ -f "${CLIENT_KEY}" ]; then
+if [ "${SKIP_TELEMETRY}" = "true" ]; then
+    if nc -z -w 2 "${RESOLVED_BASE_HOST}" "${MQTT_PORT}" >/dev/null 2>&1; then
+        echo "[OK] Mosquitto mTLS port ${MQTT_PORT} on ${RESOLVED_BASE_HOST} is reachable (live hardware mode, skipping simulated traffic)."
+    else
+        echo "[WARN] Mosquitto mTLS port ${MQTT_PORT} on ${RESOLVED_BASE_HOST} is not reachable."
+    fi
+elif [ -f "${CA_CERT}" ] && [ -f "${CLIENT_CERT}" ] && [ -f "${CLIENT_KEY}" ]; then
     if nc -z -w 2 "${RESOLVED_BASE_HOST}" "${MQTT_PORT}" >/dev/null 2>&1; then
         echo "[INFO] Testing mTLS 1.3 connection to Mosquitto on ${RESOLVED_BASE_HOST}:${MQTT_PORT}..."
         if ! ${PYTHON_CMD} -c "import paho.mqtt.client" >/dev/null 2>&1; then

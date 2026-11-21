@@ -244,7 +244,7 @@ def main():
     base_url = f"http://{target_host}:{args.port}"
     cse_rn = args.cse_rn
     originator = args.originator
-    notif_base = args.notification_host or base_url
+    notif_base = args.notification_host or "http://bridge_ae:5000"
 
     print("=" * 80)
     print("  SDV VEHICLE ONBOARDING: ACME oneM2M CSE SINGLE AE PROVISIONER")
@@ -314,6 +314,8 @@ def main():
                 "lbl": ["sensor", cnt_def["location"], cnt_def["measurement"], vehicle_id]
             }
         }
+        if c_name == "raw-telemetry":
+            cnt_payload["m2m:cnt"]["acpi"] = [f"/id-sdv/{cse_rn}/acp_fleet_manager"]
         c_status, c_res = request_m2m(
             f"{base_url}/{cse_rn}/{vehicle_id}",
             method="POST",
@@ -326,6 +328,13 @@ def main():
             reconciled_cnts[c_name] = cnt_ri
             log("CREATED", f"  -> oneM2M <cnt>: {c_name:<20} (mni={mni:<4}, mia=86400, RI={cnt_ri})", "32")
         elif c_status == 409:
+            if c_name == "raw-telemetry":
+                request_m2m(
+                    f"{base_url}/{cse_rn}/{vehicle_id}/{c_name}",
+                    method="PUT",
+                    payload={"m2m:cnt": {"acpi": [f"/id-sdv/{cse_rn}/acp_fleet_manager"]}},
+                    origin=originator,
+                )
             log("VERIFIED", f"  -> oneM2M <cnt>: {c_name:<20} (already provisioned)", "34")
             reconciled_cnts[c_name] = "existing"
         else:
@@ -338,7 +347,7 @@ def main():
     subscriptions = [
         {"rn": "sub_co_alert", "target_cnt": "co-cabin", "nu": f"{notif_base}/emergency-monitor"},
         {"rn": "sub_fleet_telemetry", "target_cnt": "raw-telemetry", "nu": f"{notif_base}/fleet-ingest"},
-        {"rn": "sub_downlink", "target_cnt": "commands", "nu": f"{notif_base}/downlink"}
+        {"rn": "sub_downlink", "target_cnt": "commands", "nu": f"mqtt://mosquitto:1883/sdv/{vehicle_id}/control/cmd"}
     ]
 
     for sub in subscriptions:
@@ -360,7 +369,13 @@ def main():
         if s_status == 201:
             log("SUBSCRIPTION", f"  -> Created {sub['rn']:<20} on {sub['target_cnt']} (RI: {s_res['m2m:sub']['ri']})", "32")
         elif s_status == 409:
-            log("SUBSCRIPTION", f"  -> Verified {sub['rn']:<19} on {sub['target_cnt']} (already active)", "34")
+            put_status, _ = request_m2m(
+                f"{base_url}/{cse_rn}/{vehicle_id}/{sub['target_cnt']}/{sub['rn']}",
+                method="PUT",
+                payload={"m2m:sub": {"nu": [sub["nu"]]}},
+                origin=originator
+            )
+            log("SUBSCRIPTION", f"  -> Verified {sub['rn']:<19} on {sub['target_cnt']} (already active, sync PUT={put_status})", "34")
         else:
             log("WARN", f"  -> Subscription {sub['rn']} status {s_status}: {s_res}", "33")
 

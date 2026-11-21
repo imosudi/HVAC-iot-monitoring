@@ -109,18 +109,24 @@ while [[ $# -gt 0 ]]; do
 done
 
 # Resolve Base CSE Host & Login details
-BASE_HOST="${BASE_HOST_CLI:-${BASE_CSE_HOST:-192.168.122.91}}"
+BASE_HOST="${BASE_HOST_CLI:-${BASE_CSE_HOST:-localhost}}"
 BASE_USER="${BASE_USER_CLI:-${BASE_CSE_USER:-${USER}}}"
 BASE_PORT="${BASE_PORT_CLI:-${BASE_CSE_SSH_PORT:-22}}"
 BASE_KEY="${BASE_KEY_CLI:-${BASE_CSE_SSH_KEY:-}}"
 BASE_DIR="${BASE_CSE_REMOTE_DIR:-~/HVAC-iot-monitoring}"
 
 # Resolve Vehicle AE Host & Login details
-VEHICLE_HOST="${VEHICLE_HOST_CLI:-${VEHICLE_AE_HOST:-192.168.122.145}}"
+VEHICLE_HOST="${VEHICLE_HOST_CLI:-${VEHICLE_AE_HOST:-localhost}}"
 VEHICLE_USER="${VEHICLE_USER_CLI:-${VEHICLE_AE_USER:-${USER}}}"
 VEHICLE_PORT="${VEHICLE_PORT_CLI:-${VEHICLE_AE_SSH_PORT:-22}}"
 VEHICLE_KEY="${VEHICLE_KEY_CLI:-${VEHICLE_AE_SSH_KEY:-}}"
 VEHICLE_DIR="${VEHICLE_AE_REMOTE_DIR:-~/HVAC-iot-monitoring}"
+
+# Keep deploy/.env synchronised with the current resolved Base CSE & Vehicle AE IPs
+if [ -f "${DEPLOY_DIR}/.env" ]; then
+    grep -q '^BASE_CSE_HOST=' "${DEPLOY_DIR}/.env" && sed -i "s|^BASE_CSE_HOST=.*|BASE_CSE_HOST=${BASE_HOST}|" "${DEPLOY_DIR}/.env" || echo "BASE_CSE_HOST=${BASE_HOST}" >> "${DEPLOY_DIR}/.env"
+    grep -q '^VEHICLE_AE_HOST=' "${DEPLOY_DIR}/.env" && sed -i "s|^VEHICLE_AE_HOST=.*|VEHICLE_AE_HOST=${VEHICLE_HOST}|" "${DEPLOY_DIR}/.env" || echo "VEHICLE_AE_HOST=${VEHICLE_HOST}" >> "${DEPLOY_DIR}/.env"
+fi
 
 # Auto-detect default identity file if none provided and id_ed25519 exists
 if [ -z "${BASE_KEY}" ] && [ -f "${HOME}/.ssh/id_ed25519" ]; then

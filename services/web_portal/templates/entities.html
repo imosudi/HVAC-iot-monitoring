@@ -928,8 +928,8 @@
                         <input type="number" class="form-control form-control-sm font-monospace" id="test_temp_scd" value="22.4" step="0.1">
                     </div>
                     <div class="col-6">
-                        <label class="form-label text-secondary m-0">DHT22 Temp (°C):</label>
-                        <input type="number" class="form-control form-control-sm font-monospace" id="test_temp_dht" value="22.2" step="0.1">
+                        <label class="form-label text-secondary m-0">SCD30 RH (%):</label>
+                        <input type="number" class="form-control form-control-sm font-monospace" id="test_rh_scd" value="45.6" step="0.1">
                     </div>
                     <div class="col-6">
                         <label class="form-label text-secondary m-0">Fan PWM (%):</label>
@@ -1400,7 +1400,7 @@
         const payload = {
             co2_ppm: parseFloat(document.getElementById('test_co2').value),
             temp_scd30_c: parseFloat(document.getElementById('test_temp_scd').value),
-            temp_dht22_c: parseFloat(document.getElementById('test_temp_dht').value),
+            humidity_scd30_pct: parseFloat(document.getElementById('test_rh_scd').value),
             pwm_duty_pct: parseInt(document.getElementById('test_pwm').value)
         };
 

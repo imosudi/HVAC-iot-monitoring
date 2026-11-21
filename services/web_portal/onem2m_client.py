@@ -1062,14 +1062,11 @@ class OneM2MClient:
             "car_id": ae_rn.lower().replace("ae_", ""),
             "zone": "cabin_front",
             "timestamp_unix_s": now_ts,
+            "sensor_profile": "scd30_only",
             "scd30": {
                 "co2_ppm": float(metrics.get("co2_ppm", 512.0)),
                 "temperature_c": float(metrics.get("temp_scd30_c", 22.4)),
                 "humidity_pct": float(metrics.get("humidity_scd30_pct", 45.6))
-            },
-            "dht22": {
-                "temperature_c": float(metrics.get("temp_dht22_c", 22.2)),
-                "humidity_pct": float(metrics.get("humidity_dht22_pct", 45.2))
             },
             "actuator_state": {
                 "pwm_duty_pct": int(metrics.get("pwm_duty_pct", 30)),

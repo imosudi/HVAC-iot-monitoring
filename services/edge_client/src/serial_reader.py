@@ -122,18 +122,18 @@ class SerialReader:
 
     def read_frame(self) -> Optional[Dict[str, Any]]:
         """Reads a frame from the serial port or synthesises a compliant telemetry record."""
-        # Attempt reconnect to hardware if previously in simulation
-        if self.is_simulated and serial is not None:
+        # Attempt reconnect to hardware if serial_conn was lost (even when simulation_fallback=False)
+        if self.serial_conn is None and serial is not None:
             active_port = self._discover_serial_port()
-            if active_port and self._iteration % 10 == 0:
+            if active_port and (not self.is_simulated or self._iteration % 10 == 0):
                 try:
                     self.serial_conn = serial.Serial(active_port, self.baudrate, timeout=1.0)
                     self.is_simulated = False
-                    logger.info("Hot-plugged hardware ESP32-S3 detected on %s. Switched to live serial.", active_port)
+                    logger.info("Hardware ESP32-S3 connected on %s. Streaming live serial.", active_port)
                 except Exception:
                     pass
 
-        if not self.is_simulated and self.serial_conn is not None:
+        if self.serial_conn is not None and not self.is_simulated:
             try:
                 raw_line = self.serial_conn.readline()
                 if not raw_line:
@@ -141,13 +141,22 @@ class SerialReader:
                 line_str = raw_line.decode("utf-8", errors="replace").strip()
                 if not line_str or not (line_str.startswith("{") and line_str.endswith("}")):
                     return None
-                data = json.loads(line_str)
+                try:
+                    data = json.loads(line_str)
+                except json.JSONDecodeError as exc:
+                    logger.warning("Skipping malformed UART JSON line: %s", exc)
+                    return None
                 return self.normalize_serial_payload(data)
             except Exception as exc:
                 logger.warning("Serial read error: %s. Re-evaluating bus connection.", exc)
-                self.serial_conn = None
-                self.is_simulated = True
+                self.close()
+                if self.simulation_fallback:
+                    self.is_simulated = True
                 return None
+
+        if not self.simulation_fallback:
+            time.sleep(0.5)
+            return None
 
         # Simulation fallback generation conforming to scd30_only telemetry_schema.json
         self._iteration += 1
@@ -199,6 +208,10 @@ class SerialReader:
             logger.warning("ESP32-S3 reported sensor error: %s", data.get("message", "unknown"))
             return None
 
+        if data.get("type") == "applied":
+            logger.debug("ESP32-S3 applied actuator state: %s", data.get("actuator_state"))
+            return None
+
         raw_scd30 = data.get("scd30")
         src = raw_scd30 if isinstance(raw_scd30, dict) else data
         try:
@@ -214,7 +227,7 @@ class SerialReader:
             return None
 
         norm: Dict[str, Any] = {
-            "car_id": data.get("car_id", self.car_id),
+            "car_id": self.car_id or data.get("car_id", "vehicle_01"),
             "zone": data.get("zone", self.zone),
             "timestamp_unix_s": data.get("timestamp_unix_s", int(time.time())),
             "sensor_profile": data.get("sensor_profile", "scd30_dht22" if "dht22" in data else "scd30_only"),

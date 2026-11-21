@@ -393,7 +393,7 @@ def main():
             "pv": {
                 "acr": [
                     {"acor": [originator], "acop": 63},
-                    {"acor": ["C_vehicle_nodes"], "acop": 35}
+                    {"acor": ["C_vehicle_nodes", "C*"], "acop": 35}
                 ]
             },
             "pvs": {
@@ -407,7 +407,13 @@ def main():
     if status == 201:
         log("SUCCESS", f"Created ACP '{acp_name}' (RI: {res['m2m:acp']['ri']})", "32")
     elif status == 409:
-        log("IDEMPOTENT", f"ACP '{acp_name}' already active on CSE (HTTP 409)", "34")
+        put_status, _ = request_m2m(
+            f"{base_url}/{cse_rn}/{acp_name}",
+            method="PUT",
+            payload={"m2m:acp": {"pv": acp_payload["m2m:acp"]["pv"], "pvs": acp_payload["m2m:acp"]["pvs"]}},
+            origin=originator,
+        )
+        log("IDEMPOTENT", f"ACP '{acp_name}' already active on CSE (HTTP 409, sync PUT={put_status})", "34")
     else:
         log("WARN", f"Unexpected status {status} for ACP creation: {res}", "33")
 

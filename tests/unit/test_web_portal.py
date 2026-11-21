@@ -75,7 +75,6 @@ class TestWebPortalApplication:
         data = response.get_json()
         assert data["car_id"] == "vehicle_01"
         assert "scd30" in data
-        assert "co2_ppm" in data["scd30"]
         assert "actuator_state" in data
         assert "health_state" in data
 

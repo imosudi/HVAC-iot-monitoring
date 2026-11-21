@@ -45,12 +45,17 @@ app.config["SECRET_KEY"] = config.secret_key
 def query_latest_influxdb_telemetry(car_id: Optional[str] = "vehicle_01"):
     """Queries InfluxDB for the most recent cabin telemetry record for a specified vehicle."""
     target_car = car_id if car_id and car_id.strip() else "vehicle_01"
-    car_filter = f'|> filter(fn: (r) => r.car_id == "{target_car}")' if target_car.lower() != "all" else ""
+    if target_car.lower() == "all":
+        car_filter = ""
+    else:
+        alt_car = target_car.replace("_", "-") if "_" in target_car else target_car.replace("-", "_")
+        car_filter = f'|> filter(fn: (r) => r.car_id == "{target_car}" or r.car_id == "{alt_car}")'
     flux_query = f"""
     from(bucket: "{config.influxdb_bucket}")
       |> range(start: -15m)
       |> filter(fn: (r) => r._measurement == "cabin_environment")
       {car_filter}
+      |> group(columns: ["_field"])
       |> last()
     """
     url = f"{config.influxdb_url}/api/v2/query?org={config.influxdb_org}"
@@ -65,11 +70,13 @@ def query_latest_influxdb_telemetry(car_id: Optional[str] = "vehicle_01"):
         with urllib.request.urlopen(req, timeout=1.5) as resp:
             content = resp.read().decode("utf-8")
             metrics = {}
+            field_times = {}
             for line in content.splitlines():
                 parts = [p.strip() for p in line.split(",")]
                 if len(parts) >= 10 and parts[1] == "_result":
                     field_name = parts[7]
                     field_val = parts[6]
+                    field_times[field_name] = parts[5]
                     try:
                         metrics[field_name] = float(field_val)
                     except (ValueError, TypeError):
@@ -78,59 +85,35 @@ def query_latest_influxdb_telemetry(car_id: Optional[str] = "vehicle_01"):
                         metrics["health_state"] = parts[10]
 
             if metrics:
+                # Drop stale actuator fields from earlier sessions if newer sensor readings exist
+                latest_sensor_time = max(
+                    (field_times[k] for k in ("co2_ppm", "temp_scd30_c", "humidity_scd30_pct") if k in field_times),
+                    default="",
+                )
+                for act_key in ("fan_duty_pct", "fan_rpm"):
+                    if act_key in field_times and latest_sensor_time and field_times[act_key] < latest_sensor_time[:16]:
+                        metrics.pop(act_key, None)
                 return {
                     "car_id": target_car,
                     "zone": "cabin_front",
                     "timestamp_unix_s": int(time.time()),
+                    "sensor_profile": "scd30_only",
                     "scd30": {
-                        "co2_ppm": metrics.get("co2_ppm", 485.0),
-                        "temperature_c": metrics.get("temp_scd30_c", 22.1),
-                        "humidity_pct": metrics.get("humidity_scd30_pct", 45.2)
-                    },
-                    "dht22": {
-                        "temperature_c": metrics.get("temp_dht22_c", 22.0),
-                        "humidity_pct": metrics.get("humidity_dht22_pct", 44.8)
+                        "co2_ppm": metrics.get("co2_ppm"),
+                        "temperature_c": metrics.get("temp_scd30_c"),
+                        "humidity_pct": metrics.get("humidity_scd30_pct")
                     },
                     "actuator_state": {
-                        "pwm_duty_pct": int(metrics.get("fan_duty_pct", 25)),
-                        "tachometer_rpm": int(metrics.get("fan_rpm", 982)),
+                        "pwm_duty_pct": int(metrics.get("fan_duty_pct", 0)),
+                        "tachometer_rpm": int(metrics.get("fan_rpm", 0)),
                         "carrier_freq_hz": 25000
                     },
                     "health_state": metrics.get("health_state", "FRESH")
                 }
     except Exception as exc:
-        logger.debug("InfluxDB query fallback invoked: %s", exc)
+        logger.warning("InfluxDB query failed: %s", exc)
 
-    # Deterministic fallback model based on epoch iteration and target vehicle
-    now_epoch = int(time.time())
-    car_offset = sum(ord(c) for c in target_car) % 17
-    iteration = ((now_epoch // 2) + car_offset) % 20
-    co2 = 480.0 + (iteration * 2.5) + (car_offset * 1.2)
-    t_scd = 21.8 + ((iteration + car_offset) % 10) * 0.1
-    t_dht = 21.9 + ((iteration + car_offset) % 8) * 0.1
-    rh = 45.2 + (iteration % 5) * 0.3
-    rpm = 980 + ((iteration + car_offset * 5) % 30)
-
-    return {
-        "car_id": target_car,
-        "zone": "cabin_front",
-        "timestamp_unix_s": now_epoch,
-        "scd30": {
-            "co2_ppm": round(co2, 1),
-            "temperature_c": round(t_scd, 2),
-            "humidity_pct": round(rh, 1)
-        },
-        "dht22": {
-            "temperature_c": round(t_dht, 2),
-            "humidity_pct": round(rh - 0.4, 1)
-        },
-        "actuator_state": {
-            "pwm_duty_pct": 25,
-            "tachometer_rpm": rpm,
-            "carrier_freq_hz": 25000
-        },
-        "health_state": "FRESH"
-    }
+    return None
 
 
 @app.route("/", methods=["GET"])
@@ -201,7 +184,16 @@ def api_vehicles():
 def api_telemetry_latest():
     """Returns the latest evaluated cabin telemetry frame for dashboard polling, optionally filtered by car_id."""
     car_id = request.args.get("car_id", "vehicle_01")
-    return jsonify(query_latest_influxdb_telemetry(car_id=car_id)), 200
+    latest = query_latest_influxdb_telemetry(car_id=car_id)
+    if latest is None:
+        return jsonify({
+            "car_id": car_id,
+            "status": "NO_DATA",
+            "scd30": None,
+            "actuator_state": None,
+            "health_state": "STANDBY",
+        }), 200
+    return jsonify(latest), 200
 
 
 @app.route("/api/actuator/dispatch", methods=["POST"])

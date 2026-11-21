@@ -118,19 +118,25 @@ def main() -> None:
                 frame_count += 1
                 co2_val = frame.get("scd30", {}).get("co2_ppm", 0)
                 temp_val = frame.get("scd30", {}).get("temperature_c", 0)
+                rh_val = frame.get("scd30", {}).get("humidity_pct", 0)
+                alerts = frame.get("alerts", {})
                 pwm_val = frame.get("actuator_state", {}).get("pwm_duty_pct", 0)
                 tacho_val = frame.get("actuator_state", {}).get("tachometer_rpm", 0)
 
                 status_tag = "DELIVERED" if published else "QUEUED/OFFLINE"
                 logger.info(
-                    "Frame #%d [%s] -> CO2: %s ppm | Temp: %s °C | PWM: %s%% | Tacho: %s RPM",
+                    "SCD30 Frame #%d [%s] -> CO2: %s ppm | Temp: %s °C | RH: %s%% | Alerts: %s | PWM: %s%% | Tacho: %s RPM",
                     frame_count,
                     status_tag,
                     co2_val,
                     temp_val,
+                    rh_val,
+                    alerts,
                     pwm_val,
                     tacho_val,
                 )
+            elif not reader.is_simulated:
+                logger.info("Awaiting live SCD30 serial frame on %s...", serial_device)
 
             time.sleep(interval)
     finally:

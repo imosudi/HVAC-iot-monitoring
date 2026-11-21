@@ -16,12 +16,12 @@ services:
     privileged: true
     environment:
       - VEHICLE_ID=${VEHICLE_ID:-vehicle-001}
-      - BASE_CSE_HOST=${BASE_CSE_HOST:-192.168.122.140}
+      - BASE_CSE_HOST=${BASE_CSE_HOST:-localhost}
       - ONEM2M_PORT=${ONEM2M_PORT:-8080}
       - MOSQUITTO_PORT=${MOSQUITTO_PORT:-8883}
       - SERIAL_DEVICE=${SERIAL_DEVICE:-/dev/ttyUSB0}
       - SERIAL_BAUDRATE=${SERIAL_BAUDRATE:-115200}
-      - SIMULATION_FALLBACK=${SIMULATION_FALLBACK:-true}
+      - SIMULATION_FALLBACK=${SIMULATION_FALLBACK:-false}
       - TELEMETRY_INTERVAL=${TELEMETRY_INTERVAL:-1.0}
     volumes:
       - /dev:/dev
@@ -38,12 +38,12 @@ services:
     privileged: true
     environment:
       - VEHICLE_ID=${VEHICLE_ID:-vehicle-001}
-      - BASE_CSE_HOST=${BASE_CSE_HOST:-192.168.122.140}
+      - BASE_CSE_HOST=${BASE_CSE_HOST:-localhost}
       - ONEM2M_PORT=${ONEM2M_PORT:-8080}
       - MOSQUITTO_PORT=${MOSQUITTO_PORT:-8883}
       - SERIAL_DEVICE=${SERIAL_DEVICE:-/dev/ttyUSB0}
       - SERIAL_BAUDRATE=${SERIAL_BAUDRATE:-115200}
-      - SIMULATION_FALLBACK=${SIMULATION_FALLBACK:-true}
+      - SIMULATION_FALLBACK=${SIMULATION_FALLBACK:-false}
       - POLL_INTERVAL=${POLL_INTERVAL:-2.0}
     volumes:
       - /dev:/dev

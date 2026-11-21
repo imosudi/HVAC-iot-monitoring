@@ -33,6 +33,7 @@ def health():
 
 
 @app.route("/notification", methods=["POST"])
+@app.route("/fleet-ingest", methods=["POST"])
 def process_notification():
     """
     Receives oneM2M notification primitive triggered by new ContentInstance.

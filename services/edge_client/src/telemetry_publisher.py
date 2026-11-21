@@ -104,6 +104,7 @@ class TelemetryPublisher:
             "to": f"/id-sdv/sdv-cse/{ae_name}/raw-telemetry",
             "fr": f"C_{ae_name}",
             "rqi": f"rqi_{now_ts}",
+            "rvi": "3",
             "ty": 4,  # ContentInstance
             "pc": {
                 "m2m:cin": {

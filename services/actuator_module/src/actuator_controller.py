@@ -56,6 +56,7 @@ class ActuatorController:
         self.dehumidifier_state: str = "STANDBY"
         self.recirculation_flap: str = "FRESH_AIR"
         self.last_updated: float = time.time()
+        self._command_seq: int = 0
 
         self._init_serial()
 
@@ -129,16 +130,42 @@ class ActuatorController:
             jitter = random.randint(-15, 15)
             self.tachometer_rpm = max(100, target_pwm * 30 + jitter)
 
-        # Dispatch across physical serial bus if available
+        # Dispatch across physical serial bus if available (Arduino JSON control contract)
         if not self.is_simulated and self.serial_conn is not None:
             try:
-                cmd_line = f"CMD:PWM={self.target_pwm},MODE={self.mode}\n"
+                self._command_seq += 1
+                actions = directive.get("actions")
+                if not isinstance(actions, dict):
+                    actions = {
+                        "fan": self.target_pwm > 0,
+                        "ac": False,
+                        "heater": self.aux_heater_state == "ACTIVE",
+                        "humidifier": False,
+                        "dehumidifier": self.dehumidifier_state == "ACTIVE",
+                    }
+                else:
+                    actions = {
+                        "fan": self.target_pwm > 0,
+                        "ac": bool(actions.get("ac", False)),
+                        "heater": bool(actions.get("heater", False)),
+                        "humidifier": bool(actions.get("humidifier", False)),
+                        "dehumidifier": bool(actions.get("dehumidifier", False)),
+                    }
+                cmd_payload = {
+                    "type": "control",
+                    "command_id": int(directive.get("command_id", self._command_seq)),
+                    "mode": str(self.mode),
+                    "ventilation_duty_pct": int(self.target_pwm),
+                    "actions": actions,
+                }
+                cmd_line = json.dumps(cmd_payload) + "\n"
                 self.serial_conn.write(cmd_line.encode("utf-8"))
                 self.serial_conn.flush()
                 logger.info("Dispatched hardware serial directive to ESP32-S3: %s", cmd_line.strip())
             except Exception as exc:
                 logger.warning("Failed to dispatch command across serial: %s", exc)
-                self.is_simulated = True
+                if self.simulation_fallback:
+                    self.is_simulated = True
         else:
             logger.info(
                 "Emulated Actuation -> PWM: %d%% | Mode: %s | Tacho: %d RPM | Flap: %s | Source: %s",

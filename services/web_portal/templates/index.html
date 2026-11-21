@@ -63,49 +63,73 @@
 <div class="row g-2 g-xl-3 mb-3">
     <!-- SCD30 NDIR CO2 Primary Transducer -->
     <div class="col-12 col-sm-6 col-xl-3">
+        {% set co2_val = telemetry.scd30.co2_ppm if telemetry and telemetry.scd30 else none %}
         {{ ui.metric_card(
             id_prefix="co2",
             title="SCD30 Carbon Dioxide",
-            value=telemetry.scd30.co2_ppm if telemetry and telemetry.scd30 else "—",
+            value=co2_val if co2_val is not none else "—",
             unit="ppm",
-            status_badge="NOMINAL" if telemetry else "STANDBY",
-            status_variant="success" if telemetry else "secondary",
+            status_badge=("PURGE" if co2_val >= 800 else "NOMINAL") if co2_val is not none else "STANDBY",
+            status_variant=("danger" if co2_val >= 800 else "success") if co2_val is not none else "secondary",
             icon="wind",
             subtext="Nominal: <800 ppm | Purge Threshold: >=800 ppm" if telemetry else "No AE registered | Telemetry paused",
             border_highlight="info" if telemetry else None
         ) }}
     </div>
 
-    <!-- Cabin Temperature & Disparity -->
+    <!-- Cabin Temperature (Sensirion SCD30) -->
     <div class="col-12 col-sm-6 col-xl-3">
+        {% set temp_val = telemetry.scd30.temperature_c if telemetry and telemetry.scd30 else none %}
         {{ ui.metric_card(
             id_prefix="temp-scd30",
             title="Cabin Temperature",
-            value=telemetry.scd30.temperature_c if telemetry and telemetry.scd30 else "—",
+            value=temp_val if temp_val is not none else "—",
             unit="°C",
-            status_badge="ΔT: 0.1°C" if telemetry else "STANDBY",
-            status_variant="success" if telemetry else "secondary",
+            status_badge=("COLD" if temp_val < 18.0 else ("HOT" if temp_val > 30.0 else "SCD30 OK")) if temp_val is not none else "STANDBY",
+            status_variant=("warning" if temp_val < 18.0 else ("danger" if temp_val > 30.0 else "success")) if temp_val is not none else "secondary",
             icon="thermometer-half",
-            subtext="Cross-check DHT22 | Boundary: ≤1.5°C" if telemetry else "Awaiting vehicular AE telemetry"
+            subtext="Sensirion SCD30 | Comfort: 18.0–30.0°C" if telemetry else "Awaiting vehicular AE telemetry"
         ) }}
     </div>
 
-    <!-- Relative Humidity -->
+    <!-- Relative Humidity (Sensirion SCD30) -->
     <div class="col-12 col-sm-6 col-xl-3">
+        {% set rh_val = telemetry.scd30.humidity_pct if telemetry and telemetry.scd30 else none %}
         {{ ui.metric_card(
             id_prefix="humidity",
             title="Relative Humidity",
-            value=telemetry.scd30.humidity_pct if telemetry and telemetry.scd30 else "—",
+            value=rh_val if rh_val is not none else "—",
             unit="%",
-            status_badge="OPTIMAL" if telemetry else "STANDBY",
-            status_variant="success" if telemetry else "secondary",
+            status_badge=("LOW RH" if rh_val < 30.0 else ("HIGH RH" if rh_val > 60.0 else "OPTIMAL")) if rh_val is not none else "STANDBY",
+            status_variant=("warning" if (rh_val < 30.0 or rh_val > 60.0) else "success") if rh_val is not none else "secondary",
             icon="moisture",
-            subtext="Dual-sensor variance: <0.5% RH" if telemetry else "Awaiting vehicular AE telemetry"
+            subtext="Sensirion SCD30 | Comfort: 30–60% RH" if telemetry else "Awaiting vehicular AE telemetry"
         ) }}
     </div>
 
     <!-- Actuator Closed-Loop Feedback -->
     <div class="col-12 col-sm-6 col-xl-3">
+        {% set expected_actions = [] %}
+        {% set target_pwm = 25 %}
+        {% if telemetry and telemetry.scd30 %}
+            {% if co2_val is not none and co2_val >= 1500 %}
+                {% set _ = expected_actions.append("FAN ON") %}
+                {% set target_pwm = 100 %}
+            {% elif co2_val is not none and co2_val >= 1000 %}
+                {% set _ = expected_actions.append("FAN ON") %}
+                {% set target_pwm = 75 %}
+            {% elif co2_val is not none and co2_val >= 800 %}
+                {% set _ = expected_actions.append("FAN ON") %}
+                {% set target_pwm = 50 %}
+            {% elif temp_val is not none and temp_val < 19.0 %}
+                {% set target_pwm = 0 %}
+            {% endif %}
+            {% if temp_val is not none and temp_val < 18.0 %}{% set _ = expected_actions.append("HEATER ON") %}{% endif %}
+            {% if temp_val is not none and temp_val > 30.0 %}{% set _ = expected_actions.append("AC ON") %}{% endif %}
+            {% if rh_val is not none and rh_val < 30.0 %}{% set _ = expected_actions.append("HUMIDIFIER ON") %}{% endif %}
+            {% if rh_val is not none and rh_val > 60.0 %}{% set _ = expected_actions.append("DEHUMIDIFIER ON") %}{% endif %}
+        {% endif %}
+        {% set action_summary = (expected_actions | join(", ")) if expected_actions else "IDLE (Nominal)" %}
         {{ ui.metric_card(
             id_prefix="fan-rpm",
             title="PWM Ventilation Actuator",
@@ -114,7 +138,7 @@
             status_badge=("DUTY: " ~ telemetry.actuator_state.pwm_duty_pct ~ "%") if telemetry and telemetry.actuator_state else "STANDBY",
             status_variant="info" if telemetry else "secondary",
             icon="fan",
-            subtext="Carrier: 25 kHz | Tachometer Hall Feedback" if telemetry else "Actuation controller awaiting AE",
+            subtext=("Expected: " ~ action_summary ~ " | Target PWM: " ~ target_pwm ~ "%") if telemetry else "Actuation controller awaiting AE",
             border_highlight="primary" if telemetry else None
         ) }}
     </div>
