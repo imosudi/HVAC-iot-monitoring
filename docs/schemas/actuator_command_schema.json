@@ -25,6 +25,18 @@
     "source_entity": {
       "type": "string",
       "description": "Identifier of the issuing oneM2M entity or user interface."
+    },
+    "actions": {
+      "type": "object",
+      "description": "Discrete HVAC actuator flags forwarded to the ESP32-S3 micro-ECU.",
+      "properties": {
+        "fan": { "type": "boolean" },
+        "ac": { "type": "boolean" },
+        "heater": { "type": "boolean" },
+        "humidifier": { "type": "boolean" },
+        "dehumidifier": { "type": "boolean" }
+      },
+      "additionalProperties": false
     }
   },
   "required": [

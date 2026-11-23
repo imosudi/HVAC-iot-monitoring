@@ -209,7 +209,7 @@ class SerialReader:
             return None
 
         if data.get("type") == "applied":
-            logger.debug("ESP32-S3 applied actuator state: %s", data.get("actuator_state"))
+            logger.info("ESP32-S3 applied actuator state: %s", data.get("actuator_state"))
             return None
 
         raw_scd30 = data.get("scd30")

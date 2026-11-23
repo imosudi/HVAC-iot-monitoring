@@ -73,6 +73,9 @@ services:
       - INFLUXDB_BUCKET=${DOCKER_INFLUXDB_INIT_BUCKET:-cabin_telemetry}
       - MAX_LATENCY_S=${BRIDGE_AE_EVAL_MAX_LATENCY_S:-2.5}
       - MAX_DELTA_T_C=${BRIDGE_AE_MAX_DELTA_T_C:-1.5}
+      - ONEM2M_CSE_URL=http://onem2m_cse:8080/sdv-cse
+      - ONEM2M_ADMIN_ORIGIN=${ONEM2M_ADMIN_ORIGIN:-CAdmin}
+      - BRIDGE_CLOSED_LOOP_ENABLED=${BRIDGE_CLOSED_LOOP_ENABLED:-true}
     depends_on:
       - onem2m_cse
       - influxdb
