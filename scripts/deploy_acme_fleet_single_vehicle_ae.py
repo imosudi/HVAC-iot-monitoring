@@ -314,7 +314,7 @@ def main():
                 "lbl": ["sensor", cnt_def["location"], cnt_def["measurement"], vehicle_id]
             }
         }
-        if c_name == "raw-telemetry":
+        if c_name in ("raw-telemetry", "commands"):
             cnt_payload["m2m:cnt"]["acpi"] = [f"/id-sdv/{cse_rn}/acp_fleet_manager"]
         c_status, c_res = request_m2m(
             f"{base_url}/{cse_rn}/{vehicle_id}",
@@ -328,7 +328,7 @@ def main():
             reconciled_cnts[c_name] = cnt_ri
             log("CREATED", f"  -> oneM2M <cnt>: {c_name:<20} (mni={mni:<4}, mia=86400, RI={cnt_ri})", "32")
         elif c_status == 409:
-            if c_name == "raw-telemetry":
+            if c_name in ("raw-telemetry", "commands"):
                 request_m2m(
                     f"{base_url}/{cse_rn}/{vehicle_id}/{c_name}",
                     method="PUT",

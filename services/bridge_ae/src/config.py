@@ -19,6 +19,14 @@ class BridgeConfig:
     
     port: int = field(default_factory=lambda: int(os.getenv("PORT", "5000")))
 
+    # Closed-loop HVAC rule dispatch (set BRIDGE_CLOSED_LOOP_ENABLED=false to revert to ACMEScripts-only)
+    closed_loop_enabled: bool = field(
+        default_factory=lambda: os.getenv("BRIDGE_CLOSED_LOOP_ENABLED", "true").lower() in ("true", "1", "yes")
+    )
+    closed_loop_refresh_s: float = field(default_factory=lambda: float(os.getenv("BRIDGE_CLOSED_LOOP_REFRESH_S", "2.0")))
+    onem2m_cse_url: str = field(default_factory=lambda: os.getenv("ONEM2M_CSE_URL", "http://onem2m_cse:8080/sdv-cse"))
+    onem2m_admin_origin: str = field(default_factory=lambda: os.getenv("ONEM2M_ADMIN_ORIGIN", "CAdmin"))
+
 
 config = BridgeConfig()
 

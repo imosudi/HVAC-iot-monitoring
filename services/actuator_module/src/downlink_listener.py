@@ -132,11 +132,13 @@ class DownlinkListener:
             return
 
         cmd_dict = None
+        ri = ""
         # Check if oneM2M TS-0010 notification primitive
         if "pc" in data and "m2m:sgn" in data["pc"]:
             sgn = data["pc"]["m2m:sgn"]
             rep = sgn.get("nev", {}).get("rep", {})
             cin = rep.get("m2m:cin", {})
+            ri = cin.get("ri", "")
             con = cin.get("con", "")
             if isinstance(con, str):
                 try:
@@ -147,6 +149,11 @@ class DownlinkListener:
                 cmd_dict = con
         elif "target_pwm" in data or "target_fan_pwm" in data:
             cmd_dict = data
+
+        if ri and ri == self.last_processed_ri:
+            return
+        if ri:
+            self.last_processed_ri = ri
 
         if cmd_dict and self.on_command:
             # Validate against schema if available

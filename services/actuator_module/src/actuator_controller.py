@@ -123,8 +123,8 @@ class ActuatorController:
         else:
             self.eco_vent_state = "ACTIVE"
 
-        # Calculate closed-loop tachometer feedback
-        if target_pwm == 0:
+        # Calculate tachometer feedback (emulated only in simulation mode)
+        if target_pwm == 0 or not self.is_simulated:
             self.tachometer_rpm = 0
         else:
             jitter = random.randint(-15, 15)
@@ -134,8 +134,8 @@ class ActuatorController:
         if not self.is_simulated and self.serial_conn is not None:
             try:
                 self._command_seq += 1
-                actions = directive.get("actions")
-                if not isinstance(actions, dict):
+                raw_actions = directive.get("actions")
+                if not isinstance(raw_actions, dict):
                     actions = {
                         "fan": self.target_pwm > 0,
                         "ac": False,
@@ -145,12 +145,14 @@ class ActuatorController:
                     }
                 else:
                     actions = {
-                        "fan": self.target_pwm > 0,
-                        "ac": bool(actions.get("ac", False)),
-                        "heater": bool(actions.get("heater", False)),
-                        "humidifier": bool(actions.get("humidifier", False)),
-                        "dehumidifier": bool(actions.get("dehumidifier", False)),
+                        "fan": bool(raw_actions.get("fan", self.target_pwm > 0)),
+                        "ac": bool(raw_actions.get("ac", False)),
+                        "heater": bool(raw_actions.get("heater", False)),
+                        "humidifier": bool(raw_actions.get("humidifier", False)),
+                        "dehumidifier": bool(raw_actions.get("dehumidifier", False)),
                     }
+                self.aux_heater_state = "ACTIVE" if actions["heater"] else "STANDBY"
+                self.dehumidifier_state = "ACTIVE" if actions["dehumidifier"] else "STANDBY"
                 cmd_payload = {
                     "type": "control",
                     "command_id": int(directive.get("command_id", self._command_seq)),
@@ -197,9 +199,9 @@ class ActuatorController:
         }
 
     def _publish_feedback_to_base_cse(self, state: Dict[str, Any]) -> None:
-        """Publishes acknowledged state back to Base CSE oneM2M commands container."""
+        """Publishes acknowledged state back to Base CSE actuator-status container (avoiding commands echo)."""
         try:
-            url = f"http://{self.base_host}:{self.http_port}/sdv-cse/{self.vehicle_id}/commands"
+            url = f"http://{self.base_host}:{self.http_port}/sdv-cse/{self.vehicle_id}/actuator-status"
             headers = {
                 "X-M2M-Origin": f"C_{self.vehicle_id}",
                 "X-M2M-RI": f"act_ack_{int(time.time() * 1000)}",
